@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crying Map - Complete Edition</title>
+    <title>Teardrop - Complete Edition</title>
     
     <!-- Google Maps API -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap&loading=async"></script>
@@ -1616,7 +1616,7 @@
     <div class="modal" id="authModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">😭 Join Crying Map</div>
+                <div class="modal-title">😭 Join Teardrop</div>
                 <button class="close-btn" onclick="closeAuthModal()">×</button>
             </div>
             <div class="modal-body">
@@ -2207,7 +2207,7 @@
 
         // Initialize App
         window.initializeApp = function() {
-            console.log('🚀 Initializing Crying Map Complete Edition...');
+            console.log('🚀 Initializing Teardrio Complete Edition...');
             
             // Load settings
             loadSettings();
@@ -4026,11 +4026,11 @@
             }
             
             const username = currentUser.profileData?.username || 'user';
-            const shareText = `Check out my emotional journey on Crying Map! Follow me @${username}\n\nhttps://cryingmap.com/user/${username}`;
+            const shareText = `Check out my emotional journey on Teardrop! Follow me @${username}\n\nhttps://cryingmap.com/user/${username}`;
             
             if (navigator.share) {
                 navigator.share({
-                    title: 'My Crying Map Profile',
+                    title: 'My Teardrop Profile',
                     text: shareText
                 });
             } else {
@@ -4884,7 +4884,7 @@
         window.makeSuggestion = function() {
             const email = 'support@cryingmap.com';
             const subject = 'Feature Suggestion';
-            const body = 'I have a suggestion for Crying Map:\n\n';
+            const body = 'I have a suggestion for Teardrop:\n\n';
             window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
         };
 

@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teardrop - Complete Edition</title>
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    <title>Teardrop - Map Your Emotional Journey</title>
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXX" crossorigin="anonymous"></script>
     
     <!-- Google Maps API -->
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg&callback=initMap&loading=async"></script>
@@ -17,9 +21,9 @@
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCvIhy5tUEeLjRKgZbJ5n5qDh5-nSFoaYA",
-            authDomain: "cryingmap-ac135.firebaseapp.com",
-            projectId: "cryingmap-ac135",
-            storageBucket: "cryingmap-ac135.firebasestorage.app",
+            authDomain: "teardrop-app.firebaseapp.com",
+            projectId: "teardrop-app",
+            storageBucket: "teardrop-app.firebasestorage.app",
             messagingSenderId: "41181872008",
             appId: "1:41181872008:web:3a6ccc7e02a707f53d843d",
             measurementId: "G-W8CSWRCFXS"
@@ -226,6 +230,26 @@
             padding: 20px;
             margin-bottom: 15px;
             border-left: 4px solid #FF6B35;
+        }
+
+        /* Ad Container */
+        .ad-container {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 15px 0;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ad-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
         }
 
         .feed-header {
@@ -762,6 +786,49 @@
             overflow-y: auto;
         }
 
+        .notification-item {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #4A90E2;
+        }
+
+        .achievement-notification {
+            border-left-color: #FFD700;
+        }
+
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .notification-icon {
+            font-size: 32px;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .notification-text {
+            color: #ccc;
+            font-size: 14px;
+        }
+
+        .notification-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
         .friend-request-item {
             background: #2d2d2d;
             border-radius: 15px;
@@ -1150,22 +1217,118 @@
             opacity: 0.5;
         }
 
-        /* Edit Profile Modal */
-        .edit-option {
-            padding: 15px;
-            border-bottom: 1px solid #333;
+        /* Edit Profile Modal - New iOS Style */
+        #editProfileModal.modal {
+            background: rgba(0, 0, 0, 0.95);
+        }
+        
+        #editProfileModal .modal-content {
+            background: #000;
+            border: none;
+            max-width: 400px;
+        }
+        
+        #editProfileModal .modal-header {
+            background: #000;
+            border-bottom: none;
+            padding: 15px 20px;
+            position: relative;
+        }
+        
+        #editProfileModal .modal-title {
+            text-align: center;
+            width: 100%;
+        }
+        
+        #editProfileModal .close-btn {
+            position: absolute;
+            left: 15px;
+            color: white;
+            background: none;
+            font-size: 16px;
+            width: auto;
+            height: auto;
+            padding: 0;
+        }
+        
+        #editProfileModal .modal-body {
+            background: #000;
+            padding: 0;
+        }
+        
+        .edit-profile-header {
+            text-align: center;
+            padding: 20px 0 30px;
+        }
+        
+        .edit-profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: #2d2d2d;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
-            gap: 15px;
+            justify-content: center;
+            font-size: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .edit-profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .change-photo-btn {
+            background: none;
+            border: none;
+            color: #4A90E2;
+            font-size: 14px;
             cursor: pointer;
+            padding: 5px 0;
         }
-
+        
+        .edit-option {
+            padding: 0;
+            border-bottom: 1px solid #333;
+            background: #111;
+            display: block;
+            width: 100%;
+            text-align: left;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
         .edit-option:hover {
-            background: #2d2d2d;
+            background: #1a1a1a;
         }
-
-        .edit-icon {
-            font-size: 24px;
+        
+        .edit-option-content {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .edit-option-label {
+            font-size: 16px;
+            color: #999;
+        }
+        
+        .edit-option-value {
+            font-size: 16px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .edit-arrow {
+            color: #666;
+            font-size: 18px;
         }
 
         /* User Profile Modal */
@@ -1272,6 +1435,43 @@
 
         .tab-content.active {
             display: block;
+        }
+
+        /* Countries Modal */
+        .countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            padding: 20px 0;
+        }
+
+        .country-item {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .country-item:hover {
+            background: #3d3d3d;
+            transform: scale(1.05);
+        }
+
+        .country-flag {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .country-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .country-cries {
+            font-size: 12px;
+            color: #FF6B35;
         }
 
         /* Responsive */
@@ -1444,7 +1644,7 @@
                             <span class="stat-number" id="statFollowers">0</span>
                             <span class="stat-label">Followers</span>
                         </div>
-                        <div class="stat-item">
+                        <div class="stat-item clickable" onclick="openCountriesModal()">
                             <span class="stat-number" id="statCountries">0</span>
                             <span class="stat-label">Countries</span>
                         </div>
@@ -1477,6 +1677,20 @@
                         </div>
                         <div class="achievements-grid" id="achievementsGrid"></div>
                     </div>
+
+                    <!-- AdSense Ad -->
+                    <div class="ad-container">
+                        <div class="ad-label">Advertisement</div>
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-client="ca-pub-XXXXXXXXXX"
+                             data-ad-slot="XXXXXXXXXX"
+                             data-ad-format="auto"
+                             data-full-width-responsive="true"></ins>
+                        <script>
+                             (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
                 </div>
             </div>
 
@@ -1487,7 +1701,7 @@
                         <div class="empty-state" id="notificationsEmpty">
                             <div class="empty-icon">🔔</div>
                             <h3>No Notifications</h3>
-                            <p>You'll see friend requests and updates here</p>
+                            <p>You'll see friend requests, achievements and updates here</p>
                         </div>
                         <div id="notificationsContent"></div>
                     </div>
@@ -1538,19 +1752,19 @@
                     <!-- About -->
                     <div class="settings-section">
                         <div class="section-header">About</div>
-                        <div class="setting-item" onclick="openLink('https://instagram.com/cryingmap')">
+                        <div class="setting-item" onclick="openLink('https://instagram.com/teardrop')">
                             <div class="setting-title">📷 Instagram</div>
                             <div class="setting-action">›</div>
                         </div>
-                        <div class="setting-item" onclick="openLink('https://x.com/cryingmap')">
+                        <div class="setting-item" onclick="openLink('https://x.com/teardrop')">
                             <div class="setting-title">🐦 X (Twitter)</div>
                             <div class="setting-action">›</div>
                         </div>
-                        <div class="setting-item" onclick="openLink('https://cryingmap.com')">
+                        <div class="setting-item" onclick="openLink('https://teardrop.app')">
                             <div class="setting-title">🌐 Website</div>
                             <div class="setting-action">›</div>
                         </div>
-                        <div class="setting-item" onclick="openLink('mailto:support@cryingmap.com')">
+                        <div class="setting-item" onclick="openLink('mailto:support@teardrop.app')">
                             <div class="setting-title">📧 Email</div>
                             <div class="setting-action">›</div>
                         </div>
@@ -1580,7 +1794,7 @@
 
                     <!-- App Version -->
                     <div style="padding: 20px; text-align: center; color: #666; font-size: 12px;">
-                        App version: 5.1.2
+                        App version: 5.2.0
                     </div>
                 </div>
             </div>
@@ -1876,29 +2090,55 @@
     <div class="modal" id="editProfileModal">
         <div class="modal-content">
             <div class="modal-header">
+                <button class="close-btn" onclick="closeEditProfileModal()">Done</button>
                 <div class="modal-title">Edit profile</div>
-                <button class="close-btn" onclick="closeEditProfileModal()">×</button>
+                <div style="width: 50px;"></div>
             </div>
             <div class="modal-body">
-                <div class="edit-option" onclick="changePhoto()">
-                    <div class="edit-icon">📷</div>
-                    <div>Change photo</div>
+                <div class="edit-profile-header">
+                    <div class="edit-profile-avatar" id="editProfileAvatar">
+                        <span id="editAvatarText">G</span>
+                    </div>
+                    <button class="change-photo-btn" onclick="changePhoto()">Change photo</button>
                 </div>
+                
                 <div class="edit-option" onclick="changeName()">
-                    <div class="edit-icon">👤</div>
-                    <div>Name</div>
+                    <div class="edit-option-content">
+                        <div class="edit-option-label">Name</div>
+                        <div class="edit-option-value">
+                            <span id="editNameValue"></span>
+                            <span class="edit-arrow">›</span>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class="edit-option" onclick="changeEmail()">
-                    <div class="edit-icon">📧</div>
-                    <div>Email</div>
+                    <div class="edit-option-content">
+                        <div class="edit-option-label">Email</div>
+                        <div class="edit-option-value">
+                            <span id="editEmailValue">user@example.com</span>
+                            <span class="edit-arrow">›</span>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class="edit-option" onclick="changeUsername()">
-                    <div class="edit-icon">🏷️</div>
-                    <div>Username</div>
+                    <div class="edit-option-content">
+                        <div class="edit-option-label">Username</div>
+                        <div class="edit-option-value">
+                            <span id="editUsernameValue">username</span>
+                            <span class="edit-arrow">›</span>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class="edit-option" onclick="changeBio()">
-                    <div class="edit-icon">📝</div>
-                    <div>Bio</div>
+                    <div class="edit-option-content">
+                        <div class="edit-option-label">Bio</div>
+                        <div class="edit-option-value">
+                            <span class="edit-arrow">›</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1977,6 +2217,10 @@
                 <div class="setting-item">
                     <div class="setting-title">Likes</div>
                     <div class="toggle-switch" id="notifyLikes" onclick="toggleSetting('notifyLikes')"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-title">Achievements</div>
+                    <div class="toggle-switch active" id="notifyAchievements" onclick="toggleSetting('notifyAchievements')"></div>
                 </div>
             </div>
         </div>
@@ -2106,6 +2350,19 @@
         </div>
     </div>
 
+    <!-- Countries Modal -->
+    <div class="modal" id="countriesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Countries You've Cried In</div>
+                <button class="close-btn" onclick="closeCountriesModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="countries-grid" id="countriesGrid"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Achievement Details Modal -->
     <div class="modal" id="achievementDetailsModal">
         <div class="modal-content">
@@ -2154,6 +2411,42 @@
         let currentCalendarDate = new Date();
         let achievements = {};
         let userLikes = JSON.parse(localStorage.getItem('userLikes') || '{}');
+        let achievementNotifications = JSON.parse(localStorage.getItem('achievementNotifications') || '[]');
+
+        // Country Flags
+        const countryFlags = {
+            'Denmark': '🇩🇰',
+            'Germany': '🇩🇪',
+            'Sweden': '🇸🇪',
+            'Norway': '🇳🇴',
+            'United States': '🇺🇸',
+            'United Kingdom': '🇬🇧',
+            'France': '🇫🇷',
+            'Spain': '🇪🇸',
+            'Italy': '🇮🇹',
+            'Netherlands': '🇳🇱',
+            'Belgium': '🇧🇪',
+            'Switzerland': '🇨🇭',
+            'Austria': '🇦🇹',
+            'Poland': '🇵🇱',
+            'Czech Republic': '🇨🇿',
+            'Portugal': '🇵🇹',
+            'Greece': '🇬🇷',
+            'Finland': '🇫🇮',
+            'Ireland': '🇮🇪',
+            'Canada': '🇨🇦',
+            'Mexico': '🇲🇽',
+            'Brazil': '🇧🇷',
+            'Argentina': '🇦🇷',
+            'Australia': '🇦🇺',
+            'New Zealand': '🇳🇿',
+            'Japan': '🇯🇵',
+            'China': '🇨🇳',
+            'India': '🇮🇳',
+            'Russia': '🇷🇺',
+            'South Africa': '🇿🇦',
+            'Unknown': '🌍'
+        };
 
         // Achievement Definitions
         const achievementDefinitions = {
@@ -2207,7 +2500,7 @@
 
         // Initialize App
         window.initializeApp = function() {
-            console.log('🚀 Initializing Teardrio Complete Edition...');
+            console.log('🚀 Initializing Teardrop Complete Edition...');
             
             // Load settings
             loadSettings();
@@ -2228,8 +2521,21 @@
             // Setup username check
             setupUsernameCheck();
             
+            // Load ads
+            loadAds();
+            
             console.log('✅ App initialized');
         };
+
+        // Load ads
+        function loadAds() {
+            // Initialize AdSense ads
+            try {
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            } catch (e) {
+                console.log('AdSense not loaded yet');
+            }
+        }
 
         // Settings Management
         function loadSettings() {
@@ -2241,11 +2547,12 @@
             if (privacySettings.shareGlobally) document.getElementById('shareGlobally')?.classList.add('active');
             
             // Load notification settings  
-            const notificationSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{}');
+            const notificationSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{"notifyAchievements": true}');
             if (notificationSettings.notifyNewCries) document.getElementById('notifyNewCries')?.classList.add('active');
             if (notificationSettings.notifyNewFollowers) document.getElementById('notifyNewFollowers')?.classList.add('active');
             if (notificationSettings.notifyComments) document.getElementById('notifyComments')?.classList.add('active');
             if (notificationSettings.notifyLikes) document.getElementById('notifyLikes')?.classList.add('active');
+            if (notificationSettings.notifyAchievements !== false) document.getElementById('notifyAchievements')?.classList.add('active');
             
             // Load feed settings
             const feedSettings = JSON.parse(localStorage.getItem('feedSettings') || '{}');
@@ -2343,6 +2650,37 @@
                 updateAchievements();
             }
             if (pageId === 'notificationsPage') loadNotifications();
+        };
+
+        // Countries Modal
+        window.openCountriesModal = function() {
+            const userCries = cries.filter(cry => cry.userId === (currentUser?.uid || 'anonymous'));
+            const countryCounts = {};
+            
+            userCries.forEach(cry => {
+                const country = cry.country || 'Unknown';
+                countryCounts[country] = (countryCounts[country] || 0) + 1;
+            });
+            
+            const countriesGrid = document.getElementById('countriesGrid');
+            
+            if (Object.keys(countryCounts).length === 0) {
+                countriesGrid.innerHTML = '<div class="empty-state"><div class="empty-icon">🌍</div><h3>No Countries Yet</h3><p>Start crying around the world!</p></div>';
+            } else {
+                countriesGrid.innerHTML = Object.entries(countryCounts).map(([country, count]) => `
+                    <div class="country-item">
+                        <div class="country-flag">${countryFlags[country] || countryFlags['Unknown']}</div>
+                        <div class="country-name">${country}</div>
+                        <div class="country-cries">${count} ${count === 1 ? 'cry' : 'cries'}</div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('countriesModal').classList.add('active');
+        };
+
+        window.closeCountriesModal = function() {
+            document.getElementById('countriesModal').classList.remove('active');
         };
 
         // Cries Modal Functions
@@ -3897,6 +4235,12 @@
                 const bio = currentUser.profileData?.bio || '';
                 document.getElementById('profileBio').textContent = bio;
                 document.getElementById('profileBio').style.display = bio ? 'block' : 'none';
+                
+                // Update edit profile modal
+                document.getElementById('editAvatarText').textContent = username.charAt(0).toUpperCase();
+                document.getElementById('editNameValue').textContent = currentUser.profileData?.displayName || username;
+                document.getElementById('editEmailValue').textContent = currentUser.email;
+                document.getElementById('editUsernameValue').textContent = username;
             } else {
                 document.getElementById('profileUsername').textContent = 'Guest User';
                 document.getElementById('profileAvatar').textContent = 'G';
@@ -3941,6 +4285,7 @@
                 showAuthModal();
                 return;
             }
+            updateProfileInfo(); // Refresh data
             document.getElementById('editProfileModal').classList.add('active');
         };
 
@@ -3969,7 +4314,7 @@
         };
 
         window.changeEmail = function() {
-            alert('To change your email, please contact support@cryingmap.com');
+            alert('To change your email, please contact support@teardrop.app');
         };
 
         window.changeUsername = async function() {
@@ -4026,7 +4371,7 @@
             }
             
             const username = currentUser.profileData?.username || 'user';
-            const shareText = `Check out my emotional journey on Teardrop! Follow me @${username}\n\nhttps://cryingmap.com/user/${username}`;
+            const shareText = `Check out my emotional journey on Teardrop! Follow me @${username}\n\nhttps://originaltear.github.io/teardropapp.github.io/user/${username}`;
             
             if (navigator.share) {
                 navigator.share({
@@ -4047,7 +4392,7 @@
             }
             
             const username = currentUser.profileData?.username || 'user';
-            const profileUrl = `https://cryingmap.com/user/${username}`;
+            const profileUrl = `https://originaltear.github.io/teardropapp.github.io/user/${username}`;
             
             navigator.clipboard.writeText(profileUrl);
             alert('Profile link copied!');
@@ -4428,12 +4773,36 @@
                 };
                 localStorage.setItem('achievements', JSON.stringify(achievements));
                 
+                // Add to notifications
+                const notificationSettings = JSON.parse(localStorage.getItem('notificationSettings') || '{"notifyAchievements": true}');
+                if (notificationSettings.notifyAchievements !== false) {
+                    addAchievementNotification(key);
+                }
+                
                 // Show notification
                 const achievement = achievementDefinitions[key];
                 alert(`🎉 Achievement Unlocked!\n\n${achievement.icon} ${achievement.name}\n${achievement.description}`);
                 
                 updateAchievements();
+                updateNotificationBadge();
             }
+        }
+
+        function addAchievementNotification(achievementKey) {
+            const achievement = achievementDefinitions[achievementKey];
+            const notification = {
+                id: Date.now().toString(),
+                type: 'achievement',
+                achievementKey: achievementKey,
+                icon: achievement.icon,
+                title: achievement.name,
+                description: achievement.description,
+                timestamp: new Date(),
+                read: false
+            };
+            
+            achievementNotifications.unshift(notification);
+            localStorage.setItem('achievementNotifications', JSON.stringify(achievementNotifications));
         }
 
         window.showAchievementDetails = function(key) {
@@ -4548,14 +4917,15 @@
                     return;
                 }
                 
-                const html = friendCries.map(cry => {
+                let html = '';
+                friendCries.forEach((cry, index) => {
                     const friend = following.find(f => f.uid === cry.userId);
                     const username = friend?.username || 'Unknown';
                     const timeAgo = getTimeAgo(new Date(cry.timestamp));
                     const likeCount = cry.likes?.length || 0;
                     const commentCount = cry.comments?.length || 0;
                     
-                    return `
+                    html += `
                         <div class="feed-item">
                             <div class="feed-header">
                                 <div class="user-avatar" onclick="showUserProfile('${cry.userId}')" style="cursor: pointer;">${username.charAt(0).toUpperCase()}</div>
@@ -4579,9 +4949,34 @@
                             </div>
                         </div>
                     `;
-                }).join('');
+                    
+                    // Add ad after every 3 posts
+                    if ((index + 1) % 3 === 0 && index !== friendCries.length - 1) {
+                        html += `
+                            <div class="ad-container">
+                                <div class="ad-label">Advertisement</div>
+                                <ins class="adsbygoogle"
+                                     style="display:block"
+                                     data-ad-client="ca-pub-XXXXXXXXXX"
+                                     data-ad-slot="XXXXXXXXXX"
+                                     data-ad-format="auto"
+                                     data-full-width-responsive="true"></ins>
+                            </div>
+                        `;
+                    }
+                });
                 
                 feedContent.innerHTML = html;
+                
+                // Initialize ads
+                try {
+                    const ads = feedContent.querySelectorAll('.adsbygoogle');
+                    ads.forEach(ad => {
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    });
+                } catch (e) {
+                    console.log('AdSense not loaded');
+                }
                 
             } catch (error) {
                 console.error('Error loading feed:', error);
@@ -4613,10 +5008,12 @@
         // Notifications
         function updateNotificationBadge() {
             const badge = document.getElementById('notificationBadge');
-            const count = friendRequests.length;
+            const friendRequestCount = friendRequests.length;
+            const unreadAchievements = achievementNotifications.filter(n => !n.read).length;
+            const totalCount = friendRequestCount + unreadAchievements;
             
-            if (count > 0) {
-                badge.textContent = count;
+            if (totalCount > 0) {
+                badge.textContent = totalCount;
                 badge.style.display = 'flex';
             } else {
                 badge.style.display = 'none';
@@ -4627,7 +5024,9 @@
             const notificationsEmpty = document.getElementById('notificationsEmpty');
             const notificationsContent = document.getElementById('notificationsContent');
             
-            if (!isLoggedIn || friendRequests.length === 0) {
+            const hasNotifications = friendRequests.length > 0 || achievementNotifications.length > 0;
+            
+            if (!hasNotifications) {
                 notificationsEmpty.style.display = 'block';
                 notificationsContent.innerHTML = '';
                 return;
@@ -4635,27 +5034,56 @@
             
             notificationsEmpty.style.display = 'none';
             
-            const html = friendRequests.map(request => `
-                <div class="friend-request-item">
-                    <div class="feed-header">
-                        <div class="user-avatar" onclick="showUserProfile('${request.fromUserId}')" style="cursor: pointer;">${request.senderInfo.username.charAt(0).toUpperCase()}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: bold; cursor: pointer; color: #4A90E2;" onclick="showUserProfile('${request.fromUserId}')">@${request.senderInfo.username}</div>
-                            <div style="font-size: 12px; color: #999;">Wants to follow you</div>
+            let html = '';
+            
+            // Achievement notifications
+            achievementNotifications.forEach(notification => {
+                if (!notification.read) {
+                    notification.read = true;
+                }
+                
+                html += `
+                    <div class="notification-item achievement-notification">
+                        <div class="notification-header">
+                            <div class="notification-icon">${notification.icon}</div>
+                            <div class="notification-content">
+                                <div class="notification-title">Achievement Unlocked!</div>
+                                <div class="notification-text">${notification.title}: ${notification.description}</div>
+                                <div class="notification-time">${getTimeAgo(new Date(notification.timestamp))}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="friend-request-actions">
-                        <button class="accept-btn" onclick="acceptFriendRequest('${request.id}', '${request.fromUserId}')">
-                            Accept
-                        </button>
-                        <button class="decline-btn" onclick="declineFriendRequest('${request.id}')">
-                            Decline
-                        </button>
+                `;
+            });
+            
+            // Friend requests
+            friendRequests.forEach(request => {
+                html += `
+                    <div class="friend-request-item">
+                        <div class="feed-header">
+                            <div class="user-avatar" onclick="showUserProfile('${request.fromUserId}')" style="cursor: pointer;">${request.senderInfo.username.charAt(0).toUpperCase()}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; cursor: pointer; color: #4A90E2;" onclick="showUserProfile('${request.fromUserId}')">@${request.senderInfo.username}</div>
+                                <div style="font-size: 12px; color: #999;">Wants to follow you</div>
+                            </div>
+                        </div>
+                        <div class="friend-request-actions">
+                            <button class="accept-btn" onclick="acceptFriendRequest('${request.id}', '${request.fromUserId}')">
+                                Accept
+                            </button>
+                            <button class="decline-btn" onclick="declineFriendRequest('${request.id}')">
+                                Decline
+                            </button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            });
             
             notificationsContent.innerHTML = html;
+            
+            // Save read status
+            localStorage.setItem('achievementNotifications', JSON.stringify(achievementNotifications));
+            updateNotificationBadge();
         }
 
         // Settings Modals
@@ -4783,9 +5211,14 @@
             achievements = {};
             localStorage.setItem('achievements', JSON.stringify(achievements));
             
+            // Clear achievement notifications
+            achievementNotifications = [];
+            localStorage.setItem('achievementNotifications', JSON.stringify(achievementNotifications));
+            
             // Update UI
             updateProfileStats();
             updateAchievements();
+            updateNotificationBadge();
             closeStatisticsModal();
             alert('All statistics have been reset');
         };
@@ -4818,7 +5251,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `crying_map_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `teardrop_data_${new Date().toISOString().split('T')[0]}.json`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -4864,7 +5297,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `crying_map_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.download = `teardrop_data_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             URL.revokeObjectURL(url);
         };
@@ -4875,14 +5308,14 @@
         };
 
         window.reportProblem = function() {
-            const email = 'support@cryingmap.com';
+            const email = 'support@teardrop.app';
             const subject = 'Problem Report';
             const body = 'Describe the problem you encountered:\n\n';
             window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
         };
 
         window.makeSuggestion = function() {
-            const email = 'support@cryingmap.com';
+            const email = 'support@teardrop.app';
             const subject = 'Feature Suggestion';
             const body = 'I have a suggestion for Teardrop:\n\n';
             window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);

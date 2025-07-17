@@ -422,13 +422,115 @@
         }
 
         .star.half::before {
-            content: '★';
-            position: absolute;
-            left: 0;
-            width: 50%;
-            overflow: hidden;
-            color: #FFD700;
-        }
+    content: '★';
+    position: absolute;
+    left: 0;
+    width: 50%;
+    overflow: hidden;
+    color: #FFD700;
+}
+
+/* Desktop Sidebar Ad */
+.desktop-sidebar-ad {
+    position: fixed;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 999;
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 15px;
+    border: 1px solid #333;
+    display: none;
+}
+
+/* Mobile Bottom Ad */
+.mobile-bottom-ad {
+    position: fixed;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    padding: 10px;
+    text-align: center;
+    display: none;
+}
+
+/* Post-Cry Success Modal */
+.post-cry-success-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2100;
+    padding: 20px;
+}
+
+.post-cry-success-modal.active {
+    display: flex;
+}
+
+.post-cry-success-content {
+    background: #1a1a1a;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    border: 1px solid #333;
+}
+
+.success-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.success-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4CAF50;
+    margin-bottom: 10px;
+}
+
+.success-continue-btn {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+/* Responsive Ad Display */
+@media (min-width: 1200px) {
+    .desktop-sidebar-ad {
+        display: block;
+    }
+    
+    .content-area {
+        margin-left: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-ad {
+        display: block;
+    }
+    
+    .content-area {
+        margin-bottom: 140px;
+    }
+}
 
         /* Calendar View */
         .calendar-container {
@@ -1684,7 +1786,7 @@
                         <ins class="adsbygoogle"
                              style="display:block"
                              data-ad-client="ca-pub-4733730200452740"
-                             data-ad-slot="XXXXXXXXXX"
+                             data-ad-slot="5871608851"
                              data-ad-format="auto"
                              data-full-width-responsive="true"></ins>
                         <script>
@@ -2527,7 +2629,7 @@
             console.log('✅ App initialized');
         };
 
-        // Load ads
+// Load ads
         function loadAds() {
             // Initialize AdSense ads
             try {
@@ -2536,6 +2638,43 @@
                 console.log('AdSense not loaded yet');
             }
         }
+
+        // Post-Cry Success Modal
+        function showPostCrySuccessModal() {
+            document.getElementById('postCrySuccessModal').classList.add('active');
+            
+            // Initialize ad after modal is shown
+            setTimeout(() => {
+                try {
+                    const adElement = document.querySelector('#postCrySuccessModal .adsbygoogle');
+                    if (adElement && !adElement.getAttribute('data-ad-status')) {
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                } catch (e) {
+                    console.log('AdSense not ready for success modal');
+                }
+            }, 100);
+            
+            // Countdown timer
+            let countdown = 5;
+            const countdownElement = document.getElementById('successCountdown');
+            const updateCountdown = () => {
+                if (countdown > 0) {
+                    countdownElement.textContent = `(${countdown})`;
+                    countdown--;
+                    setTimeout(updateCountdown, 1000);
+                } else {
+                    if (document.getElementById('postCrySuccessModal').classList.contains('active')) {
+                        closePostCrySuccessModal();
+                    }
+                }
+            };
+            updateCountdown();
+        }
+
+        window.closePostCrySuccessModal = function() {
+            document.getElementById('postCrySuccessModal').classList.remove('active');
+        };
 
         // Settings Management
         function loadSettings() {
@@ -3142,7 +3281,9 @@
                 }
             }
             
+// Close cry modal and show success modal with ad
             closeCryModal();
+            showPostCrySuccessModal();
         };
 
         async function updateUserStats() {
@@ -4957,8 +5098,8 @@
                                 <div class="ad-label">Advertisement</div>
                                 <ins class="adsbygoogle"
                                      style="display:block"
-                                     data-ad-client="ca-pub-XXXXXXXXXX"
-                                     data-ad-slot="XXXXXXXXXX"
+                                     data-ad-client="ca-pub-4733730200452740"
+                                     data-ad-slot="5871608851"
                                      data-ad-format="auto"
                                      data-full-width-responsive="true"></ins>
                             </div>
@@ -5375,6 +5516,63 @@
 
         // Update datetime every minute
         setInterval(updateDateTime, 60000);
-    </script>
+  </script>
+
+    <!-- Desktop Sidebar Ad -->
+    <div class="desktop-sidebar-ad">
+        <div class="ad-label">Advertisement</div>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4733730200452740"
+             crossorigin="anonymous"></script>
+        <!-- Teardrop-Desktop-Sidebar -->
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:160px;height:600px"
+             data-ad-client="ca-pub-4733730200452740"
+             data-ad-slot="1594464252"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
+    <!-- Mobile Bottom Ad -->
+    <div class="mobile-bottom-ad">
+        <div class="ad-label">Advertisement</div>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4733730200452740"
+             crossorigin="anonymous"></script>
+        <!-- Teardrop-Mobile-Bottom -->
+        <ins class="adsbygoogle"
+             style="display:inline-block;width:320px;height:50px"
+             data-ad-client="ca-pub-4733730200452740"
+             data-ad-slot="8626421242"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
+    <!-- Post-Cry Success Modal -->
+    <div class="post-cry-success-modal" id="postCrySuccessModal">
+        <div class="post-cry-success-content">
+            <div class="success-icon">🎉</div>
+            <div class="success-title">Cry Placed Successfully!</div>
+            <div class="success-message">Your emotional journey has been added to the map</div>
+            
+            <div style="margin: 20px 0; padding: 15px; background: #2d2d2d; border-radius: 10px;">
+                <div class="ad-label">Advertisement</div>
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4733730200452740"
+                     crossorigin="anonymous"></script>
+                <!-- Teardrop-Post-Cry-Success -->
+                <ins class="adsbygoogle"
+                     style="display:inline-block;width:300px;height:250px"
+                     data-ad-client="ca-pub-4733730200452740"
+                     data-ad-slot="5871608851"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
+            
+            <button class="success-continue-btn" onclick="closePostCrySuccessModal()">
+                Continue <span id="successCountdown"></span>
+            </button>
+        </div>
+    </div>
 </body>
 </html>

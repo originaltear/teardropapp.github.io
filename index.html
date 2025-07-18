@@ -21,13 +21,13 @@
 
         // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCvIhy5tUEeLjRKgZbJ5n5qDh5-nSFoaYA", // Same API key
-    authDomain: "cryingmap-ac135.firebaseapp.com", // ← CHANGED
-    projectId: "cryingmap-ac135", // ← CHANGED  
-    storageBucket: "cryingmap-ac135.appspot.com", // ← CHANGED
-    messagingSenderId: "41181872008", // Same
-    appId: "1:41181872008:web:3a6ccc7e02a707f53d843d", // Same
-    measurementId: "G-W8CSWRCFXS" // Same
+    apiKey: "AIzaSyCvIhy5tUEeLjRKgZbJ5n5qDh5-nSFoaYA",
+    authDomain: "cryingmap-ac135.firebaseapp.com",
+    projectId: "cryingmap-ac135",
+    storageBucket: "cryingmap-ac135.firebasestorage.app", // ← NYT FORMAT!
+    messagingSenderId: "41181872008",
+    appId: "1:41181872008:web:3a6ccc7e02a707f53d843d",
+    measurementId: "G-W8CSWRCFXS"
 };
 
         // Initialize Firebase
@@ -3290,8 +3290,26 @@ window.openSubscriptionManagement = function() {
             }
         });
 
-        // Handle redirect result for mobile - IMPROVED
-        window.getRedirectResult(window.auth).then(async (result) => {
+        // Handle redirect result for mobile
+        if (window.getRedirectResult) {
+            window.getRedirectResult(window.auth).then(async (result) => {
+                if (result && result.user) {
+                    console.log('📱 Mobile sign-in successful:', result.user.email);
+                    closeAuthModal();
+                }
+            }).catch((error) => {
+                console.log('📱 No redirect result or error:', error.message);
+            });
+        }
+    } else {
+        console.log('⏳ Firebase not ready, retrying...');
+        setTimeout(setupAuthListener, 500);
+    }
+}
+
+       // Handle redirect result for mobile - IMPROVED
+if (window.getRedirectResult) {
+    window.getRedirectResult(window.auth).then(async (result) => {
             if (result && result.user) {
                 console.log('📱 Mobile sign-in successful:', result.user.email);
                 
@@ -3344,7 +3362,6 @@ window.openSubscriptionManagement = function() {
         console.log('⏳ Firebase not ready, retrying...');
         setTimeout(setupAuthListener, 500);
     }
-}
 
         async function loadUserProfile() {
             if (!currentUser || !window.db) return;

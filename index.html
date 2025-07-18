@@ -2734,6 +2734,37 @@ const firebaseConfig = {
             'South Africa': { north: -22.1, south: -34.8, east: 32.9, west: 16.5 }
         };
 
+        // Debug Functions - TILFØJET DEBUG KODE
+        window.debugFirebase = function() {
+            console.log('🔥 === FIREBASE DEBUG INFO ===');
+            console.log('🔥 Firebase Auth:', !!window.auth);
+            console.log('🔥 Firebase DB:', !!window.db);
+            console.log('🔥 Project ID:', window.auth?.app?.options?.projectId);
+            console.log('🔥 Auth Domain:', window.auth?.app?.options?.authDomain);
+            console.log('🔥 Current User:', window.auth?.currentUser?.email || 'None');
+            console.log('🌐 Domain:', window.location.hostname);
+            console.log('🔒 HTTPS:', window.location.protocol === 'https:');
+            
+            // Test Identity Toolkit API
+            fetch('https://identitytoolkit.googleapis.com/v1/projects/cryingmap-ac135/config')
+                .then(r => console.log('✅ Identity Toolkit Status:', r.status))
+                .catch(e => console.log('❌ Identity Toolkit Error:', e));
+                
+            console.log('🔥 === END DEBUG INFO ===');
+        };
+
+        // Test auth functions
+        window.testAuth = function() {
+            console.log('🧪 Testing Firebase Auth...');
+            if (window.auth) {
+                console.log('✅ Auth object exists');
+                console.log('📧 Email auth available:', !!window.signInWithEmailAndPassword);
+                console.log('🔑 Google provider available:', !!window.googleProvider);
+            } else {
+                console.log('❌ No auth object');
+            }
+        };
+
         // Initialize App
         window.initializeApp = function() {
             console.log('🚀 Initializing Teardrop Complete Edition...');
@@ -3231,33 +3262,89 @@ window.openSubscriptionManagement = function() {
 
         // Authentication
         function setupAuthListener() {
-            if (window.onAuthStateChanged && window.auth) {
-                window.onAuthStateChanged(window.auth, async (user) => {
-    currentUser = user;
-    isLoggedIn = !!user;
-    
-    if (user) {
-        await loadUserProfile();
-        await loadFriendsAndNotifications();
-    }
-    
-    updateUI();
-});
-
-// Handle redirect result for mobile
-window.getRedirectResult(window.auth).then((result) => {
-    if (result.user) {
-        console.log('Mobile sign-in successful');
-        closeAuthModal();
-    }
-}).catch((error) => {
-    console.error('Redirect sign-in error:', error);
-    alert('Google sign-in failed: ' + error.message);
-});
-            } else {
-                setTimeout(setupAuthListener, 500);
+    if (window.onAuthStateChanged && window.auth) {
+        window.onAuthStateChanged(window.auth, async (user) => {
+            console.log('🔄 Auth state changed:', user?.email || 'No user');
+            
+            currentUser = user;
+            isLoggedIn = !!user;
+            
+            if (user) {
+                try {
+                    await loadUserProfile();
+                    await loadFriendsAndNotifications();
+                    console.log('✅ User loaded successfully');
+                } catch (error) {
+                    console.error('❌ Error loading user data:', error);
+                    if (error.message.includes('Identity Toolkit')) {
+                        alert('Firebase ikke klar endnu - prøv igen om lidt');
+                    }
+                }
             }
-        }
+            
+            updateUI();
+        }, (error) => {
+            console.error('❌ Auth state error:', error);
+            if (error.message.includes('Identity Toolkit')) {
+                alert('Firebase Auth ikke klar endnu - prøv igen om lidt');
+            }
+        });
+
+        // Handle redirect result for mobile - IMPROVED
+        window.getRedirectResult(window.auth).then(async (result) => {
+            if (result && result.user) {
+                console.log('📱 Mobile sign-in successful:', result.user.email);
+                
+                // Handle new user profile creation for mobile redirect
+                const userDoc = await window.getDoc(window.doc(window.db, 'users', result.user.uid));
+                if (!userDoc.exists()) {
+                    console.log('📝 Creating profile after mobile redirect...');
+                    const baseUsername = result.user.displayName?.toLowerCase().replace(/\s+/g, '') || 
+                                       result.user.email.split('@')[0];
+                    let username = baseUsername;
+                    let counter = 1;
+                    
+                    while (!(await checkUsernameAvailability(username))) {
+                        username = baseUsername + counter;
+                        counter++;
+                    }
+                    
+                    await window.setDoc(window.doc(window.db, 'users', result.user.uid), {
+                        uid: result.user.uid,
+                        username: username,
+                        email: result.user.email,
+                        displayName: result.user.displayName || username,
+                        bio: '',
+                        createdAt: new Date(),
+                        stats: {
+                            cries: 0,
+                            following: 0,
+                            followers: 0,
+                            countries: 0,
+                            avgRating: 0,
+                            totalLikes: 0,
+                            totalComments: 0
+                        },
+                        achievements: {},
+                        privacySettings: {}
+                    });
+                }
+                
+                closeAuthModal();
+            }
+        }).catch((error) => {
+            console.error('📱 Mobile redirect error:', error);
+            if (error.message.includes('Identity Toolkit')) {
+                alert('Firebase ikke klar - check at Identity Toolkit API er aktiveret');
+            } else {
+                alert('Google sign-in failed: ' + error.message);
+            }
+        });
+    } else {
+        console.log('⏳ Firebase not ready, retrying...');
+        setTimeout(setupAuthListener, 500);
+    }
+}
 
         async function loadUserProfile() {
             if (!currentUser || !window.db) return;
@@ -3374,60 +3461,79 @@ window.getRedirectResult(window.auth).then((result) => {
 
         window.signInWithGoogle = async function() {
     try {
-        // Check if mobile device
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        console.log('🔄 Starting Google sign-in...');
         
+        // Always try popup first, fallback to redirect if blocked
         let result;
-        if (isMobile) {
-            // Use redirect for mobile
-            await window.signInWithRedirect(window.auth, window.googleProvider);
-            return; // Don't continue, redirect will handle it
-        } else {
-            // Use popup for desktop
+        try {
             result = await window.signInWithPopup(window.auth, window.googleProvider);
-        }
-                
-                // Check if profile exists
-                const userDoc = await window.getDoc(window.doc(window.db, 'users', result.user.uid));
-                
-                if (!userDoc.exists()) {
-                    // Create profile for new Google user
-                    const baseUsername = result.user.displayName?.toLowerCase().replace(/\s+/g, '') || 
-                                       result.user.email.split('@')[0];
-                    let username = baseUsername;
-                    let counter = 1;
-                    
-                    while (!(await checkUsernameAvailability(username))) {
-                        username = baseUsername + counter;
-                        counter++;
-                    }
-                    
-                    await window.setDoc(window.doc(window.db, 'users', result.user.uid), {
-                        uid: result.user.uid,
-                        username: username,
-                        email: result.user.email,
-                        displayName: result.user.displayName || username,
-                        bio: '',
-                        createdAt: new Date(),
-                        stats: {
-                            cries: 0,
-                            following: 0,
-                            followers: 0,
-                            countries: 0,
-                            avgRating: 0,
-                            totalLikes: 0,
-                            totalComments: 0
-                        },
-                        achievements: {},
-                        privacySettings: {}
-                    });
-                }
-                
-                closeAuthModal();
-            } catch (error) {
-                alert('Google sign-in failed: ' + error.message);
+            console.log('✅ Popup sign-in success:', result.user.email);
+        } catch (popupError) {
+            console.log('🔄 Popup failed, trying redirect...', popupError.code);
+            if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-popup-request') {
+                await window.signInWithRedirect(window.auth, window.googleProvider);
+                return; // Redirect will handle the rest
+            } else {
+                throw popupError; // Re-throw other errors
             }
-        };
+        }
+        
+        // Check if profile exists
+        const userDoc = await window.getDoc(window.doc(window.db, 'users', result.user.uid));
+        
+        if (!userDoc.exists()) {
+            console.log('📝 Creating new profile...');
+            // Create profile for new Google user
+            const baseUsername = result.user.displayName?.toLowerCase().replace(/\s+/g, '') || 
+                               result.user.email.split('@')[0];
+            let username = baseUsername;
+            let counter = 1;
+            
+            while (!(await checkUsernameAvailability(username))) {
+                username = baseUsername + counter;
+                counter++;
+            }
+            
+            await window.setDoc(window.doc(window.db, 'users', result.user.uid), {
+                uid: result.user.uid,
+                username: username,
+                email: result.user.email,
+                displayName: result.user.displayName || username,
+                bio: '',
+                createdAt: new Date(),
+                stats: {
+                    cries: 0,
+                    following: 0,
+                    followers: 0,
+                    countries: 0,
+                    avgRating: 0,
+                    totalLikes: 0,
+                    totalComments: 0
+                },
+                achievements: {},
+                privacySettings: {}
+            });
+        }
+        
+        closeAuthModal();
+        
+    } catch (error) {
+        console.error('❌ Google sign-in error:', error);
+        
+        // Better error messages
+        if (error.code === 'auth/popup-blocked') {
+            alert('Tillad popups for denne side og prøv igen');
+        } else if (error.code === 'auth/configuration-not-found') {
+            alert('Firebase konfigurationsfejl - Identity Toolkit API skal aktiveres');
+        } else if (error.message.includes('Identity Toolkit')) {
+            alert('Firebase API ikke aktiveret - vent venligst 5-10 minutter og prøv igen');
+        } else if (error.code === 'auth/operation-not-allowed') {
+            alert('Google sign-in ikke aktiveret i Firebase Console');
+        } else {
+            alert('Google sign-in fejlede: ' + error.message);
+        }
+    }
+};
 
         window.handleLogout = async function() {
             try {

@@ -6186,9 +6186,13 @@ function updateUI() {
     </div>
 
 <!-- Premium Upgrade Modal -->
-   <div class="modal-title">✨ Choose Your Plan</div>
-            </div>
-            <div class="modal-body">
+<div class="modal" id="upgradeModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">✨ Choose Your Plan</div>
+            <button class="close-btn" onclick="closeUpgradeModal()">×</button>
+        </div>
+        <div class="modal-body">
                 <div class="premium-upgrade-card" style="margin: 0;">
                     <!-- Ad-Free Plan -->
 <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">

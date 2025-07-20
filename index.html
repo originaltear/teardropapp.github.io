@@ -3147,6 +3147,66 @@ window.purchasePremium = async function(planType) {
 // Keep old function for backwards compatibility
 window.removeAdsForever = window.purchaseAdFree;
 
+// Show tier features
+window.showTierFeatures = function(tier) {
+    const features = {
+        'basic': `
+            <div>🚫 <strong>Everything in Ad-Free</strong> PLUS:</div>
+            <div>🎨 <strong>3 Themes</strong> - Dark, Light, Forest</div>
+            <div>🌈 <strong>5 Name Colors</strong> - Basic selection</div>
+            <div>🎙️ <strong>Voice Notes</strong> - 15 second audio cries</div>
+            <div>📊 <strong>Basic Stats</strong> - Simple analytics</div>
+            <div>📧 <strong>Standard Support</strong> - 48h response</div>
+        `,
+        'standard': `
+            <div>🚫 <strong>Everything in Ad-Free</strong> PLUS:</div>
+            <div>🎨 <strong>10+ Themes</strong> - All themes unlocked</div>
+            <div>🌈 <strong>20+ Name Colors</strong> - Stand out!</div>
+            <div>📸 <strong>3 Photos</strong> - Add photos to cries</div>
+            <div>🎙️ <strong>Voice Notes</strong> - 30 second audio cries</div>
+            <div>📊 <strong>Advanced Stats</strong> - Detailed analytics</div>
+            <div>⚡ <strong>Priority Support</strong> - 24h response</div>
+            <div>🏆 <strong>Founding Member Badge</strong> - First 1000 only!</div>
+        `,
+        'plus': `
+            <div>🚫 <strong>Everything in Ad-Free</strong> PLUS:</div>
+            <div>🎨 <strong>All Themes + Custom</strong> - Create your own!</div>
+            <div>🌈 <strong>Custom RGB Colors</strong> - Any color you want</div>
+            <div>📸 <strong>Unlimited Photos</strong> - No limits!</div>
+            <div>🎙️ <strong>Voice Notes</strong> - 60 second audio cries</div>
+            <div>📊 <strong>Pro Analytics</strong> - Export data & insights</div>
+            <div>👑 <strong>VIP Support</strong> - Instant priority</div>
+            <div>🚀 <strong>Early Access</strong> - Try features first!</div>
+            <div>🏆 <strong>All Badges</strong> - Exclusive VIP badges</div>
+        `
+    };
+    
+    const featureDiv = document.querySelector('.premium-features');
+    if (featureDiv) {
+        featureDiv.innerHTML = features[tier];
+    }
+    
+    // Update title based on tier
+    const titles = {
+        'basic': '✨ Premium Basic',
+        'standard': '✨ Premium Standard',
+        'plus': '✨ Premium Plus'
+    };
+    
+    const titleElement = document.querySelector('#upgradeModal h3:last-of-type');
+    if (titleElement) {
+        titleElement.textContent = titles[tier];
+    }
+    
+    // Highlight the selected price button
+    if (event && event.target) {
+        document.querySelectorAll('.upgrade-btn').forEach(btn => {
+            btn.style.opacity = '0.7';
+        });
+        event.target.style.opacity = '1';
+    }
+};
+
 // Pricing tab switcher
 window.showPricingTab = function(tab) {
     // Hide all pricing options
@@ -6240,15 +6300,15 @@ function updateUI() {
 
 <!-- Monthly Pricing -->
 <div id="monthlyPricing" class="pricing-options" style="display: flex; gap: 10px;">
-    <button class="upgrade-btn" onclick="purchasePremium('monthly_499')" style="flex: 1;">
-        $4.99/mo
-    </button>
-    <button class="upgrade-btn" onclick="purchasePremium('monthly_799')" style="flex: 1; background: #FFD700;">
-        $7.99/mo<br><small>Popular</small>
-    </button>
-    <button class="upgrade-btn" onclick="purchasePremium('monthly_999')" style="flex: 1;">
-        $9.99/mo
-    </button>
+<button class="upgrade-btn" onclick="showTierFeatures('basic'); purchasePremium('monthly_499')" onmouseover="showTierFeatures('basic')" style="flex: 1;">
+    $4.99/mo<br><small>Basic</small>
+</button>
+<button class="upgrade-btn" onclick="showTierFeatures('standard'); purchasePremium('monthly_799')" onmouseover="showTierFeatures('standard')" style="flex: 1; background: #FFD700;">
+    $7.99/mo<br><small>Popular</small>
+</button>
+<button class="upgrade-btn" onclick="showTierFeatures('plus'); purchasePremium('monthly_999')" onmouseover="showTierFeatures('plus')" style="flex: 1;">
+    $9.99/mo<br><small>Plus</small>
+</button>
 </div>
 
 <!-- 3 Months Pricing -->
@@ -6294,27 +6354,6 @@ function updateUI() {
         ⚡ Keep ad-free forever even if you cancel!
     </div>
 </div>
-                    
-<div style="background: rgba(255,255,255,0.15); padding: 25px; border-radius: 15px; margin: 20px 0; border: 2px solid rgba(255,255,255,0.3);">
-                        <div style="text-align: center;">
-                            <div style="font-size: 14px; opacity: 0.9; margin-bottom: 10px;">🚀 ONE-TIME PURCHASE</div>
-                            <div style="font-size: 48px; font-weight: bold; line-height: 1;">5.50 usd</div>
-                            <div style="font-size: 16px; opacity: 0.9; margin-top: 5px;">Remove Ads Forever!</div>
-                            <div style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Pay once, enjoy ad-free experience forever</div>
-                        </div>
-                    </div>
-                    
-                    <button class="upgrade-btn" style="width: 100%; font-size: 18px; padding: 15px;" onclick="removeAdsForever()">
-                        🚫 Remove Ads Forever - 5.50 usd✨
-                    </button>
-                    
-                    <div style="font-size: 12px; margin-top: 15px; opacity: 0.8;">
-                        ✅ Cancel anytime • 🔒 Secure payment • 💰 30-day money back
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Subscription Management Modal -->
     <div class="modal" id="subscriptionModal">

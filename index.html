@@ -3224,6 +3224,54 @@ window.showPricingTab = function(tab) {
     document.getElementById(tab + 'Tab').style.border = 'none';
 };
 
+// Subscription Management
+window.openSubscriptionManagement = function() {
+    if (!isLoggedIn) {
+        showAuthModal();
+        return;
+    }
+    
+    // Update subscription details
+    const user = currentUser?.profileData;
+    if (user) {
+        const details = document.getElementById('subscriptionDetails');
+        const badge = document.getElementById('subscriptionBadge');
+        
+        if (details && badge) {
+            if (user.premiumType) {
+                const tierName = user.premiumTier ? user.premiumTier.toUpperCase() : 'PREMIUM';
+                const endDate = user.premiumEndDate ? new Date(user.premiumEndDate).toLocaleDateString() : 'Unknown';
+                details.textContent = `Premium ${tierName} • Renews ${endDate}`;
+                badge.textContent = 'ACTIVE';
+                badge.className = 'premium-badge';
+            } else if (user.isAdFree) {
+                details.textContent = 'Ad-Free Forever • Purchased for $2.99';
+                badge.textContent = 'LIFETIME';
+                badge.className = 'premium-badge';
+            }
+        }
+    }
+    
+    document.getElementById('subscriptionModal').classList.add('active');
+};
+
+window.closeSubscriptionModal = function() {
+    document.getElementById('subscriptionModal').classList.remove('active');
+};
+
+window.cancelSubscription = function() {
+    if (currentUser?.profileData?.permanentAdFree) {
+        alert('🎉 Good news!\n\nYou keep ad-free access forever, even after cancelling premium!\n\nAre you sure you want to cancel premium features?');
+        // Her ville vi implementere cancel logic
+    } else {
+        alert('Cancel subscription feature coming soon!\n\nFor now, contact support@teardrop.app');
+    }
+};
+
+window.openBillingPortal = function() {
+    alert('Billing portal coming soon!\n\nFor now, contact support@teardrop.app for billing questions.');
+};
+
         // No cancel function needed for one-time purchases!
         // Users get lifetime access once they pay 5.50 usd
         window.cancelSubscription = function() {

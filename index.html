@@ -1967,12 +1967,12 @@ const firebaseConfig = {
                     <div class="settings-section" id="premiumSection">
                         <div class="section-header">🌟 Premium</div>
 <div class="setting-item" id="premiumUpgradeItem" onclick="showUpgradeModal()">
-                            <div class="setting-title">
-                                <div>🚫 Remove Ads Forever</div>
-                                <div style="font-size: 12px; color: #999;">One-time purchase, lifetime ad-free</div>
-                            </div>
-                            <div class="setting-action">5.50 usd</div>
-                        </div>
+    <div class="setting-title">
+        <div>🚫 Remove Ads</div>
+        <div style="font-size: 12px; color: #999;">One-time $2.99 or Premium monthly</div>
+    </div>
+    <div class="setting-action">From $2.99</div>
+</div>
                         <div class="setting-item" id="premiumManageItem" onclick="openSubscriptionManagement()" style="display: none;">
                             <div class="setting-title">
                                 <div style="display: flex; align-items: center;">
@@ -2860,62 +2860,92 @@ window.closePostCrySuccessModal = function() {
 
         // Premium Functions
 function isPremiumUser(user) {
-            if (!user?.subscription) return false;
-            
-            const sub = user.subscription;
-            if (sub.status !== 'premium') return false;
-            
-            // For one-time purchases, no expiration check needed
-            // They paid once, they get lifetime access
-            if (sub.type === 'remove_ads_forever' || sub.isLifetime) {
-                return true;
-            }
-            
-            // Legacy subscription check (in case some users have subscriptions)
-            if (sub.endDate && new Date() > new Date(sub.endDate)) {
-                return false;
-            }
-            
-            return true;
-        }
+    if (!user) return false;
+    
+    // Check subscription type
+    if (user.subscriptionType === 'premium' || user.isPremium) {
+        return true;
+    }
+    
+    // Legacy support for old premium field
+    if (user.subscription?.status === 'premium') {
+        return true;
+    }
+    
+    return false;
+}
 
-        function shouldShowAds() {
-            return !isLoggedIn || !isPremiumUser(currentUser?.profileData);
-        }
+function isAdFreeUser(user) {
+    if (!user) return false;
+    
+    // Premium users are always ad-free
+    if (isPremiumUser(user)) return true;
+    
+    // Check if user has ad-free subscription or permanent ad-free
+    if (user.subscriptionType === 'ad_free' || user.isAdFree || user.permanentAdFree) {
+        return true;
+    }
+    
+    // Legacy support
+    if (user.subscription?.type === 'remove_ads_forever' || user.subscription?.isLifetime) {
+        return true;
+    }
+    
+    return false;
+    }
+
+function shouldShowAds() {
+    if (!isLoggedIn) return true;
+    return !isAdFreeUser(currentUser?.profileData);
+    }
+
 
         function updatePremiumUI() {
-            const upgradeItem = document.getElementById('premiumUpgradeItem');
-            const manageItem = document.getElementById('premiumManageItem');
-            
-            if (isPremiumUser(currentUser?.profileData)) {
-                // Show premium management, hide upgrade
-                upgradeItem.style.display = 'none';
-                manageItem.style.display = 'flex';
-                
-                // Add premium badge to profile
-                const profileUsername = document.getElementById('profileUsername');
-                if (profileUsername && !profileUsername.querySelector('.premium-badge')) {
-                    const badge = document.createElement('span');
-                    badge.className = 'premium-badge';
-                    badge.textContent = 'PREMIUM';
-                    profileUsername.appendChild(badge);
-                }
-                
-                // Hide all ads
-                document.body.classList.add('hide-ads');
-            } else {
-                // Show upgrade option, hide management
-                upgradeItem.style.display = 'flex';
-                manageItem.style.display = 'none';
-                
-                // Remove premium badge
-                const badge = document.querySelector('.premium-badge');
-                if (badge) badge.remove();
-                
-                // Show ads
-                document.body.classList.remove('hide-ads');
-            }
+    const upgradeItem = document.getElementById('premiumUpgradeItem');
+    const manageItem = document.getElementById('premiumManageItem');
+    
+    if (isPremiumUser(currentUser?.profileData)) {
+        // Show premium management, hide upgrade
+        upgradeItem.style.display = 'none';
+        manageItem.style.display = 'flex';
+        
+        // Add premium badge to profile
+        const profileUsername = document.getElementById('profileUsername');
+        if (profileUsername && !profileUsername.querySelector('.premium-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'premium-badge';
+            badge.textContent = 'PREMIUM';
+            profileUsername.appendChild(badge);
         }
+        
+        // Hide all ads
+        document.body.classList.add('hide-ads');
+    } else if (isAdFreeUser(currentUser?.profileData)) {
+        // Ad-free users see different upgrade option
+        upgradeItem.style.display = 'flex';
+        manageItem.style.display = 'none';
+        
+        // Update text to show they can upgrade to premium
+        const upgradeTitle = upgradeItem.querySelector('.setting-title div:first-child');
+        if (upgradeTitle) {
+            upgradeTitle.textContent = '✨ Upgrade to Premium';
+        }
+        
+        // Hide all ads
+        document.body.classList.add('hide-ads');
+    } else {
+        // Show upgrade option, hide management
+        upgradeItem.style.display = 'flex';
+        manageItem.style.display = 'none';
+        
+        // Remove premium badge
+        const badge = document.querySelector('.premium-badge');
+        if (badge) badge.remove();
+        
+        // Show ads
+        document.body.classList.remove('hide-ads');
+    }
+}
 
         // Premium Modal Functions
         window.showUpgradeModal = function() {
@@ -2963,51 +2993,176 @@ window.openSubscriptionManagement = function() {
         };
 
 // One-Time Payment Function
-        window.removeAdsForever = async function() {
-            if (!isLoggedIn) {
-                showAuthModal();
-                return;
+        // Ad-Free Purchase ($2.99 one-time)
+window.purchaseAdFree = async function() {
+    if (!isLoggedIn) {
+        showAuthModal();
+        return;
+    }
+    
+    const confirmed = confirm('Remove Ads Forever?\n\n💰 Price: $2.99 (one-time payment)\n✨ Never see ads again\n🔄 Works on all your devices\n\nProceed with purchase?');
+    
+    if (confirmed) {
+        try {
+            // Update Firebase
+            if (window.db) {
+                await window.updateDoc(window.doc(window.db, 'users', currentUser.uid), {
+                    subscriptionType: 'ad_free',
+                    isAdFree: true,
+                    adFreePurchaseDate: new Date(),
+                    'subscription.type': 'ad_free',
+                    'subscription.price': '2.99',
+                    'subscription.currency': 'USD',
+                    'subscription.purchaseDate': new Date()
+                });
             }
             
-            // Confirm purchase
-            const confirmed = confirm('Remove Ads Forever?\n\n💰 Price: 5.50 usd (one-time payment)\n✨ Never see ads again\n🔄 Works on all your devices\n\nProceed with purchase?');
+            // Update local user data
+            if (!currentUser.profileData) currentUser.profileData = {};
+            currentUser.profileData.subscriptionType = 'ad_free';
+            currentUser.profileData.isAdFree = true;
+            currentUser.profileData.adFreePurchaseDate = new Date();
             
-            if (confirmed) {
-                try {
-                    // Simulate payment (replace with real payment later)
-                    const purchaseData = {
-                        status: 'premium',
-                        type: 'remove_ads_forever',
-                        purchaseDate: new Date(),
-                        price: '5.50 usd',
-                        currency: 'USD',
-                        transactionId: 'tx_' + Date.now(),
-                        isLifetime: true
-                    };
-                    
-                    // Update Firebase
-                    if (window.db) {
+            // Update UI
+            updatePremiumUI();
+            closeUpgradeModal();
+            
+            alert('🎉 Congratulations!\n\n✨ Ads removed forever!\n🚫 You will never see ads again\n💎 Thank you for supporting Teardrop!');
+            
+        } catch (error) {
+            console.error('Purchase error:', error);
+            alert('Purchase failed. Please try again.');
+        }
+    }
+};
+
+// Premium Purchase (All plans)
+window.purchasePremium = async function(planType) {
+    if (!isLoggedIn) {
+        showAuthModal();
+        return;
+    }
+    
+    const plans = {
+        // Monthly plans
+        'monthly_499': { price: '$4.99', amount: 4.99, months: 1, tier: 'basic', displayPrice: '$4.99/month' },
+        'monthly_799': { price: '$7.99', amount: 7.99, months: 1, tier: 'standard', popular: true, displayPrice: '$7.99/month' },
+        'monthly_999': { price: '$9.99', amount: 9.99, months: 1, tier: 'plus', displayPrice: '$9.99/month' },
+        
+        // 3 month plans (10% off)
+        '3months_1349': { price: '$13.49', amount: 13.49, months: 3, tier: 'basic', displayPrice: '$13.49 for 3 months', monthlyRate: '$4.49/mo' },
+        '3months_2159': { price: '$21.59', amount: 21.59, months: 3, tier: 'standard', popular: true, displayPrice: '$21.59 for 3 months', monthlyRate: '$7.19/mo' },
+        '3months_2699': { price: '$26.99', amount: 26.99, months: 3, tier: 'plus', displayPrice: '$26.99 for 3 months', monthlyRate: '$8.99/mo' },
+        
+        // 6 month plans (15% off)
+        '6months_2544': { price: '$25.44', amount: 25.44, months: 6, tier: 'basic', displayPrice: '$25.44 for 6 months', monthlyRate: '$4.24/mo' },
+        '6months_4074': { price: '$40.74', amount: 40.74, months: 6, tier: 'standard', popular: true, displayPrice: '$40.74 for 6 months', monthlyRate: '$6.79/mo' },
+        '6months_5094': { price: '$50.94', amount: 50.94, months: 6, tier: 'plus', displayPrice: '$50.94 for 6 months', monthlyRate: '$8.49/mo' },
+        
+        // Yearly plans (20% off)
+        'yearly_4788': { price: '$47.88', amount: 47.88, months: 12, tier: 'basic', displayPrice: '$47.88 for 1 year', monthlyRate: '$3.99/mo' },
+        'yearly_7668': { price: '$76.68', amount: 76.68, months: 12, tier: 'standard', popular: true, bestValue: true, displayPrice: '$76.68 for 1 year', monthlyRate: '$6.39/mo' },
+        'yearly_9588': { price: '$95.88', amount: 95.88, months: 12, tier: 'plus', displayPrice: '$95.88 for 1 year', monthlyRate: '$7.99/mo' }
+    };
+    
+    const plan = plans[planType];
+    const tierFeatures = {
+        'basic': '✨ Premium Basic\n🚫 Ad-free forever\n🎨 3 themes\n🌈 5 name colors\n🎙️ 15 second voice notes',
+        'standard': '✨ Premium Standard\n🚫 Ad-free forever\n🎨 10+ themes\n🌈 20+ name colors\n🎙️ 30 second voice notes\n📸 3 photos per cry\n⚡ Priority support\n🏆 Founding member badge',
+        'plus': '✨ Premium Plus\n🚫 Ad-free forever\n🎨 All themes + custom\n🌈 Custom RGB colors\n🎙️ 60 second voice notes\n📸 Unlimited photos\n🚀 Early access features\n👑 VIP support'
+    };
+    
+    const popularText = plan.popular ? ' (MOST POPULAR)' : '';
+    const bestValueText = plan.bestValue ? ' - BEST VALUE!' : '';
+    const savingsText = plan.months > 1 ? `\n💰 You save: ${plan.monthlyRate}` : '';
+    
+    const confirmed = confirm(`Premium Membership${popularText}${bestValueText}\n\n💰 Price: ${plan.displayPrice}${savingsText}\n\n${tierFeatures[plan.tier]}\n\nProceed with purchase?`);
+    
+    if (confirmed) {
+        try {
+            const now = new Date();
+            const endDate = new Date(now);
+            endDate.setMonth(endDate.getMonth() + plan.months);
+            
+            // Update Firebase
+            if (window.db) {
+                const updateData = {
+                    subscriptionType: 'premium',
+                    isPremium: true,
+                    isAdFree: true,
+                    permanentAdFree: true, // Premium users keep ad-free forever!
+                    premiumType: planType,
+                    premiumTier: plan.tier,
+                    premiumStartDate: now,
+                    premiumEndDate: endDate,
+                    nameColor: '#FF6B35', // Default, can be changed later
+                    'subscription.type': 'premium',
+                    'subscription.plan': planType,
+                    'subscription.tier': plan.tier,
+                    'subscription.price': plan.price,
+                    'subscription.amount': plan.amount,
+                    'subscription.currency': 'USD',
+                    'subscription.months': plan.months,
+                    'subscription.startDate': now,
+                    'subscription.endDate': endDate
+                };
+                
+                await window.updateDoc(window.doc(window.db, 'users', currentUser.uid), updateData);
+                
+                // Add founding member badge if within first 1000 (only for standard and plus)
+                if (plan.tier !== 'basic') {
+                    const usersQuery = window.query(window.collection(window.db, 'users'), window.where('isPremium', '==', true));
+                    const snapshot = await window.getDocs(usersQuery);
+                    if (snapshot.size < 1000) {
                         await window.updateDoc(window.doc(window.db, 'users', currentUser.uid), {
-                            subscription: purchaseData
+                            badges: window.arrayUnion('founding_member')
                         });
                     }
-                    
-                    // Update local user data
-                    if (!currentUser.profileData) currentUser.profileData = {};
-                    currentUser.profileData.subscription = purchaseData;
-                    
-                    // Update UI
-                    updatePremiumUI();
-                    closeUpgradeModal();
-                    
-                    alert('🎉 Congratulations!\n\n✨ Ads removed forever!\n🚫 You will never see ads again\n💎 Thank you for supporting Teardrop!');
-                    
-                } catch (error) {
-                    console.error('Purchase error:', error);
-                    alert('Purchase failed. Please try again.');
                 }
             }
-        };
+            
+            // Update local user data
+            if (!currentUser.profileData) currentUser.profileData = {};
+            currentUser.profileData.subscriptionType = 'premium';
+            currentUser.profileData.isPremium = true;
+            currentUser.profileData.isAdFree = true;
+            currentUser.profileData.permanentAdFree = true;
+            currentUser.profileData.premiumType = planType;
+            currentUser.profileData.premiumTier = plan.tier;
+            
+            // Update UI
+            updatePremiumUI();
+            closeUpgradeModal();
+            
+            const badgeEarned = plan.tier !== 'basic' && snapshot?.size < 1000;
+            alert(`🎉 Welcome to Premium ${plan.tier.toUpperCase()}!\n\n✨ All ${plan.tier} features unlocked!\n${badgeEarned ? '🏆 Founding Member badge earned!\n' : ''}🚫 Ads removed forever!\n💎 Thank you for supporting Teardrop!`);
+            
+        } catch (error) {
+            console.error('Purchase error:', error);
+            alert('Purchase failed. Please try again.');
+        }
+    }
+};
+
+// Keep old function for backwards compatibility
+window.removeAdsForever = window.purchaseAdFree;
+
+// Pricing tab switcher
+window.showPricingTab = function(tab) {
+    // Hide all pricing options
+    document.querySelectorAll('.pricing-options').forEach(el => el.style.display = 'none');
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.pricing-tab').forEach(el => {
+        el.style.background = 'transparent';
+        el.style.border = '1px solid rgba(255,255,255,0.3)';
+    });
+    
+    // Show selected pricing and activate tab
+    document.getElementById(tab + 'Pricing').style.display = 'flex';
+    document.getElementById(tab + 'Tab').style.background = 'rgba(255,255,255,0.2)';
+    document.getElementById(tab + 'Tab').style.border = 'none';
+};
 
         // No cancel function needed for one-time purchases!
         // Users get lifetime access once they pay 5.50 usd
@@ -3467,7 +3622,19 @@ if (window.getRedirectResult) {
                         totalComments: 0
                     },
                     achievements: {},
-                    privacySettings: {}
+                    privacySettings: {},
+                    // NYE PREMIUM FELTER:
+                    subscriptionType: 'free',
+                    isPremium: false,
+                    isAdFree: false,
+                    adFreePurchaseDate: null,
+                    premiumType: null,
+                    premiumStartDate: null,
+                    premiumEndDate: null,
+                    nameColor: '#FF6B35',
+                    selectedTheme: 'default',
+                    badges: [],
+                    permanentAdFree: false
                 });
                 
                 closeAuthModal();
@@ -3511,11 +3678,11 @@ if (window.getRedirectResult) {
                 counter++;
             }
             
-            await window.setDoc(window.doc(window.db, 'users', result.user.uid), {
-                uid: result.user.uid,
+            await window.setDoc(window.doc(window.db, 'users', userCredential.user.uid), {
+                uid: userCredential.user.uid,
                 username: username,
-                email: result.user.email,
-                displayName: result.user.displayName || username,
+                email: email,
+                displayName: username,
                 bio: '',
                 createdAt: new Date(),
                 stats: {
@@ -3526,9 +3693,21 @@ if (window.getRedirectResult) {
                     avgRating: 0,
                     totalLikes: 0,
                     totalComments: 0
-                },
+                    },
                 achievements: {},
-                privacySettings: {}
+                privacySettings: {},
+                // NYE PREMIUM FELTER:
+                subscriptionType: 'free',
+                isPremium: false,
+                isAdFree: false,
+                adFreePurchaseDate: null,
+                premiumType: null,
+                premiumStartDate: null,
+                premiumEndDate: null,
+                nameColor: '#FF6B35',
+                selectedTheme: 'default',
+                badges: [],
+                permanentAdFree: false
             });
         }
         
@@ -6007,24 +6186,110 @@ function updateUI() {
     </div>
 
 <!-- Premium Upgrade Modal -->
-    <div class="modal" id="upgradeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">🚫 Remove Ads Forever</div>
-                <button class="close-btn" onclick="closeUpgradeModal()">×</button>
+   <div class="modal-title">✨ Choose Your Plan</div>
             </div>
             <div class="modal-body">
                 <div class="premium-upgrade-card" style="margin: 0;">
-                    <h3 style="margin: 0 0 15px; color: white;">✨ Go Ad-Free with Premium!</h3>
-                    
-                    <div class="premium-features">
-                        <div>🚫 <strong>No Ads</strong> - Clean, distraction-free experience</div>
-                        <div>📊 <strong>Advanced Stats</strong> - Detailed analytics & insights</div>
-                        <div>🎨 <strong>Custom Themes</strong> - Personalize your app</div>
-                        <div>⚡ <strong>Priority Support</strong> - Get help faster</div>
-                        <div>💾 <strong>Enhanced Export</strong> - More data formats</div>
-                        <div>🔄 <strong>Sync Everywhere</strong> - All your devices</div>
-                    </div>
+                    <!-- Ad-Free Plan -->
+<div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+    <h3 style="margin: 0 0 15px; color: white;">🚫 Ad-Free Forever</h3>
+    <div style="font-size: 36px; font-weight: bold; margin: 10px 0;">$2.99</div>
+    <div style="font-size: 14px; opacity: 0.8; margin-bottom: 15px;">One-time payment</div>
+    <ul style="text-align: left; margin: 15px 0; padding-left: 20px;">
+        <li>Remove all ads permanently</li>
+        <li>Clean, distraction-free experience</li>
+        <li>Support Teardrop development</li>
+    </ul>
+    <button class="upgrade-btn" onclick="purchaseAdFree()" style="width: 100%; background: #4CAF50;">
+        🚫 Get Ad-Free - $2.99
+    </button>
+</div>
+
+<!-- Premium Plans -->
+<div style="background: linear-gradient(45deg, #FF6B35, #F7931E); padding: 20px; border-radius: 15px;">
+    <h3 style="margin: 0 0 15px; color: white;">✨ Premium Membership</h3>
+    <div class="premium-features" style="text-align: left; font-size: 14px;">
+        <div>🚫 <strong>Everything in Ad-Free</strong> PLUS:</div>
+        <div>🎨 <strong>Custom Themes</strong> - Dark modes & seasonal</div>
+        <div>🌈 <strong>Name Colors</strong> - Stand out with custom colors</div>
+        <div>📸 <strong>Multiple Photos</strong> - Add photos to cries</div>
+        <div>🎙️ <strong>Voice Notes</strong> - 30 second audio cries</div>
+        <div>📊 <strong>Advanced Stats</strong> - Detailed analytics</div>
+        <div>🏆 <strong>Founding Member Badge</strong> - First 1000 only!</div>
+    </div>
+    
+    <!-- Pricing Tabs -->
+<div style="display: flex; gap: 5px; margin: 20px 0 10px;">
+    <button id="monthlyTab" class="pricing-tab active" onclick="showPricingTab('monthly')" style="flex: 1; background: rgba(255,255,255,0.2); border: none; padding: 8px; border-radius: 8px; color: white; cursor: pointer;">
+        Monthly
+    </button>
+    <button id="months3Tab" class="pricing-tab" onclick="showPricingTab('3months')" style="flex: 1; background: transparent; border: 1px solid rgba(255,255,255,0.3); padding: 8px; border-radius: 8px; color: white; cursor: pointer;">
+        3 Months<br><small style="opacity: 0.8;">Save 10%</small>
+    </button>
+    <button id="months6Tab" class="pricing-tab" onclick="showPricingTab('6months')" style="flex: 1; background: transparent; border: 1px solid rgba(255,255,255,0.3); padding: 8px; border-radius: 8px; color: white; cursor: pointer;">
+        6 Months<br><small style="opacity: 0.8;">Save 15%</small>
+    </button>
+    <button id="yearlyTab" class="pricing-tab" onclick="showPricingTab('yearly')" style="flex: 1; background: transparent; border: 1px solid rgba(255,255,255,0.3); padding: 8px; border-radius: 8px; color: white; cursor: pointer;">
+        1 Year<br><small style="opacity: 0.8;">Save 20%</small>
+    </button>
+</div>
+
+<!-- Monthly Pricing -->
+<div id="monthlyPricing" class="pricing-options" style="display: flex; gap: 10px;">
+    <button class="upgrade-btn" onclick="purchasePremium('monthly_499')" style="flex: 1;">
+        $4.99/mo
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('monthly_799')" style="flex: 1; background: #FFD700;">
+        $7.99/mo<br><small>Popular</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('monthly_999')" style="flex: 1;">
+        $9.99/mo
+    </button>
+</div>
+
+<!-- 3 Months Pricing -->
+<div id="3monthsPricing" class="pricing-options" style="display: none; gap: 10px;">
+    <button class="upgrade-btn" onclick="purchasePremium('3months_1349')" style="flex: 1;">
+        $13.49<br><small>$4.49/mo</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('3months_2159')" style="flex: 1; background: #FFD700;">
+        $21.59<br><small>$7.19/mo</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('3months_2699')" style="flex: 1;">
+        $26.99<br><small>$8.99/mo</small>
+    </button>
+</div>
+
+<!-- 6 Months Pricing -->
+<div id="6monthsPricing" class="pricing-options" style="display: none; gap: 10px;">
+    <button class="upgrade-btn" onclick="purchasePremium('6months_2544')" style="flex: 1;">
+        $25.44<br><small>$4.24/mo</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('6months_4074')" style="flex: 1; background: #FFD700;">
+        $40.74<br><small>$6.79/mo</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('6months_5094')" style="flex: 1;">
+        $50.94<br><small>$8.49/mo</small>
+    </button>
+</div>
+
+<!-- Yearly Pricing -->
+<div id="yearlyPricing" class="pricing-options" style="display: none; gap: 10px;">
+    <button class="upgrade-btn" onclick="purchasePremium('yearly_4788')" style="flex: 1;">
+        $47.88<br><small>$3.99/mo</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('yearly_7668')" style="flex: 1; background: #FFD700;">
+        $76.68<br><small>$6.39/mo</small><br><small style="color: #4CAF50;">BEST VALUE!</small>
+    </button>
+    <button class="upgrade-btn" onclick="purchasePremium('yearly_9588')" style="flex: 1;">
+        $95.88<br><small>$7.99/mo</small>
+    </button>
+</div>
+    
+    <div style="font-size: 12px; margin-top: 10px; opacity: 0.9;">
+        ⚡ Keep ad-free forever even if you cancel!
+    </div>
+</div>
                     
 <div style="background: rgba(255,255,255,0.15); padding: 25px; border-radius: 15px; margin: 20px 0; border: 2px solid rgba(255,255,255,0.3);">
                         <div style="text-align: center;">

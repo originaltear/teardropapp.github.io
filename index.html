@@ -3213,11 +3213,17 @@ window.openSubscriptionManagement = function() {
             if (user.premiumType) {
                 const tierName = user.premiumTier ? user.premiumTier.toUpperCase() : 'PREMIUM';
                 const endDate = user.premiumEndDate ? new Date(user.premiumEndDate).toLocaleDateString() : 'Unknown';
-                details.textContent = `Premium ${tierName} • Renews ${endDate}`;
+                const planName = {
+                    'basic': 'Premium Basic',
+                    'standard': 'Premium Standard', 
+                    'plus': 'Premium Plus'
+                }[user.premiumTier] || 'Premium';
+                
+                details.innerHTML = `<strong>${planName}</strong><br>Next billing date: ${endDate}`;
                 badge.textContent = 'ACTIVE';
                 badge.className = 'premium-badge';
             } else if (user.isAdFree) {
-                details.textContent = 'Ad-Free Forever • Purchased for $2.99';
+                details.innerHTML = '<strong>Ad-Free Forever</strong><br>One-time purchase • No recurring payments';
                 badge.textContent = 'LIFETIME';
                 badge.className = 'premium-badge';
             }

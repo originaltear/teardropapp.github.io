@@ -2960,34 +2960,6 @@ function shouldShowAds() {
             document.getElementById('upgradeModal').classList.remove('active');
         };
 
-window.openSubscriptionManagement = function() {
-            if (!isLoggedIn) {
-                showAuthModal();
-                return;
-            }
-            
-            // Update premium details
-            const user = currentUser?.profileData;
-            if (user?.subscription) {
-                const sub = user.subscription;
-                const details = document.getElementById('subscriptionDetails');
-                const badge = document.getElementById('subscriptionBadge');
-                
-                if (sub.status === 'premium') {
-                    const purchaseDate = sub.purchaseDate ? new Date(sub.purchaseDate).toLocaleDateString() : 'Unknown';
-                    details.textContent = `Ad-free forever • Purchased ${purchaseDate} • 5.50 usd one-time`;
-                    badge.textContent = 'LIFETIME';
-                    badge.className = 'premium-badge';
-                } else {
-                    details.textContent = 'No premium purchase';
-                    badge.textContent = 'FREE';
-                    badge.className = 'premium-badge status-expired';
-                }
-            }
-            
-            document.getElementById('subscriptionModal').classList.add('active');
-        };
-
         window.closeSubscriptionModal = function() {
             document.getElementById('subscriptionModal').classList.remove('active');
         };
@@ -6250,7 +6222,9 @@ function updateUI() {
             updatePageHeader();
             updateProfileInfo();
             updatePremiumUI(); // 🆕 Check premium status and update UI
-            
+            // Force refresh user data
+            loadUserProfile();
+
             if (currentPage === 'feedPage') loadFeed();
             if (currentPage === 'notificationsPage') loadNotifications();
             if (currentPage === 'profilePage') {
@@ -6443,7 +6417,53 @@ function updateUI() {
             </div>
         </div>
     </div>
-        <!-- Post-Cry Success Modal -->
+        <!-- Subscription Management Modal -->
+    <div class="modal" id="subscriptionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">💎 Premium Status</div>
+                <button class="close-btn" onclick="closeSubscriptionModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="subscription-management">
+                    <div class="subscription-status">
+                        <div>
+                            <h3 style="margin: 0;">Your Subscription</h3>
+                            <p style="color: #999; margin: 5px 0 0;" id="subscriptionDetails">Loading...</p>
+                        </div>
+                        <div class="premium-badge" id="subscriptionBadge">ACTIVE</div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #333; padding-top: 15px; margin-top: 15px;">
+                        <h4>Your Premium Features:</h4>
+                        <div class="premium-features" style="color: #ccc;">
+                            <div>✅ Ad-free experience</div>
+                            <div>✅ Advanced statistics</div>
+                            <div>✅ Priority support</div>
+                            <div>✅ Custom themes (coming soon)</div>
+                            <div>✅ Name colors (coming soon)</div>
+                            <div>✅ Voice notes (coming soon)</div>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #333; padding-top: 15px; margin-top: 15px;">
+                        <button class="submit-btn" onclick="openBillingPortal()" style="background: #4A90E2;">
+                            💳 Manage Billing
+                        </button>
+                        <button class="submit-btn" onclick="cancelSubscription()" style="background: #ff4757; margin-top: 10px;">
+                            ❌ Cancel Subscription
+                        </button>
+                        
+                        <p style="text-align: center; color: #999; font-size: 12px; margin-top: 15px;">
+                            Questions? Contact support@teardrop.app
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Post-Cry Success Modal -->
     <div class="post-cry-success-modal" id="postCrySuccessModal">
         <div class="post-cry-success-content">
             <div class="success-icon">🎉</div>

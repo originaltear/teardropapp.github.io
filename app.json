@@ -1,17 +1,18 @@
 {
   "expo": {
-    "name": "teardrop",
+    "name": "Teardrop",
     "slug": "teardrop",
     "version": "1.0.0",
+    "scheme": "teardrop",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0d1117",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +21,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Teardrop uses your location to log where you cried.",
+          "locationWhenInUsePermission": "Teardrop uses your location to log where you cried."
+        }
+      ]
+    ]
   }
 }

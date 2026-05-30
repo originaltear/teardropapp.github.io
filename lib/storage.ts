@@ -10,6 +10,9 @@ export interface Cry {
   emotion: string;
   intensity: number;
   note?: string;
+  photoUri?: string;    // Phase 2: media
+  audioUri?: string;    // Phase 2: media
+  country?: string;     // Phase 3+: reverse-geocoded
 }
 
 export async function saveCry(cry: Cry): Promise<void> {

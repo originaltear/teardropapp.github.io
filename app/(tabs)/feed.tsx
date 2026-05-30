@@ -129,6 +129,7 @@ export default function FeedScreen() {
       <FlatList
         data={cries}
         keyExtractor={c => c.id}
+        style={{ flex: 1 }}
         renderItem={({ item }) => (
           <FeedItem cry={item} onPress={() => setSelected(item)} />
         )}
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
   timeAgo: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18, marginTop: 2 },
 
-  emptyContainer: { flex: 1, justifyContent: 'center' },
+  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
   emptyTitle: { color: '#4a5568', fontSize: 18, fontWeight: '600' },

@@ -92,6 +92,7 @@ function CriesModal({ cries, onClose }: { cries: Cry[]; onClose: () => void }) {
           <FlatList
             data={cries}
             keyExtractor={c => c.id}
+            style={{ flex: 1 }}
             contentContainerStyle={cries.length === 0 ? ls.emptyContainer : undefined}
             ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#1f2937', marginLeft: 68 }} />}
             renderItem={({ item: cry }) => {
@@ -386,7 +387,7 @@ const ls = StyleSheet.create({
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
   backBtn: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
   backTxt: { color: '#6fe0e6', fontSize: 14 },
-  emptyContainer: { flex: 1, justifyContent: 'center' },
+  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, paddingHorizontal: 40, paddingVertical: 48 },
   emptyTxt: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },

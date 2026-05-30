@@ -8,8 +8,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EMOTIONS } from '../lib/emotions';
 import { saveCry, loadCries } from '../lib/storage';
-import { computeBadges } from '../lib/badges';
-import { Badge } from '../lib/badges';
+import { computeBadges, Badge } from '../lib/badges';
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -92,8 +91,6 @@ export default function LogCryScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {unlockedBadge && <AchievementBanner badge={unlockedBadge} />}
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -106,6 +103,8 @@ export default function LogCryScreen() {
           <Text style={styles.title}>Log a Cry</Text>
           <View style={{ width: 36 }} />
         </View>
+
+        {unlockedBadge && <AchievementBanner badge={unlockedBadge} />}
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
 
@@ -188,7 +187,7 @@ const styles = StyleSheet.create({
 
   // Achievement banner
   achievement: {
-    position: 'absolute', top: 60, left: 20, right: 20, zIndex: 100,
+    marginHorizontal: 20,
     backgroundColor: '#111827',
     borderRadius: 16, borderWidth: 1, borderColor: '#6fe0e6',
     padding: 16, alignItems: 'center', gap: 4,

@@ -80,7 +80,8 @@ export default function LogCryScreen() {
       await new Promise(r => setTimeout(r, 2400));
     }
 
-    router.back();
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/');
   }
 
   const latNum = parseFloat(lat ?? '0');
@@ -99,7 +100,7 @@ export default function LogCryScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')} style={styles.closeBtn}>
             <Text style={styles.closeTxt}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Log a Cry</Text>

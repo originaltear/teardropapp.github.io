@@ -1,105 +1,204 @@
 import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
-  Modal, TextInput, KeyboardAvoidingView, Platform,
+  Modal, TextInput, KeyboardAvoidingView, Platform, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../../lib/storage';
+import { emotionById } from '../../lib/emotions';
 import { computeBadges, computeStreak, Badge } from '../../lib/badges';
 import {
   loadProfile, saveProfile, Profile,
   AVATAR_COLORS, AVATAR_EMOJIS, DEFAULT_PROFILE,
 } from '../../lib/profile';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  const now = Date.now();
+  const diff = now - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function Drops({ intensity }: { intensity: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <Text key={n} style={{ fontSize: 13, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
+      ))}
+    </View>
+  );
+}
+
+// ─── Cry detail card (inside modal) ──────────────────────────────────────────
+
+function CryDetailSheet({ cry, onBack }: { cry: Cry; onBack: () => void }) {
+  const emotion = emotionById(cry.emotion);
+  return (
+    <>
+      <TouchableOpacity onPress={onBack} style={ls.backBtn}>
+        <Text style={ls.backTxt}>← Back</Text>
+      </TouchableOpacity>
+      <View style={[ls.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
+        <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
+        <Text style={[ls.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>
+          {emotion?.label ?? cry.emotion}
+        </Text>
+      </View>
+      <Text style={ls.dateText}>
+        {new Date(cry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+        {' · '}
+        {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+      </Text>
+      <Drops intensity={cry.intensity} />
+      {cry.note
+        ? <View style={ls.noteBox}><Text style={ls.noteText}>{cry.note}</Text></View>
+        : <Text style={ls.noNote}>No note</Text>}
+    </>
+  );
+}
+
+// ─── Cries list modal ─────────────────────────────────────────────────────────
+
+function CriesModal({ cries, onClose }: { cries: Cry[]; onClose: () => void }) {
+  const [selected, setSelected] = useState<Cry | null>(null);
+
+  return (
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
+      <SafeAreaView edges={['bottom']} style={ls.sheet}>
+        <View style={ls.handle} />
+        <View style={ls.sheetHeader}>
+          <Text style={ls.sheetTitle}>My Cries</Text>
+          <TouchableOpacity onPress={onClose} style={ls.closeBtn}>
+            <Text style={ls.closeTxt}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {selected ? (
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
+            <CryDetailSheet cry={selected} onBack={() => setSelected(null)} />
+          </ScrollView>
+        ) : (
+          <FlatList
+            data={cries}
+            keyExtractor={c => c.id}
+            contentContainerStyle={cries.length === 0 ? ls.emptyContainer : undefined}
+            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#1f2937', marginLeft: 68 }} />}
+            renderItem={({ item: cry }) => {
+              const emotion = emotionById(cry.emotion);
+              return (
+                <TouchableOpacity style={ls.cryRow} onPress={() => setSelected(cry)} activeOpacity={0.7}>
+                  <View style={[ls.dot, { backgroundColor: emotion?.color ?? '#6fe0e6' }]}>
+                    <Text style={{ fontSize: 18 }}>{emotion?.emoji ?? '💧'}</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={[ls.emotionName, { color: emotion?.color ?? '#6fe0e6' }]}>
+                      {emotion?.label ?? cry.emotion}
+                    </Text>
+                    <Text style={ls.cryDate}>{formatDate(cry.createdAt)}</Text>
+                    {cry.note ? <Text style={ls.cryNote} numberOfLines={1}>{cry.note}</Text> : null}
+                  </View>
+                  <Drops intensity={cry.intensity} />
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              <View style={ls.empty}>
+                <Text style={{ fontSize: 40, opacity: 0.3 }}>💧</Text>
+                <Text style={ls.emptyTxt}>No cries yet</Text>
+              </View>
+            }
+          />
+        )}
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+// ─── Following / Followers modal (placeholder) ────────────────────────────────
+
+function SocialModal({ title, onClose }: { title: string; onClose: () => void }) {
+  return (
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
+      <SafeAreaView edges={['bottom']} style={ls.sheet}>
+        <View style={ls.handle} />
+        <View style={ls.sheetHeader}>
+          <Text style={ls.sheetTitle}>{title}</Text>
+          <TouchableOpacity onPress={onClose} style={ls.closeBtn}>
+            <Text style={ls.closeTxt}>✕</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={ls.empty}>
+          <Text style={{ fontSize: 40, opacity: 0.3 }}>👥</Text>
+          <Text style={ls.emptyTxt}>Coming in a later phase</Text>
+          <Text style={ls.emptySub}>Social features unlock when accounts are added.</Text>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 // ─── Edit profile modal ───────────────────────────────────────────────────────
 
-function EditModal({
-  profile,
-  onSave,
-  onClose,
-}: {
-  profile: Profile;
-  onSave: (p: Profile) => void;
-  onClose: () => void;
+function EditModal({ profile, onSave, onClose }: {
+  profile: Profile; onSave: (p: Profile) => void; onClose: () => void;
 }) {
   const [name, setName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
   const [color, setColor] = useState(profile.avatarColor);
   const [emoji, setEmoji] = useState(profile.avatarEmoji);
 
-  function handleSave() {
-    onSave({ displayName: name.trim() || 'You', bio: bio.trim(), avatarColor: color, avatarEmoji: emoji });
-  }
-
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={es.backdrop} activeOpacity={1} onPress={onClose} />
-      <SafeAreaView edges={['bottom']} style={es.sheet}>
+      <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
+      <SafeAreaView edges={['bottom']} style={ls.sheet}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          {/* Handle + header */}
-          <View style={es.handle} />
-          <View style={es.sheetHeader}>
-            <TouchableOpacity onPress={onClose}><Text style={es.cancel}>Cancel</Text></TouchableOpacity>
-            <Text style={es.sheetTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={handleSave}><Text style={es.save}>Save</Text></TouchableOpacity>
+          <View style={ls.handle} />
+          <View style={ls.sheetHeader}>
+            <TouchableOpacity onPress={onClose}><Text style={ls.cancel}>Cancel</Text></TouchableOpacity>
+            <Text style={ls.sheetTitle}>Edit Profile</Text>
+            <TouchableOpacity onPress={() => onSave({ displayName: name.trim() || 'You', bio: bio.trim(), avatarColor: color, avatarEmoji: emoji })}>
+              <Text style={ls.saveBtn}>Save</Text>
+            </TouchableOpacity>
           </View>
-
-          <ScrollView contentContainerStyle={es.body} keyboardShouldPersistTaps="handled">
-            {/* Avatar preview */}
-            <View style={[es.avatarPreview, { backgroundColor: color }]}>
-              <Text style={es.avatarPreviewEmoji}>{emoji}</Text>
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 8, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+            <View style={[ls.avatarPreview, { backgroundColor: color }]}>
+              <Text style={{ fontSize: 36 }}>{emoji}</Text>
             </View>
-
-            {/* Color picker */}
-            <Text style={es.label}>Colour</Text>
-            <View style={es.colorRow}>
+            <Text style={ls.label}>Colour</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {AVATAR_COLORS.map(c => (
-                <TouchableOpacity
-                  key={c}
-                  style={[es.colorSwatch, { backgroundColor: c }, c === color && es.colorSelected]}
-                  onPress={() => setColor(c)}
-                />
+                <TouchableOpacity key={c} onPress={() => setColor(c)}
+                  style={[ls.swatch, { backgroundColor: c }, c === color && ls.swatchSelected]} />
               ))}
             </View>
-
-            {/* Emoji picker */}
-            <Text style={es.label}>Emoji</Text>
-            <View style={es.emojiGrid}>
+            <Text style={ls.label}>Emoji</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {AVATAR_EMOJIS.map(e => (
-                <TouchableOpacity
-                  key={e}
-                  style={[es.emojiBtn, e === emoji && { backgroundColor: '#1f2937' }]}
-                  onPress={() => setEmoji(e)}
-                >
-                  <Text style={es.emojiTxt}>{e}</Text>
+                <TouchableOpacity key={e} onPress={() => setEmoji(e)}
+                  style={[ls.emojiBtn, e === emoji && { backgroundColor: '#1f2937' }]}>
+                  <Text style={{ fontSize: 26 }}>{e}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-
-            {/* Name */}
-            <Text style={es.label}>Display name</Text>
-            <TextInput
-              style={es.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Your name"
-              placeholderTextColor="#4a5568"
-              maxLength={40}
-            />
-
-            {/* Bio */}
-            <Text style={es.label}>Bio <Text style={es.optional}>(optional)</Text></Text>
-            <TextInput
-              style={[es.input, { height: 80 }]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="A few words about you…"
-              placeholderTextColor="#4a5568"
-              multiline
-              maxLength={150}
-              textAlignVertical="top"
-            />
+            <Text style={ls.label}>Display name</Text>
+            <TextInput style={ls.input} value={name} onChangeText={setName}
+              placeholder="Your name" placeholderTextColor="#4a5568" maxLength={40} />
+            <Text style={ls.label}>Bio <Text style={{ color: '#4a5568' }}>(optional)</Text></Text>
+            <TextInput style={[ls.input, { height: 80 }]} value={bio} onChangeText={setBio}
+              placeholder="A few words about you…" placeholderTextColor="#4a5568"
+              multiline maxLength={150} textAlignVertical="top" />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -107,50 +206,24 @@ function EditModal({
   );
 }
 
-// ─── Badge row ─────────────────────────────────────────────────────────────────
-
-function BadgeRow({ badge }: { badge: Badge }) {
-  return (
-    <View style={[styles.badgeRow, !badge.earned && styles.badgeRowLocked]}>
-      <Text style={[styles.badgeEmoji, !badge.earned && { opacity: 0.3 }]}>{badge.emoji}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.badgeName, !badge.earned && { color: '#374151' }]}>{badge.name}</Text>
-        <Text style={styles.badgeDesc}>{badge.description}</Text>
-      </View>
-      {badge.earned && <Text style={styles.badgeCheck}>✓</Text>}
-    </View>
-  );
-}
-
-// ─── Stat cell ─────────────────────────────────────────────────────────────────
-
-function StatCell({ value, label }: { value: string | number; label: string }) {
-  return (
-    <View style={styles.statCell}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 // ─── Profile screen ────────────────────────────────────────────────────────────
+
+type ModalType = 'cries' | 'following' | 'followers' | 'edit' | null;
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
   const [cries, setCries] = useState<Cry[]>([]);
-  const [editing, setEditing] = useState(false);
+  const [modal, setModal] = useState<ModalType>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadProfile().then(setProfile);
-      loadCries().then(setCries);
-    }, [])
-  );
+  useFocusEffect(useCallback(() => {
+    loadProfile().then(setProfile);
+    loadCries().then(setCries);
+  }, []));
 
   async function handleSave(updated: Profile) {
     await saveProfile(updated);
     setProfile(updated);
-    setEditing(false);
+    setModal(null);
   }
 
   const badges = computeBadges(cries);
@@ -159,10 +232,9 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity onPress={() => setEditing(true)} style={styles.editBtn}>
+        <TouchableOpacity onPress={() => setModal('edit')} style={styles.editBtn}>
           <Text style={styles.editTxt}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -170,30 +242,41 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Avatar */}
         <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={() => setEditing(true)}>
+          <TouchableOpacity onPress={() => setModal('edit')}>
             <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
               <Text style={styles.avatarEmoji}>{profile.avatarEmoji}</Text>
             </View>
           </TouchableOpacity>
           <Text style={styles.displayName}>{profile.displayName}</Text>
-          {profile.bio ? (
-            <Text style={styles.bio}>{profile.bio}</Text>
-          ) : (
-            <TouchableOpacity onPress={() => setEditing(true)}>
-              <Text style={styles.bioPlaceholder}>Add a bio…</Text>
-            </TouchableOpacity>
-          )}
+          {profile.bio
+            ? <Text style={styles.bio}>{profile.bio}</Text>
+            : <TouchableOpacity onPress={() => setModal('edit')}>
+                <Text style={styles.bioPlaceholder}>Add a bio…</Text>
+              </TouchableOpacity>
+          }
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <StatCell value={cries.length} label="Cries" />
+          <TouchableOpacity style={styles.statCell} onPress={() => setModal('cries')}>
+            <Text style={styles.statValue}>{cries.length}</Text>
+            <Text style={[styles.statLabel, styles.statTappable]}>Cries</Text>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <StatCell value={streak} label="Streak" />
+          <View style={styles.statCell}>
+            <Text style={styles.statValue}>{streak}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
           <View style={styles.statDivider} />
-          <StatCell value={0} label="Following" />
+          <TouchableOpacity style={styles.statCell} onPress={() => setModal('following')}>
+            <Text style={styles.statValue}>0</Text>
+            <Text style={[styles.statLabel, styles.statTappable]}>Following</Text>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <StatCell value={0} label="Followers" />
+          <TouchableOpacity style={styles.statCell} onPress={() => setModal('followers')}>
+            <Text style={styles.statValue}>0</Text>
+            <Text style={[styles.statLabel, styles.statTappable]}>Followers</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Badges */}
@@ -203,18 +286,24 @@ export default function ProfileScreen() {
             <Text style={styles.sectionMeta}>{earnedCount}/{badges.length}</Text>
           </View>
           <View style={styles.badgeList}>
-            {badges.map(b => <BadgeRow key={b.id} badge={b} />)}
+            {badges.map(b => (
+              <View key={b.id} style={[styles.badgeRow, !b.earned && styles.badgeRowLocked]}>
+                <Text style={[styles.badgeEmoji, !b.earned && { opacity: 0.3 }]}>{b.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.badgeName, !b.earned && { color: '#374151' }]}>{b.name}</Text>
+                  <Text style={styles.badgeDesc}>{b.description}</Text>
+                </View>
+                {b.earned && <Text style={styles.badgeCheck}>✓</Text>}
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
 
-      {editing && (
-        <EditModal
-          profile={profile}
-          onSave={handleSave}
-          onClose={() => setEditing(false)}
-        />
-      )}
+      {modal === 'cries' && <CriesModal cries={cries} onClose={() => setModal(null)} />}
+      {modal === 'following' && <SocialModal title="Following" onClose={() => setModal(null)} />}
+      {modal === 'followers' && <SocialModal title="Followers" onClose={() => setModal(null)} />}
+      {modal === 'edit' && <EditModal profile={profile} onSave={handleSave} onClose={() => setModal(null)} />}
     </SafeAreaView>
   );
 }
@@ -223,7 +312,6 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
-
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
@@ -232,41 +320,29 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#e2e8f0', fontSize: 26, fontWeight: '700' },
   editBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#1f2937' },
   editTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
-
   content: { paddingBottom: 48 },
-
   avatarSection: { alignItems: 'center', paddingVertical: 28, gap: 8 },
-  avatar: {
-    width: 88, height: 88, borderRadius: 44,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 4,
-  },
+  avatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   avatarEmoji: { fontSize: 44 },
   displayName: { color: '#e2e8f0', fontSize: 22, fontWeight: '700' },
   bio: { color: '#64748b', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 },
   bioPlaceholder: { color: '#374151', fontSize: 14, fontStyle: 'italic' },
-
   statsRow: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 24,
-    backgroundColor: '#111827',
-    borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
+    backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
     paddingVertical: 16,
   },
   statCell: { flex: 1, alignItems: 'center', gap: 2 },
   statValue: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
   statLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
+  statTappable: { color: '#6fe0e6' },
   statDivider: { width: 1, height: 30, backgroundColor: '#1f2937' },
-
   section: { marginHorizontal: 20 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },
   sectionMeta: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
-
-  badgeList: {
-    backgroundColor: '#111827', borderRadius: 16,
-    borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden',
-  },
+  badgeList: { backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden' },
   badgeRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingVertical: 14,
@@ -279,45 +355,47 @@ const styles = StyleSheet.create({
   badgeCheck: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
 });
 
-// ─── Edit modal styles ────────────────────────────────────────────────────────
+// ─── Sheet + list styles ──────────────────────────────────────────────────────
 
-const es = StyleSheet.create({
+const ls = StyleSheet.create({
   backdrop: { flex: 1 },
   sheet: {
-    backgroundColor: '#111827',
+    backgroundColor: '#111827', maxHeight: '85%',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: '#1f2937',
-    maxHeight: '90%',
   },
-  handle: {
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: '#374151', alignSelf: 'center', marginTop: 12,
-  },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#374151', alignSelf: 'center', marginTop: 12 },
   sheetHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 16,
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  sheetTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
+  sheetTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
+  closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  closeTxt: { color: '#4a5568', fontSize: 18 },
+  cryRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
+  dot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  emotionName: { fontSize: 14, fontWeight: '600' },
+  cryDate: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
+  cryNote: { color: '#64748b', fontSize: 12 },
+  emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  emotionLabel: { fontSize: 16, fontWeight: '700' },
+  dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  noteBox: { backgroundColor: '#0d1117', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#1f2937' },
+  noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
+  noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  backBtn: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  backTxt: { color: '#6fe0e6', fontSize: 14 },
+  emptyContainer: { flex: 1, justifyContent: 'center' },
+  empty: { alignItems: 'center', gap: 10, paddingHorizontal: 40, paddingVertical: 48 },
+  emptyTxt: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
+  emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
   cancel: { color: '#4a5568', fontSize: 15 },
-  save: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
-  body: { padding: 20, gap: 8, paddingBottom: 32 },
-  avatarPreview: {
-    width: 72, height: 72, borderRadius: 36,
-    alignItems: 'center', justifyContent: 'center',
-    alignSelf: 'center', marginBottom: 8,
-  },
-  avatarPreviewEmoji: { fontSize: 36 },
+  saveBtn: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
+  avatarPreview: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 8 },
   label: { color: '#94a3b8', fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 8 },
-  optional: { color: '#4a5568', textTransform: 'none' },
-  colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
-  colorSwatch: { width: 32, height: 32, borderRadius: 16 },
-  colorSelected: { borderWidth: 3, borderColor: '#fff' },
-  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  swatch: { width: 32, height: 32, borderRadius: 16 },
+  swatchSelected: { borderWidth: 3, borderColor: '#fff' },
   emojiBtn: { width: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  emojiTxt: { fontSize: 26 },
-  input: {
-    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
-    borderRadius: 12, padding: 12, color: '#e2e8f0', fontSize: 15, marginTop: 6,
-  },
+  input: { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937', borderRadius: 12, padding: 12, color: '#e2e8f0', fontSize: 15, marginTop: 6 },
 });

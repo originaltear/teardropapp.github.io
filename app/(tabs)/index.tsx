@@ -14,6 +14,38 @@ import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { useAuth } from '../../lib/auth';
 
+// ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
+
+interface NormalizedCry {
+  id: string;
+  date: string;          // ISO string
+  emotion: string;
+  intensity: number;
+  note?: string;
+  photoUri?: string;
+  audioUri?: string;
+  latitude: number;
+  longitude: number;
+  profile?: { display_name: string; username: string; avatar_uri: string | null };
+}
+
+function normalizeCry(c: Cry | SocialCry): NormalizedCry {
+  const sc = c as SocialCry;
+  const lc = c as Cry;
+  return {
+    id:        c.id,
+    date:      sc.created_at ?? lc.createdAt ?? '',
+    emotion:   c.emotion,
+    intensity: c.intensity,
+    note:      sc.note ?? lc.note,
+    photoUri:  sc.photo_uri ?? lc.photoUri,
+    audioUri:  sc.audio_uri ?? lc.audioUri,
+    latitude:  c.latitude,
+    longitude: c.longitude,
+    profile:   sc.profile,
+  };
+}
+
 // ─── Map style ────────────────────────────────────────────────────────────────
 
 const DARK_MAP_STYLE = [
@@ -90,13 +122,42 @@ function AudioPlayer({ uri }: { uri: string }) {
   );
 }
 
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
+  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
+    </View>
+  );
+}
+
 // ─── Cry detail card ──────────────────────────────────────────────────────────
 
-function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
+function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose: () => void }) {
+  const cry = normalizeCry(rawCry);
   const emotion = emotionById(cry.emotion);
+  const hasProfile = !!cry.profile;
+
   return (
     <>
       <View style={styles.handle} />
+
+      {/* Profile row — shown when viewing someone else's cry */}
+      {hasProfile && (
+        <View style={styles.profileRow}>
+          <Avatar uri={cry.profile!.avatar_uri} size={36} />
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{cry.profile!.display_name}</Text>
+            <Text style={styles.profileHandle}>@{cry.profile!.username}</Text>
+          </View>
+        </View>
+      )}
+
       <View style={styles.cardHeader}>
         <View style={[styles.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
           <Text style={styles.badgeEmoji}>{emotion?.emoji ?? '💧'}</Text>
@@ -108,15 +169,14 @@ function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
           <Text style={styles.closeTxt}>✕</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.dateText}>{formatDate(cry.createdAt)}</Text>
+
+      <Text style={styles.dateText}>{formatDate(cry.date)}</Text>
       <Drops intensity={cry.intensity} />
 
-      {/* Photo */}
       {cry.photoUri ? (
         <Image source={{ uri: cry.photoUri }} style={styles.photo} resizeMode="cover" />
       ) : null}
 
-      {/* Note */}
       {cry.note ? (
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>{cry.note}</Text>
@@ -125,7 +185,6 @@ function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
         <Text style={styles.noNote}>No note</Text>
       )}
 
-      {/* Audio */}
       {cry.audioUri ? <AudioPlayer uri={cry.audioUri} /> : null}
     </>
   );
@@ -141,7 +200,7 @@ export default function MapScreen() {
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cries, setCries] = useState<(Cry | SocialCry)[]>([]);
-  const [selectedCry, setSelectedCry] = useState<Cry | null>(null);
+  const [selectedCry, setSelectedCry] = useState<Cry | SocialCry | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mapFilter, setMapFilter] = useState<MapFilter>('mine');
 
@@ -348,6 +407,13 @@ const styles = StyleSheet.create({
     width: 36, height: 4, borderRadius: 2,
     backgroundColor: '#374151', alignSelf: 'center', marginBottom: 4,
   },
+  profileRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1f2937',
+  },
+  profileInfo: { flex: 1 },
+  profileName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
+  profileHandle: { color: '#4a5568', fontSize: 12 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   emotionBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

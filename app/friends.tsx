@@ -27,7 +27,7 @@ function Avatar({ uri, size = 44 }: { uri?: string | null; size?: number }) {
 function UserRow({ user, onAction }: { user: UserResult; onAction: (u: UserResult, action: string) => void }) {
   const relationLabel: Record<UserResult['relation'], string> = {
     none: 'Follow',
-    following: 'Following',
+    following: 'Unfollow',
     request_sent: 'Requested',
     request_received: 'Accept',
     self: '',
@@ -264,11 +264,12 @@ const styles = StyleSheet.create({
 
   relationBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   btnFollow: { backgroundColor: '#6fe0e6' },
-  btnFollowing: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#1f2937' },
+  btnFollowing: { backgroundColor: '#ef444422', borderWidth: 1, borderColor: '#ef4444' },
   btnRequested: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#374151' },
   btnAccept: { backgroundColor: '#6fe0e6', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   btnReject: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: '#374151', alignItems: 'center', justifyContent: 'center' },
   relationTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
+  relationTxtUnfollow: { color: '#ef4444', fontSize: 13, fontWeight: '700' },
   rejectTxt: { color: '#4a5568', fontSize: 14 },
 
   reqActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },

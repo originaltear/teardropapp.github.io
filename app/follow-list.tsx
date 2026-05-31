@@ -88,7 +88,7 @@ export default function FollowListScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={u.relation === 'following' ? s.btnFollowingTxt : s.btnFollowTxt}>
-                    {u.relation === 'following' ? 'Following' : 'Follow'}
+                    {u.relation === 'following' ? 'Unfollow' : 'Follow'}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -130,8 +130,8 @@ const s = StyleSheet.create({
   handle: { color: '#4a5568', fontSize: 13 },
   btnFollow: { backgroundColor: '#6fe0e6', paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20 },
   btnFollowTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
-  btnFollowing: { borderWidth: 1, borderColor: '#1f2937', paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20 },
-  btnFollowingTxt: { color: '#4a5568', fontSize: 13 },
+  btnFollowing: { backgroundColor: '#ef444422', borderWidth: 1, borderColor: '#ef4444', paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20 },
+  btnFollowingTxt: { color: '#ef4444', fontSize: 13, fontWeight: '700' },
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 74 },
   emptyWrap: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, padding: 40 },

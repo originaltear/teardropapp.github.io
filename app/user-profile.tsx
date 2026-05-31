@@ -151,7 +151,7 @@ export default function UserProfileScreen() {
             activeOpacity={0.85}
           >
             <Text style={isFollowing ? s.btnFollowingTxt : s.btnFollowTxt}>
-              {isFollowing ? 'Following' : 'Follow'}
+              {isFollowing ? 'Unfollow' : 'Follow'}
             </Text>
           </TouchableOpacity>
         )}
@@ -191,10 +191,11 @@ const s = StyleSheet.create({
   },
   btnFollowTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
   btnFollowing: {
-    borderRadius: 14, borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 14, borderWidth: 1, borderColor: '#ef4444',
+    backgroundColor: '#ef444422',
     paddingVertical: 14, alignItems: 'center', marginHorizontal: 20,
   },
-  btnFollowingTxt: { color: '#4a5568', fontSize: 16, fontWeight: '600' },
+  btnFollowingTxt: { color: '#ef4444', fontSize: 16, fontWeight: '700' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
   emptyTxt: { color: '#4a5568', fontSize: 16 },

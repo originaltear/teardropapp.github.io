@@ -12,10 +12,9 @@ import { emotionById } from '../../lib/emotions';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
-  getSocialFeed, likeCry, unlikeCry, getComments, addComment,
+  getSocialFeed, getGlobalFeed, likeCry, unlikeCry, getComments, addComment,
   SocialCry, Comment,
 } from '../../lib/social';
-import * as Location from 'expo-location';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -248,16 +247,9 @@ function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
   );
 }
 
-// ─── Radius selector ──────────────────────────────────────────────────────────
-
-const RADII: Array<{ label: string; km: number | null }> = [
-  { label: '5 km', km: 5 },
-  { label: '25 km', km: 25 },
-  { label: '100 km', km: 100 },
-  { label: 'World', km: null },
-];
-
 // ─── Feed screen ──────────────────────────────────────────────────────────────
+
+type FeedTab = 'following' | 'global';
 
 export default function FeedScreen() {
   const { session } = useAuth();
@@ -265,28 +257,15 @@ export default function FeedScreen() {
   const [cries, setCries] = useState<SocialCry[]>([]);
   const [selected, setSelected] = useState<SocialCry | null>(null);
   const [authGate, setAuthGate] = useState(false);
-  const [radius, setRadius] = useState<number | null>(null);
+  const [tab, setTab] = useState<FeedTab>('following');
   const [loading, setLoading] = useState(false);
-  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
 
   useFocusEffect(useCallback(() => {
     if (!session) return;
     setLoading(true);
-    (async () => {
-      let lat: number | undefined, lng: number | undefined;
-      if (radius !== null) {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const pos = await Location.getCurrentPositionAsync({});
-          lat = pos.coords.latitude; lng = pos.coords.longitude;
-          setUserLoc({ lat, lng });
-        }
-      }
-      const feed = await getSocialFeed(radius, lat ?? userLoc?.lat, lng ?? userLoc?.lng);
-      setCries(feed);
-      setLoading(false);
-    })();
-  }, [session, radius]));
+    const loader = tab === 'following' ? getSocialFeed() : getGlobalFeed();
+    loader.then(feed => { setCries(feed); setLoading(false); });
+  }, [session, tab]));
 
   function handleLikeToggle(cryId: string, liked: boolean) {
     setCries(prev => prev.map(c => c.id === cryId
@@ -312,16 +291,18 @@ export default function FeedScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Radius filter */}
+      {/* Following / Global tabs */}
       {session && (
-        <View style={styles.radiiRow}>
-          {RADII.map(r => (
+        <View style={styles.tabRow}>
+          {(['following', 'global'] as FeedTab[]).map(t => (
             <TouchableOpacity
-              key={r.label}
-              style={[styles.radiusChip, radius === r.km && styles.radiusChipActive]}
-              onPress={() => setRadius(r.km)}
+              key={t}
+              style={[styles.tabChip, tab === t && styles.tabChipActive]}
+              onPress={() => setTab(t)}
             >
-              <Text style={[styles.radiusTxt, radius === r.km && styles.radiusTxtActive]}>{r.label}</Text>
+              <Text style={[styles.tabChipTxt, tab === t && styles.tabChipTxtActive]}>
+                {t === 'following' ? '👥 Following' : '🌍 Global'}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -387,17 +368,17 @@ const styles = StyleSheet.create({
   },
   addFriendsTxt: { color: '#6fe0e6', fontSize: 13, fontWeight: '600' },
 
-  radiiRow: {
+  tabRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  radiusChip: {
-    paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
-    borderWidth: 1, borderColor: '#1f2937',
+  tabChip: {
+    flex: 1, paddingVertical: 9, borderRadius: 20,
+    borderWidth: 1, borderColor: '#1f2937', alignItems: 'center',
   },
-  radiusChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
-  radiusTxt: { color: '#4a5568', fontSize: 12, fontWeight: '600' },
-  radiusTxtActive: { color: '#0d1117' },
+  tabChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
+  tabChipTxt: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
+  tabChipTxtActive: { color: '#0d1117' },
 
   listContent: { paddingVertical: 8 },
   separator: { height: 1, backgroundColor: '#1f2937', marginLeft: 68 },

@@ -30,6 +30,19 @@
           "locationAlwaysAndWhenInUsePermission": "Teardrop uses your location to log where you cried.",
           "locationWhenInUsePermission": "Teardrop uses your location to log where you cried."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Teardrop accesses your photos to attach them to your cries.",
+          "cameraPermission": "Teardrop uses your camera to take photos for your cries."
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Teardrop uses your microphone to record voice notes for your cries."
+        }
       ]
     ]
   }

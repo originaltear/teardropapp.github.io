@@ -11,8 +11,8 @@ export interface Cry {
   emotion: string;
   intensity: number;
   note?: string;
-  photoUri?: string;    // local or remote URI
-  audioUri?: string;    // local URI (not uploaded to storage yet)
+  photoUri?: string;
+  audioUri?: string;
   country?: string;
 }
 
@@ -27,39 +27,56 @@ async function localSave(cries: Cry[]): Promise<void> {
   await AsyncStorage.setItem(LOCAL_KEY, JSON.stringify(cries));
 }
 
+// ─── Ensure a profiles row exists (belt-and-suspenders for signup trigger) ───
+
+async function ensureProfile(userId: string, email?: string): Promise<void> {
+  await supabase
+    .from('profiles')
+    .upsert(
+      { id: userId, display_name: email?.split('@')[0] ?? 'You' },
+      { onConflict: 'id', ignoreDuplicates: true },
+    );
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function saveCry(cry: Cry): Promise<void> {
-  // 1. Always persist locally first (offline-safe)
+  // 1. Always persist locally (guest-safe / offline-safe)
   const all = await localLoad();
   await localSave([cry, ...all]);
 
-  // 2. Try to sync to Supabase
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
+  // 2. Try Supabase if logged in
+  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+  if (sessionErr || !sessionData?.session) return;      // guest or session error → local only
+  const { session } = sessionData;
+
+  // Belt-and-suspenders: make sure the profile row exists so the FK doesn't reject the insert
+  await ensureProfile(session.user.id, session.user.email);
 
   const { error } = await supabase.from('cries').insert({
-    id: cry.id,
-    user_id: session.user.id,
+    id:         cry.id,
+    user_id:    session.user.id,
     created_at: cry.createdAt,
-    latitude: cry.latitude,
-    longitude: cry.longitude,
-    emotion: cry.emotion,
-    intensity: cry.intensity,
-    note: cry.note ?? null,
-    photo_uri: cry.photoUri ?? null,
-    audio_uri: cry.audioUri ?? null,
-    country: cry.country ?? null,
+    latitude:   cry.latitude,
+    longitude:  cry.longitude,
+    emotion:    cry.emotion,
+    intensity:  cry.intensity,
+    note:       cry.note       ?? null,
+    photo_uri:  cry.photoUri   ?? null,
+    audio_uri:  cry.audioUri   ?? null,
+    country:    cry.country    ?? null,
   });
 
   if (error) {
-    console.warn('[saveCry] Supabase insert failed — local copy kept:', error.message);
+    // Surface errors clearly so they appear in Metro logs
+    console.error('[saveCry] Supabase insert failed:', error.message, error.code, error.details);
   }
 }
 
 export async function loadCries(): Promise<Cry[]> {
-  // Try Supabase first
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: sessionData } = await supabase.auth.getSession();
+  const session = sessionData?.session;
+
   if (session) {
     const { data, error } = await supabase
       .from('cries')
@@ -69,20 +86,56 @@ export async function loadCries(): Promise<Cry[]> {
 
     if (!error && data) {
       return data.map(r => ({
-        id: r.id,
+        id:        r.id,
         createdAt: r.created_at,
-        latitude: r.latitude,
+        latitude:  r.latitude,
         longitude: r.longitude,
-        emotion: r.emotion,
+        emotion:   r.emotion,
         intensity: r.intensity,
-        note: r.note ?? undefined,
-        photoUri: r.photo_uri ?? undefined,
-        audioUri: r.audio_uri ?? undefined,
-        country: r.country ?? undefined,
+        note:      r.note      ?? undefined,
+        photoUri:  r.photo_uri ?? undefined,
+        audioUri:  r.audio_uri ?? undefined,
+        country:   r.country   ?? undefined,
       }));
+    }
+    if (error) {
+      console.error('[loadCries] Supabase fetch failed:', error.message);
     }
   }
 
-  // Fall back to local
+  // Guest or offline → local
   return localLoad();
+}
+
+// ─── Sync local cries to Supabase (called on login) ──────────────────────────
+
+export async function syncLocalToSupabase(userId: string, userEmail?: string): Promise<void> {
+  const local = await localLoad();
+  if (local.length === 0) return;
+
+  await ensureProfile(userId, userEmail);
+
+  const rows = local.map(cry => ({
+    id:         cry.id,
+    user_id:    userId,
+    created_at: cry.createdAt,
+    latitude:   cry.latitude,
+    longitude:  cry.longitude,
+    emotion:    cry.emotion,
+    intensity:  cry.intensity,
+    note:       cry.note      ?? null,
+    photo_uri:  cry.photoUri  ?? null,
+    audio_uri:  cry.audioUri  ?? null,
+    country:    cry.country   ?? null,
+  }));
+
+  const { error } = await supabase
+    .from('cries')
+    .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
+
+  if (error) {
+    console.error('[syncLocalToSupabase] upsert failed:', error.message);
+  } else {
+    console.log(`[syncLocalToSupabase] synced ${rows.length} local cries`);
+  }
 }

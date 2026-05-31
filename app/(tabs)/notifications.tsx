@@ -1,19 +1,151 @@
-import { StyleSheet, View, Text } from 'react-native';
+import { useCallback, useState } from 'react';
+import {
+  StyleSheet, View, Text, FlatList,
+  TouchableOpacity, Image, ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useAuth } from '../../lib/auth';
+import {
+  getNotifications, markNotificationsRead,
+  Notification,
+} from '../../lib/social';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string) {
+  const d = new Date(iso), now = new Date();
+  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function notifIcon(type: Notification['type']) {
+  return { like: '💧', comment: '💬', friend_request: '👥', follow: '➕' }[type];
+}
+
+function notifText(n: Notification): string {
+  const name = n.actor.display_name;
+  switch (n.type) {
+    case 'like':           return `${name} liked your cry`;
+    case 'comment':        return `${name} commented on your cry`;
+    case 'friend_request': return `${name} sent you a friend request`;
+    case 'follow':         return `${name} started following you`;
+  }
+}
+
+function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
+  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  return (
+    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
+      <Text style={{ fontSize: size * 0.4 }}>💧</Text>
+    </View>
+  );
+}
+
+// ─── Notification row ─────────────────────────────────────────────────────────
+
+function NotifRow({ notif, onPress }: { notif: Notification; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.row, !notif.read && styles.rowUnread]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <View style={styles.iconBadge}>
+        <Avatar uri={notif.actor.avatar_uri} size={42} />
+        <View style={styles.typeIcon}>
+          <Text style={{ fontSize: 12 }}>{notifIcon(notif.type)}</Text>
+        </View>
+      </View>
+      <View style={styles.rowContent}>
+        <Text style={styles.rowText}>{notifText(notif)}</Text>
+        {notif.cry && (
+          <Text style={styles.rowSub}>
+            {notif.cry.emotion} · {'💧'.repeat(notif.cry.intensity)}
+          </Text>
+        )}
+        <Text style={styles.rowTime}>{formatDate(notif.created_at)}</Text>
+      </View>
+      {!notif.read && <View style={styles.unreadDot} />}
+    </TouchableOpacity>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
+  const { session } = useAuth();
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    if (!session) return;
+    setLoading(true);
+    getNotifications().then(data => {
+      setNotifications(data);
+      setLoading(false);
+      // Mark all as read after viewing
+      const unread = data.filter(n => !n.read).map(n => n.id);
+      if (unread.length) {
+        markNotificationsRead(unread);
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      }
+    });
+  }, [session]));
+
+  function handlePress(notif: Notification) {
+    // Navigate to the relevant screen
+    if (notif.type === 'friend_request') {
+      router.push('/friends');
+    }
+    // For like/comment, could navigate to the specific cry — for now just dismiss
+  }
+
+  if (!session) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Notifications</Text>
+        </View>
+        <View style={styles.empty}>
+          <Text style={styles.emptyEmoji}>🔔</Text>
+          <Text style={styles.emptyTitle}>Log in to see notifications</Text>
+          <Text style={styles.emptySub}>Likes, comments and friend requests will appear here.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>
       </View>
-      <View style={styles.empty}>
-        <Text style={styles.emptyEmoji}>🔔</Text>
-        <Text style={styles.emptyTitle}>No new notifications</Text>
-        <Text style={styles.emptySub}>
-          Likes, comments and friend requests will appear here.
-        </Text>
-      </View>
+
+      {loading ? (
+        <View style={styles.empty}>
+          <ActivityIndicator size="large" color="#6fe0e6" />
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={n => n.id}
+          renderItem={({ item }) => <NotifRow notif={item} onPress={() => handlePress(item)} />}
+          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          contentContainerStyle={notifications.length === 0 ? styles.emptyFlex : undefined}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>🔔</Text>
+              <Text style={styles.emptyTitle}>No notifications yet</Text>
+              <Text style={styles.emptySub}>Likes, comments and friend requests will appear here.</Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -21,17 +153,29 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f2937',
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16,
+    borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  headerTitle: { color: '#e2e8f0', fontSize: 26, fontWeight: '700' },
-  empty: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    gap: 10, paddingHorizontal: 40,
+  headerTitle: { color: '#e2e8f0', fontSize: 26, fontWeight: '700', letterSpacing: 0.5 },
+
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
+  rowUnread: { backgroundColor: '#6fe0e610' },
+  iconBadge: { position: 'relative' },
+  typeIcon: {
+    position: 'absolute', bottom: -2, right: -2,
+    backgroundColor: '#1f2937', borderRadius: 10,
+    width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
   },
+  avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
+  rowContent: { flex: 1, gap: 2 },
+  rowText: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 },
+  rowSub: { color: '#4a5568', fontSize: 12 },
+  rowTime: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6fe0e6' },
+
+  sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 70 },
+  emptyFlex: { flexGrow: 1, justifyContent: 'center' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
   emptyTitle: { color: '#4a5568', fontSize: 18, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },

@@ -1,9 +1,47 @@
+import { useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { View, Text } from 'react-native';
+import { useAuth } from '../../lib/auth';
+import { getUnreadCount } from '../../lib/social';
 
 const TAB_BAR_BG = '#111827';
 const ACTIVE = '#6fe0e6';
 const INACTIVE = '#4a5568';
+
+function TabIcon({ emoji, color }: { emoji: string; color: string }) {
+  return <Text style={{ fontSize: 20, color }}>{emoji}</Text>;
+}
+
+function NotifIcon({ color }: { color: string }) {
+  const { session } = useAuth();
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!session) { setCount(0); return; }
+    getUnreadCount().then(setCount);
+    const interval = setInterval(() => getUnreadCount().then(setCount), 30000);
+    return () => clearInterval(interval);
+  }, [session]);
+
+  return (
+    <View>
+      <Text style={{ fontSize: 20, color }}>🔔</Text>
+      {count > 0 && (
+        <View style={{
+          position: 'absolute', top: -4, right: -6,
+          backgroundColor: '#6fe0e6', borderRadius: 8,
+          minWidth: 16, height: 16,
+          alignItems: 'center', justifyContent: 'center',
+          paddingHorizontal: 3,
+        }}>
+          <Text style={{ color: '#0d1117', fontSize: 9, fontWeight: '800' }}>
+            {count > 99 ? '99+' : count}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -21,44 +59,39 @@ export default function TabLayout() {
         tabBarInactiveTintColor: INACTIVE,
       }}
     >
-      {/* 1 — Map */}
       <Tabs.Screen
         name="index"
         options={{
           title: 'Map',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🌍</Text>,
+          tabBarIcon: ({ color }) => <TabIcon emoji="🌍" color={color} />,
         }}
       />
-      {/* 2 — Feed */}
       <Tabs.Screen
         name="feed"
         options={{
           title: 'Feed',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📋</Text>,
+          tabBarIcon: ({ color }) => <TabIcon emoji="📋" color={color} />,
         }}
       />
-      {/* 3 — Profile */}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👤</Text>,
+          tabBarIcon: ({ color }) => <TabIcon emoji="👤" color={color} />,
         }}
       />
-      {/* 4 — Notifications */}
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🔔</Text>,
+          title: 'Alerts',
+          tabBarIcon: ({ color }) => <NotifIcon color={color} />,
         }}
       />
-      {/* 5 — Settings */}
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>⚙️</Text>,
+          tabBarIcon: ({ color }) => <TabIcon emoji="⚙️" color={color} />,
         }}
       />
     </Tabs>

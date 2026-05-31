@@ -4,10 +4,11 @@ import {
   TouchableOpacity, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import {
-  getNotifications, markNotificationsRead,
+  getNotifications, markNotificationsRead, followUser, unfollowUser,
   Notification,
 } from '../../lib/social';
 
@@ -47,19 +48,32 @@ function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
 
 // ─── Notification row ─────────────────────────────────────────────────────────
 
-function NotifRow({ notif, onPress }: { notif: Notification; onPress: () => void }) {
+function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
+  notif: Notification;
+  onPress: () => void;
+  onFollowBack?: () => void;
+  followBackDone?: boolean;
+}) {
+  const router = useRouter();
+  const isFollow = notif.type === 'follow';
+  const isFriendReq = notif.type === 'friend_request';
+
   return (
     <TouchableOpacity
       style={[styles.row, !notif.read && styles.rowUnread]}
       onPress={onPress}
       activeOpacity={0.75}
     >
-      <View style={styles.iconBadge}>
-        <Avatar uri={notif.actor.avatar_uri} size={42} />
-        <View style={styles.typeIcon}>
-          <Text style={{ fontSize: 12 }}>{notifIcon(notif.type)}</Text>
+      {/* Avatar — tappable to go to profile */}
+      <TouchableOpacity onPress={() => router.push(`/user-profile?id=${notif.actor_id}`)} activeOpacity={0.8}>
+        <View style={styles.iconBadge}>
+          <Avatar uri={notif.actor.avatar_uri} size={42} />
+          <View style={styles.typeIcon}>
+            <Text style={{ fontSize: 12 }}>{notifIcon(notif.type)}</Text>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
+
       <View style={styles.rowContent}>
         <Text style={styles.rowText}>{notifText(notif)}</Text>
         {notif.cry && (
@@ -68,7 +82,28 @@ function NotifRow({ notif, onPress }: { notif: Notification; onPress: () => void
           </Text>
         )}
         <Text style={styles.rowTime}>{formatDate(notif.created_at)}</Text>
+
+        {/* Action buttons */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={styles.btnProfile}
+            onPress={() => router.push(`/user-profile?id=${notif.actor_id}`)}
+          >
+            <Text style={styles.btnProfileTxt}>View Profile</Text>
+          </TouchableOpacity>
+          {(isFollow || isFriendReq) && onFollowBack && (
+            <TouchableOpacity
+              style={followBackDone ? styles.btnFollowing : styles.btnFollowBack}
+              onPress={followBackDone ? undefined : onFollowBack}
+            >
+              <Text style={followBackDone ? styles.btnFollowingTxt : styles.btnFollowBackTxt}>
+                {followBackDone ? 'Following' : 'Follow back'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
       {!notif.read && <View style={styles.unreadDot} />}
     </TouchableOpacity>
   );
@@ -81,6 +116,8 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  // Track which actor IDs have been followed back
+  const [followedBack, setFollowedBack] = useState<Set<string>>(new Set());
 
   useFocusEffect(useCallback(() => {
     if (!session) return;
@@ -88,7 +125,6 @@ export default function NotificationsScreen() {
     getNotifications().then(data => {
       setNotifications(data);
       setLoading(false);
-      // Mark all as read after viewing
       const unread = data.filter(n => !n.read).map(n => n.id);
       if (unread.length) {
         markNotificationsRead(unread);
@@ -97,12 +133,14 @@ export default function NotificationsScreen() {
     });
   }, [session]));
 
+  async function handleFollowBack(actorId: string) {
+    await followUser(actorId);
+    setFollowedBack(prev => new Set([...prev, actorId]));
+  }
+
   function handlePress(notif: Notification) {
-    // Navigate to the relevant screen
-    if (notif.type === 'friend_request') {
-      router.push('/friends');
-    }
-    // For like/comment, could navigate to the specific cry — for now just dismiss
+    if (notif.type === 'friend_request') router.push('/friends');
+    // like/comment → could deep-link to cry detail in a future update
   }
 
   if (!session) {
@@ -134,7 +172,18 @@ export default function NotificationsScreen() {
         <FlatList
           data={notifications}
           keyExtractor={n => n.id}
-          renderItem={({ item }) => <NotifRow notif={item} onPress={() => handlePress(item)} />}
+          renderItem={({ item }) => (
+            <NotifRow
+              notif={item}
+              onPress={() => handlePress(item)}
+              onFollowBack={
+                (item.type === 'follow' || item.type === 'friend_request')
+                  ? () => handleFollowBack(item.actor_id)
+                  : undefined
+              }
+              followBackDone={followedBack.has(item.actor_id)}
+            />
+          )}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           contentContainerStyle={notifications.length === 0 ? styles.emptyFlex : undefined}
           ListEmptyComponent={
@@ -172,6 +221,22 @@ const styles = StyleSheet.create({
   rowSub: { color: '#4a5568', fontSize: 12 },
   rowTime: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6fe0e6' },
+  actionRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },
+  btnProfile: {
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
+  },
+  btnProfileTxt: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  btnFollowBack: {
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 16, backgroundColor: '#6fe0e6',
+  },
+  btnFollowBackTxt: { color: '#0d1117', fontSize: 12, fontWeight: '700' },
+  btnFollowing: {
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
+  },
+  btnFollowingTxt: { color: '#4a5568', fontSize: 12 },
 
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 70 },
   emptyFlex: { flexGrow: 1, justifyContent: 'center' },

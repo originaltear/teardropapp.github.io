@@ -1,66 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal, FlatList,
+  ActivityIndicator, Modal,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
-import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ClusterGroup {
-  id: string;
-  latitude: number;
-  longitude: number;
-  cries: Cry[];           // sorted newest-first
-  dominantColor: string;
-}
-
-// ─── Clustering (own logic, full control) ───────────────────────────────────────
-
-function clusterCries(cries: Cry[], longitudeDelta: number): ClusterGroup[] {
-  // Merge cries whose lat/lng are within ~8% of the visible span of each other.
-  const threshold = Math.max(longitudeDelta * 0.08, 0.00005);
-  const buckets: { lat: number; lng: number; cries: Cry[] }[] = [];
-
-  for (const cry of cries) {
-    let merged = false;
-    for (const bucket of buckets) {
-      if (
-        Math.abs(cry.latitude - bucket.lat) < threshold &&
-        Math.abs(cry.longitude - bucket.lng) < threshold
-      ) {
-        bucket.cries.push(cry);
-        bucket.lat = bucket.cries.reduce((s, c) => s + c.latitude, 0) / bucket.cries.length;
-        bucket.lng = bucket.cries.reduce((s, c) => s + c.longitude, 0) / bucket.cries.length;
-        merged = true;
-        break;
-      }
-    }
-    if (!merged) buckets.push({ lat: cry.latitude, lng: cry.longitude, cries: [cry] });
-  }
-
-  return buckets.map(b => {
-    const counts: Record<string, number> = {};
-    for (const c of b.cries) counts[c.emotion] = (counts[c.emotion] ?? 0) + 1;
-    const dominant = Object.entries(counts).sort((a, z) => z[1] - a[1])[0][0];
-    return {
-      id: b.cries.map(c => c.id).sort().join('|'),
-      latitude: b.lat,
-      longitude: b.lng,
-      cries: [...b.cries].sort(
-        (a, z) => new Date(z.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ),
-      dominantColor: emotionById(dominant)?.color ?? '#6fe0e6',
-    };
-  });
-}
 
 // ─── Map style ────────────────────────────────────────────────────────────────
 
@@ -91,19 +40,6 @@ function formatDate(iso: string) {
   );
 }
 
-function formatRelative(iso: string) {
-  const d = new Date(iso);
-  const diffMs = Date.now() - d.getTime();
-  const mins = Math.floor(diffMs / 60000);
-  const hours = Math.floor(diffMs / 3600000);
-  const days = Math.floor(diffMs / 86400000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
 function Drops({ intensity }: { intensity: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
@@ -111,88 +47,6 @@ function Drops({ intensity }: { intensity: number }) {
         <Text key={n} style={{ fontSize: 16, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
       ))}
     </View>
-  );
-}
-
-// ─── Markers drawn with SVG ─────────────────────────────────────────────────────
-// Why SVG: a plain <View> with borderRadius gets its size asynchronously after
-// layout, and react-native-maps on Android often rasterises the marker bitmap
-// BEFORE that size settles → the circle ends up bigger than its frame and gets
-// clipped into a square. An <Svg> has an explicit width/height/viewBox from the
-// very first frame, so the rasteriser knows the exact frame size immediately and
-// the circle (drawn well inside the viewBox) always fits. Like a Roblox Frame
-// with the circle sized to sit inside it.
-//
-// FRAME = 60×60. Single pin circle r=18 (≈36px). Cluster circle r=23 (≈46px).
-// Both sit centred at (30,30), comfortably inside the 60×60 frame.
-
-const FRAME = 60;
-const CENTER = FRAME / 2;
-
-// tracksViewChanges: keep true briefly so the first correct frame is captured,
-// then turn off for performance.
-function useSettleTracking() {
-  const [tracks, setTracks] = useState(true);
-  useEffect(() => {
-    const id = setTimeout(() => setTracks(false), 1000);
-    return () => clearTimeout(id);
-  }, []);
-  return tracks;
-}
-
-// ─── Single cry marker ──────────────────────────────────────────────────────────
-
-function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
-  const tracks = useSettleTracking();
-  const emotion = emotionById(cry.emotion);
-  const color = emotion?.color ?? '#6fe0e6';
-  return (
-    <Marker
-      coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
-      anchor={{ x: 0.5, y: 0.5 }}
-      onPress={onPress}
-      tracksViewChanges={tracks}
-    >
-      {/* SVG circle (the frame) + emoji overlaid on top, both inside a 60×60 box */}
-      <View style={styles.markerFrame}>
-        <Svg width={FRAME} height={FRAME}>
-          <Circle cx={CENTER} cy={CENTER} r={18} fill={color} />
-        </Svg>
-        <Text style={styles.pinEmojiOverlay}>{emotion?.emoji ?? '💧'}</Text>
-      </View>
-    </Marker>
-  );
-}
-
-// ─── Cluster marker ──────────────────────────────────────────────────────────────
-
-function ClusterMarker({ cluster, onPress }: { cluster: ClusterGroup; onPress: () => void }) {
-  const tracks = useSettleTracking();
-  return (
-    <Marker
-      coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
-      anchor={{ x: 0.5, y: 0.5 }}
-      onPress={onPress}
-      tracksViewChanges={tracks}
-    >
-      {/* Whole marker drawn in SVG: circle + count text, both inside the viewBox */}
-      <View style={styles.markerFrame}>
-        <Svg width={FRAME} height={FRAME}>
-          <Circle cx={CENTER} cy={CENTER} r={23} fill={cluster.dominantColor} />
-          <SvgText
-            x={CENTER}
-            y={CENTER}
-            fontSize={17}
-            fontWeight="bold"
-            fill="#0d1117"
-            textAnchor="middle"
-            alignmentBaseline="central"
-          >
-            {String(cluster.cries.length)}
-          </SvgText>
-        </Svg>
-      </View>
-    </Marker>
   );
 }
 
@@ -233,16 +87,12 @@ export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
   const initialRegionRef = useRef<Region | null>(null);
-
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cries, setCries] = useState<Cry[]>([]);
   const [selectedCry, setSelectedCry] = useState<Cry | null>(null);
-  const [clusterList, setClusterList] = useState<ClusterGroup | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
-  const [region, setRegion] = useState<Region | null>(null);
 
-  // GPS init
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -255,22 +105,16 @@ export default function MapScreen() {
         longitudeDelta: 0.05,
       };
       initialRegionRef.current = r;
-      setRegion(r);
       setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       setGpsReady(true);
     })();
   }, []);
 
-  // Load cries on mount and on focus
   useEffect(() => { loadCries().then(setCries); }, []);
-  useFocusEffect(useCallback(() => { loadCries().then(setCries); }, []));
 
-  // Recompute clusters when cries or zoom level change
-  const clusters = useMemo(() => {
-    const r = region ?? initialRegionRef.current;
-    if (!r) return [];
-    return clusterCries(cries, r.longitudeDelta);
-  }, [cries, region]);
+  useFocusEffect(
+    useCallback(() => { loadCries().then(setCries); }, [])
+  );
 
   function handleAddCry() {
     if (!gpsCoords) return;
@@ -279,18 +123,6 @@ export default function MapScreen() {
       params: { lat: String(gpsCoords.latitude), lng: String(gpsCoords.longitude) },
     });
   }
-
-  function handleClusterPress(cluster: ClusterGroup) {
-    if (cluster.cries.length === 1) setSelectedCry(cluster.cries[0]);
-    else setClusterList(cluster);
-  }
-
-  function handleClusterCryPress(cry: Cry) {
-    setClusterList(null);
-    setTimeout(() => setSelectedCry(cry), 150);
-  }
-
-  // ─── Permission denied ────────────────────────────────────────────────────
 
   if (permissionDenied) {
     return (
@@ -302,8 +134,6 @@ export default function MapScreen() {
     );
   }
 
-  // ─── GPS loading ──────────────────────────────────────────────────────────
-
   if (!gpsReady) {
     return (
       <View style={styles.center}>
@@ -312,8 +142,6 @@ export default function MapScreen() {
       </View>
     );
   }
-
-  // ─── Map ──────────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
@@ -324,44 +152,37 @@ export default function MapScreen() {
         customMapStyle={DARK_MAP_STYLE}
         showsUserLocation
         showsMyLocationButton={false}
-        onRegionChangeComplete={setRegion}
       >
-        {clusters.map(cluster =>
-          cluster.cries.length === 1 ? (
-            <CryMarker
-              key={cluster.id}
-              cry={cluster.cries[0]}
-              onPress={() => setSelectedCry(cluster.cries[0])}
-            />
-          ) : (
-            <ClusterMarker
-              key={cluster.id}
-              cluster={cluster}
-              onPress={() => handleClusterPress(cluster)}
-            />
-          )
-        )}
+        {cries.map(cry => {
+          const emotion = emotionById(cry.emotion);
+          const color = emotion?.color ?? '#6fe0e6';
+          return (
+            <Marker
+              key={cry.id}
+              coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              onPress={() => setSelectedCry(cry)}
+            >
+              <View style={[styles.pin, { backgroundColor: color }]}>
+                <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
-      {/* Header overlay */}
       <SafeAreaView edges={['top']} style={styles.header} pointerEvents="none">
         <Text style={styles.headerTitle}>💧 Teardrop</Text>
       </SafeAreaView>
 
-      {/* FAB */}
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
         <TouchableOpacity style={styles.fab} onPress={handleAddCry} activeOpacity={0.85}>
           <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* ── Single cry detail modal ───────────────────────────────────────── */}
       {selectedCry && (
-        <Modal
-          transparent
-          animationType="slide"
-          onRequestClose={() => setSelectedCry(null)}
-        >
+        <Modal transparent animationType="slide" onRequestClose={() => setSelectedCry(null)}>
           <TouchableOpacity
             style={styles.backdrop}
             activeOpacity={1}
@@ -369,72 +190,6 @@ export default function MapScreen() {
           />
           <SafeAreaView edges={['bottom']} style={styles.card}>
             <CryDetailCard cry={selectedCry} onClose={() => setSelectedCry(null)} />
-          </SafeAreaView>
-        </Modal>
-      )}
-
-      {/* ── Cluster list modal ────────────────────────────────────────────── */}
-      {clusterList && (
-        <Modal
-          transparent
-          animationType="slide"
-          onRequestClose={() => setClusterList(null)}
-        >
-          <TouchableOpacity
-            style={styles.backdrop}
-            activeOpacity={1}
-            onPress={() => setClusterList(null)}
-          />
-          <SafeAreaView edges={['bottom']} style={[styles.card, styles.clusterCard]}>
-            <View style={styles.handle} />
-
-            <View style={styles.clusterHeader}>
-              <Text style={styles.clusterHeaderTitle}>
-                {clusterList.cries.length} cries here
-              </Text>
-              <TouchableOpacity
-                onPress={() => setClusterList(null)}
-                style={styles.closeBtn}
-              >
-                <Text style={styles.closeTxt}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={clusterList.cries}
-              keyExtractor={c => c.id}
-              style={styles.clusterFlatList}
-              ItemSeparatorComponent={() => <View style={styles.itemSep} />}
-              renderItem={({ item }) => {
-                const emotion = emotionById(item.emotion);
-                const color = emotion?.color ?? '#6fe0e6';
-                return (
-                  <TouchableOpacity
-                    style={styles.clusterItem}
-                    onPress={() => handleClusterCryPress(item)}
-                    activeOpacity={0.75}
-                  >
-                    <View style={[styles.clusterItemDot, { backgroundColor: color }]}>
-                      <Text style={styles.clusterItemEmoji}>{emotion?.emoji ?? '💧'}</Text>
-                    </View>
-                    <View style={styles.clusterItemContent}>
-                      <Text style={[styles.clusterItemEmotion, { color }]}>
-                        {emotion?.label ?? item.emotion}
-                      </Text>
-                      <Text style={styles.clusterItemDate}>
-                        {formatRelative(item.createdAt)}
-                      </Text>
-                      {item.note ? (
-                        <Text style={styles.clusterItemNote} numberOfLines={1}>
-                          {item.note}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text style={styles.clusterItemArrow}>›</Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
           </SafeAreaView>
         </Modal>
       )}
@@ -447,7 +202,6 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
   map: { flex: 1 },
-
   center: {
     flex: 1, backgroundColor: '#0d1117',
     alignItems: 'center', justifyContent: 'center',
@@ -457,7 +211,6 @@ const styles = StyleSheet.create({
   errorTitle: { color: '#6fe0e6', fontSize: 18, fontWeight: '600' },
   errorSub: { color: '#4a5568', fontSize: 14, textAlign: 'center' },
 
-  // Header
   header: { position: 'absolute', top: 0, left: 0, right: 0 },
   headerTitle: {
     color: '#6fe0e6', fontSize: 18, fontWeight: '700', letterSpacing: 1,
@@ -465,7 +218,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.7)',
   },
 
-  // FAB
   fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
   fab: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: '#6fe0e6',
@@ -476,18 +228,12 @@ const styles = StyleSheet.create({
   },
   fabIcon: { fontSize: 32, color: '#0d1117', lineHeight: 36, fontWeight: '300' },
 
-  // 60×60 frame holding the SVG; emoji is absolutely centred on top of it
-  markerFrame: {
-    width: 60, height: 60,
+  pin: {
+    width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
-  pinEmojiOverlay: {
-    position: 'absolute',
-    fontSize: 18,
-    textAlign: 'center',
-  },
+  pinEmoji: { fontSize: 18 },
 
-  // Shared modal pieces
   backdrop: { flex: 1 },
   card: {
     backgroundColor: '#111827',
@@ -500,8 +246,6 @@ const styles = StyleSheet.create({
     width: 36, height: 4, borderRadius: 2,
     backgroundColor: '#374151', alignSelf: 'center', marginBottom: 4,
   },
-
-  // Single cry card
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   emotionBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -518,30 +262,4 @@ const styles = StyleSheet.create({
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
-
-  // Cluster list modal
-  clusterCard: { paddingBottom: 8 },
-  clusterHeader: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  clusterHeaderTitle: { color: '#6fe0e6', fontSize: 16, fontWeight: '700' },
-
-  clusterFlatList: { maxHeight: 340 },
-  itemSep: { height: 1, backgroundColor: '#1f2937' },
-
-  clusterItem: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 12, paddingHorizontal: 4, gap: 12,
-  },
-  clusterItemDot: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
-  clusterItemEmoji: { fontSize: 20 },
-  clusterItemContent: { flex: 1, gap: 3 },
-  clusterItemEmotion: { fontSize: 14, fontWeight: '600' },
-  clusterItemDate: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
-  clusterItemNote: { color: '#64748b', fontSize: 13 },
-  clusterItemArrow: { color: '#4a5568', fontSize: 24, fontWeight: '300' },
 });

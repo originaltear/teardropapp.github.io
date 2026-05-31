@@ -139,8 +139,11 @@ export default function NotificationsScreen() {
   }
 
   function handlePress(notif: Notification) {
-    if (notif.type === 'friend_request') router.push('/friends');
-    // like/comment → could deep-link to cry detail in a future update
+    if (notif.type === 'friend_request') {
+      router.push('/friends');
+    } else if ((notif.type === 'like' || notif.type === 'comment') && notif.cry_id) {
+      router.push(`/cry-detail?id=${notif.cry_id}`);
+    }
   }
 
   if (!session) {

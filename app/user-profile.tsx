@@ -13,7 +13,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { getProfileStats, followUser, unfollowUser } from '../lib/social';
+import { emotionById } from '../lib/emotions';
+import {
+  getProfileStats, followUser, unfollowUser,
+  getUserCries, blockUser, unblockUser, isUserBlocked, SocialCry,
+} from '../lib/social';
 
 interface PublicProfile {
   id: string;
@@ -36,6 +40,16 @@ function Avatar({ uri, size = 80 }: { uri?: string | null; size?: number }) {
   );
 }
 
+function formatDate(iso: string) {
+  const d = new Date(iso), now = Date.now(), diff = now - d.getTime();
+  const mins = Math.floor(diff / 60000), hours = Math.floor(diff / 3600000), days = Math.floor(diff / 86400000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -44,24 +58,32 @@ export default function UserProfileScreen() {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [cries, setCries] = useState<SocialCry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(useCallback(() => {
     if (!id) return;
     (async () => {
-      const [profileRes, statsRes] = await Promise.all([
+      const [profileRes, statsRes, criesRes] = await Promise.all([
         supabase.from('profiles')
           .select('id, username, display_name, avatar_uri, bio, is_public')
           .eq('id', id).single(),
         getProfileStats(id),
+        getUserCries(id),
       ]);
       setProfile(profileRes.data as PublicProfile);
       setStats(statsRes);
+      setCries(criesRes);
 
       if (session) {
-        const { data } = await supabase.from('follows')
-          .select('id').eq('follower_id', session.user.id).eq('following_id', id).single();
-        setIsFollowing(!!data);
+        const [followRes, blockRes] = await Promise.all([
+          supabase.from('follows')
+            .select('id').eq('follower_id', session.user.id).eq('following_id', id).maybeSingle(),
+          isUserBlocked(id),
+        ]);
+        setIsFollowing(!!followRes.data);
+        setIsBlocked(blockRes);
       }
       setLoading(false);
     })();
@@ -78,6 +100,33 @@ export default function UserProfileScreen() {
       setIsFollowing(true);
       setStats(s => ({ ...s, follower_count: s.follower_count + 1 }));
     }
+  }
+
+  function handleBlock() {
+    Alert.alert(
+      isBlocked ? 'Unblock User' : 'Block User',
+      isBlocked
+        ? `Unblock @${profile?.username}? They will be able to follow you again.`
+        : `Block @${profile?.username}? They will no longer appear in your feed or search.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isBlocked ? 'Unblock' : 'Block',
+          style: isBlocked ? 'default' : 'destructive',
+          onPress: async () => {
+            if (isBlocked) {
+              await unblockUser(id!);
+              setIsBlocked(false);
+            } else {
+              await blockUser(id!);
+              setIsBlocked(true);
+              setIsFollowing(false);
+              router.back();
+            }
+          },
+        },
+      ]
+    );
   }
 
   const isOwnProfile = session?.user.id === id;
@@ -143,17 +192,67 @@ export default function UserProfileScreen() {
           </View>
         </View>
 
-        {/* Follow button */}
-        {!isOwnProfile && (
-          <TouchableOpacity
-            style={isFollowing ? s.btnFollowing : s.btnFollow}
-            onPress={handleFollowToggle}
-            activeOpacity={0.85}
-          >
-            <Text style={isFollowing ? s.btnFollowingTxt : s.btnFollowTxt}>
-              {isFollowing ? 'Unfollow' : 'Follow'}
-            </Text>
-          </TouchableOpacity>
+        {/* Follow + Block buttons */}
+        {!isOwnProfile && session && (
+          <View style={s.actionRow}>
+            <TouchableOpacity
+              style={[isFollowing ? s.btnFollowing : s.btnFollow, { flex: 1 }]}
+              onPress={handleFollowToggle}
+              activeOpacity={0.85}
+            >
+              <Text style={isFollowing ? s.btnFollowingTxt : s.btnFollowTxt}>
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.btnBlock}
+              onPress={handleBlock}
+              activeOpacity={0.85}
+            >
+              <Text style={s.btnBlockTxt}>{isBlocked ? '🔓' : '🚫'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Cries list */}
+        {(profile?.is_public || isOwnProfile) && cries.length > 0 && (
+          <>
+            <View style={s.criesHeader}>
+              <Text style={s.criesTitle}>CRIES</Text>
+              <Text style={s.criesCount}>{cries.length}</Text>
+            </View>
+            {cries.map(cry => {
+              const emotion = emotionById(cry.emotion);
+              const color = emotion?.color ?? '#6fe0e6';
+              return (
+                <TouchableOpacity
+                  key={cry.id}
+                  style={s.cryRow}
+                  activeOpacity={0.75}
+                  onPress={() => router.push(`/cry-detail?id=${cry.id}`)}
+                >
+                  <View style={[s.cryDot, { backgroundColor: color + '22' }]}>
+                    <Text style={{ fontSize: 18 }}>{emotion?.emoji ?? '💧'}</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[s.cryEmotion, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+                    {cry.note
+                      ? <Text style={s.cryNote} numberOfLines={1}>{cry.note}</Text>
+                      : null}
+                  </View>
+                  <Text style={s.cryTime}>{formatDate(cry.created_at)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </>
+        )}
+
+        {/* Private account message */}
+        {!profile?.is_public && !isOwnProfile && (
+          <View style={s.privateBox}>
+            <Text style={s.privateEmoji}>🔒</Text>
+            <Text style={s.privateTxt}>This account is private</Text>
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -185,17 +284,49 @@ const s = StyleSheet.create({
   statValue: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
   statLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
   statDivider: { width: 1, height: 30, backgroundColor: '#1f2937' },
+  actionRow: {
+    flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 8,
+  },
   btnFollow: {
     backgroundColor: '#6fe0e6', borderRadius: 14,
-    paddingVertical: 14, alignItems: 'center', marginHorizontal: 20,
+    paddingVertical: 14, alignItems: 'center',
   },
   btnFollowTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
   btnFollowing: {
     borderRadius: 14, borderWidth: 1, borderColor: '#ef4444',
     backgroundColor: '#ef444422',
-    paddingVertical: 14, alignItems: 'center', marginHorizontal: 20,
+    paddingVertical: 14, alignItems: 'center',
   },
   btnFollowingTxt: { color: '#ef4444', fontSize: 16, fontWeight: '700' },
+  btnBlock: {
+    width: 50, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  btnBlockTxt: { fontSize: 20 },
+
+  criesHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginHorizontal: 20, marginTop: 16, marginBottom: 8,
+  },
+  criesTitle: {
+    color: '#4a5568', fontSize: 11, fontFamily: 'monospace',
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  criesCount: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
+  cryRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: '#1f2937',
+  },
+  cryDot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  cryEmotion: { fontSize: 14, fontWeight: '600' },
+  cryNote: { color: '#64748b', fontSize: 12 },
+  cryTime: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
+
+  privateBox: { alignItems: 'center', paddingVertical: 32, gap: 8, marginHorizontal: 20 },
+  privateEmoji: { fontSize: 36, opacity: 0.4 },
+  privateTxt: { color: '#4a5568', fontSize: 14 },
+
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
   emptyTxt: { color: '#4a5568', fontSize: 16 },

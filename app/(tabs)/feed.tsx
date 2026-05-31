@@ -12,7 +12,7 @@ import { emotionById } from '../../lib/emotions';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
-  getSocialFeed, getGlobalFeed, likeCry, unlikeCry, getComments, addComment,
+  getSocialFeed, getMapCries, likeCry, unlikeCry, getComments, addComment,
   SocialCry, Comment,
 } from '../../lib/social';
 
@@ -249,7 +249,7 @@ function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
 
 // ─── Feed screen ──────────────────────────────────────────────────────────────
 
-type FeedTab = 'following' | 'global';
+type FeedTab = 'mine' | 'following';
 
 export default function FeedScreen() {
   const { session } = useAuth();
@@ -263,7 +263,7 @@ export default function FeedScreen() {
   useFocusEffect(useCallback(() => {
     if (!session) return;
     setLoading(true);
-    const loader = tab === 'following' ? getSocialFeed() : getGlobalFeed();
+    const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
     loader.then(feed => { setCries(feed); setLoading(false); });
   }, [session, tab]));
 
@@ -291,17 +291,17 @@ export default function FeedScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Following / Global tabs */}
+      {/* Mine / Following tabs */}
       {session && (
         <View style={styles.tabRow}>
-          {(['following', 'global'] as FeedTab[]).map(t => (
+          {(['mine', 'following'] as FeedTab[]).map(t => (
             <TouchableOpacity
               key={t}
               style={[styles.tabChip, tab === t && styles.tabChipActive]}
               onPress={() => setTab(t)}
             >
               <Text style={[styles.tabChipTxt, tab === t && styles.tabChipTxtActive]}>
-                {t === 'following' ? '👥 Following' : '🌍 Global'}
+                {t === 'mine' ? '👤 Mine' : '👥 Following'}
               </Text>
             </TouchableOpacity>
           ))}

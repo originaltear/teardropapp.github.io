@@ -18,7 +18,8 @@ import { useAuth } from '../../lib/auth';
 
 interface NormalizedCry {
   id: string;
-  date: string;          // ISO string
+  userId?: string;
+  date: string;
   emotion: string;
   intensity: number;
   note?: string;
@@ -34,6 +35,7 @@ function normalizeCry(c: Cry | SocialCry): NormalizedCry {
   const lc = c as Cry;
   return {
     id:        c.id,
+    userId:    sc.user_id,
     date:      sc.created_at ?? lc.createdAt ?? '',
     emotion:   c.emotion,
     intensity: c.intensity,
@@ -142,20 +144,26 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
   const cry = normalizeCry(rawCry);
   const emotion = emotionById(cry.emotion);
   const hasProfile = !!cry.profile;
+  const router = useRouter();
 
   return (
     <>
       <View style={styles.handle} />
 
-      {/* Profile row — shown when viewing someone else's cry */}
+      {/* Profile row — tappable to open their profile */}
       {hasProfile && (
-        <View style={styles.profileRow}>
-          <Avatar uri={cry.profile!.avatar_uri} size={36} />
+        <TouchableOpacity
+          style={styles.profileRow}
+          activeOpacity={0.75}
+          onPress={() => cry.userId && router.push(`/user-profile?id=${cry.userId}`)}
+        >
+          <Avatar uri={cry.profile!.avatar_uri} size={38} />
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{cry.profile!.display_name}</Text>
             <Text style={styles.profileHandle}>@{cry.profile!.username}</Text>
           </View>
-        </View>
+          <Text style={styles.profileArrow}>›</Text>
+        </TouchableOpacity>
       )}
 
       <View style={styles.cardHeader}>
@@ -414,6 +422,7 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1 },
   profileName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
   profileHandle: { color: '#4a5568', fontSize: 12 },
+  profileArrow: { color: '#4a5568', fontSize: 20, fontWeight: '300' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   emotionBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 8,

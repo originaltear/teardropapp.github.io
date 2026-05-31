@@ -4,11 +4,12 @@ import {
   Modal, Image, Alert, TextInput, KeyboardAvoidingView,
   Platform, ScrollView, ActivityIndicator, RefreshControl,
 } from 'react-native';
+// Note: TextInput + ScrollView used in DetailModal comment section
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
-import { emotionById, EMOTIONS } from '../../lib/emotions';
+import { emotionById, EMOTIONS, Emotion } from '../../lib/emotions';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
@@ -261,8 +262,8 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // Mine tab filters
-  const [mineSearch, setMineSearch] = useState('');
   const [mineEmotion, setMineEmotion] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   async function loadFeed(isRefresh = false) {
     if (!session) return;
@@ -277,16 +278,12 @@ export default function FeedScreen() {
     loadFeed();
   }, [session, tab]));
 
-  // Filter mine tab by search text + emotion
-  const displayCries = tab === 'mine'
-    ? allCries.filter(c => {
-        const emotionOk = !mineEmotion || c.emotion === mineEmotion;
-        const searchOk = !mineSearch.trim() ||
-          (c.note?.toLowerCase().includes(mineSearch.toLowerCase()) ?? false) ||
-          c.emotion.toLowerCase().includes(mineSearch.toLowerCase());
-        return emotionOk && searchOk;
-      })
+  // Filter mine tab by emotion
+  const displayCries = tab === 'mine' && mineEmotion
+    ? allCries.filter(c => c.emotion === mineEmotion)
     : allCries;
+
+  const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
 
   function handleLikeToggle(cryId: string, liked: boolean) {
     setAllCries(prev => prev.map(c => c.id === cryId
@@ -329,47 +326,48 @@ export default function FeedScreen() {
         </View>
       )}
 
-      {/* Mine-tab search + emotion filter */}
+      {/* Mine-tab emotion dropdown */}
       {session && tab === 'mine' && (
-        <>
-          <View style={styles.searchRow}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              value={mineSearch}
-              onChangeText={setMineSearch}
-              placeholder="Search notes…"
-              placeholderTextColor="#4a5568"
-              autoCorrect={false}
-              clearButtonMode="while-editing"
-            />
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.emotionFilters}
+        <View style={styles.filterWrap}>
+          <TouchableOpacity
+            style={[styles.filterBar, filterOpen && styles.filterBarOpen]}
+            onPress={() => setFilterOpen(v => !v)}
+            activeOpacity={0.8}
           >
-            <TouchableOpacity
-              style={[styles.emotionChipFilter, !mineEmotion && styles.emotionChipActive]}
-              onPress={() => setMineEmotion(null)}
-            >
-              <Text style={[styles.emotionChipTxt, !mineEmotion && styles.emotionChipTxtActive]}>
-                All
-              </Text>
-            </TouchableOpacity>
-            {EMOTIONS.map(e => (
+            <Text style={styles.filterBarTxt}>
+              {selectedEmotion
+                ? `${selectedEmotion.emoji}  ${selectedEmotion.label}`
+                : '💧  All emotions'}
+            </Text>
+            <Text style={styles.filterArrow}>{filterOpen ? '▲' : '▼'}</Text>
+          </TouchableOpacity>
+
+          {filterOpen && (
+            <View style={styles.dropdown}>
               <TouchableOpacity
-                key={e.id}
-                style={[styles.emotionChipFilter, mineEmotion === e.id && styles.emotionChipActive]}
-                onPress={() => setMineEmotion(prev => prev === e.id ? null : e.id)}
+                style={[styles.dropdownItem, !mineEmotion && styles.dropdownItemActive]}
+                onPress={() => { setMineEmotion(null); setFilterOpen(false); }}
               >
-                <Text style={[styles.emotionChipTxt, mineEmotion === e.id && styles.emotionChipTxtActive]}>
-                  {e.emoji} {e.label}
+                <Text style={[styles.dropdownTxt, !mineEmotion && styles.dropdownTxtActive]}>
+                  💧  All emotions
                 </Text>
+                {!mineEmotion && <Text style={styles.dropdownCheck}>✓</Text>}
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </>
+              {EMOTIONS.map(e => (
+                <TouchableOpacity
+                  key={e.id}
+                  style={[styles.dropdownItem, mineEmotion === e.id && styles.dropdownItemActive]}
+                  onPress={() => { setMineEmotion(e.id); setFilterOpen(false); }}
+                >
+                  <Text style={[styles.dropdownTxt, mineEmotion === e.id && { color: e.color }]}>
+                    {e.emoji}  {e.label}
+                  </Text>
+                  {mineEmotion === e.id && <Text style={[styles.dropdownCheck, { color: e.color }]}>✓</Text>}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
       )}
 
       <AuthGateModal visible={authGate} onClose={() => setAuthGate(false)} />
@@ -444,26 +442,35 @@ const styles = StyleSheet.create({
 
   tabRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
+    borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 16, marginBottom: 6,
+  filterWrap: {
+    marginHorizontal: 16, marginTop: 10, marginBottom: 4, zIndex: 10,
+  },
+  filterBar: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#111827', borderRadius: 12,
     borderWidth: 1, borderColor: '#1f2937',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16, paddingVertical: 13,
   },
-  searchIcon: { fontSize: 14 },
-  searchInput: { flex: 1, color: '#e2e8f0', fontSize: 14, paddingVertical: 10 },
-  emotionFilters: {
-    paddingHorizontal: 16, paddingBottom: 8, gap: 6, flexDirection: 'row',
+  filterBarOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomColor: 'transparent' },
+  filterBarTxt: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
+  filterArrow: { color: '#4a5568', fontSize: 11 },
+  dropdown: {
+    backgroundColor: '#111827',
+    borderWidth: 1, borderTopWidth: 0, borderColor: '#1f2937',
+    borderBottomLeftRadius: 12, borderBottomRightRadius: 12,
+    overflow: 'hidden',
   },
-  emotionChipFilter: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-    borderWidth: 1, borderColor: '#1f2937', backgroundColor: 'transparent',
+  dropdownItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 13,
+    borderTopWidth: 1, borderTopColor: '#1f2937',
   },
-  emotionChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
-  emotionChipTxt: { color: '#4a5568', fontSize: 12, fontWeight: '600' },
-  emotionChipTxtActive: { color: '#0d1117' },
+  dropdownItemActive: { backgroundColor: '#6fe0e610' },
+  dropdownTxt: { color: '#94a3b8', fontSize: 14 },
+  dropdownTxtActive: { color: '#6fe0e6' },
+  dropdownCheck: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
   tabChip: {
     flex: 1, paddingVertical: 9, borderRadius: 20,
     borderWidth: 1, borderColor: '#1f2937', alignItems: 'center',

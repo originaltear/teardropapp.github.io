@@ -42,6 +42,8 @@ function RootNav() {
       <Stack.Screen name="log-cry" options={{ presentation: 'modal' }} />
       <Stack.Screen name="friends" options={{ presentation: 'modal' }} />
       <Stack.Screen name="user-profile" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="my-cries" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="follow-list" options={{ presentation: 'modal' }} />
     </Stack>
 
   );

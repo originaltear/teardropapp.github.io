@@ -12,8 +12,12 @@ import { EMOTIONS } from '../lib/emotions';
 import { saveCry, loadCries } from '../lib/storage';
 import { computeBadges, Badge } from '../lib/badges';
 
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+function generateId(): string {
+  // RFC 4122 v4 UUID — required by Supabase uuid column type
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 // ─── Achievement banner ───────────────────────────────────────────────────────

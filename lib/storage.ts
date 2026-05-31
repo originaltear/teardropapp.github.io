@@ -107,6 +107,11 @@ export async function loadCries(): Promise<Cry[]> {
   return localLoad();
 }
 
+// ─── UUID validation ──────────────────────────────────────────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isValidUuid(id: string): boolean { return UUID_RE.test(id); }
+
 // ─── Sync local cries to Supabase (called on login) ──────────────────────────
 
 export async function syncLocalToSupabase(userId: string, userEmail?: string): Promise<void> {
@@ -115,7 +120,14 @@ export async function syncLocalToSupabase(userId: string, userEmail?: string): P
 
   await ensureProfile(userId, userEmail);
 
-  const rows = local.map(cry => ({
+  // Skip cries with legacy non-UUID IDs — they were created before Phase 3
+  const syncable = local.filter(c => isValidUuid(c.id));
+  if (syncable.length === 0) {
+    console.log('[syncLocalToSupabase] no valid-UUID cries to sync (legacy IDs skipped)');
+    return;
+  }
+
+  const rows = syncable.map(cry => ({
     id:         cry.id,
     user_id:    userId,
     created_at: cry.createdAt,
@@ -134,8 +146,8 @@ export async function syncLocalToSupabase(userId: string, userEmail?: string): P
     .upsert(rows, { onConflict: 'id', ignoreDuplicates: true });
 
   if (error) {
-    console.error('[syncLocalToSupabase] upsert failed:', error.message);
+    console.warn('[syncLocalToSupabase] upsert failed:', error.message);
   } else {
-    console.log(`[syncLocalToSupabase] synced ${rows.length} local cries`);
+    console.log(`[syncLocalToSupabase] synced ${rows.length} cries (${local.length - syncable.length} legacy skipped)`);
   }
 }

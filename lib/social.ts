@@ -40,7 +40,7 @@ export interface SocialCry {
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
-  profile: { username: string; display_name: string; avatar_uri: string | null };
+  profile: { username: string; display_name: string; avatar_uri: string | null; selected_tears?: string[] };
 }
 
 export interface Comment {
@@ -210,7 +210,7 @@ async function enrichCries(
 const CRY_SELECT = `
   id, user_id, created_at, latitude, longitude, emotion,
   intensity, note, photo_uri, audio_uri, country,
-  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public)
+  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public, selected_tears)
 `;
 
 // ─── Following feed ───────────────────────────────────────────────────────────

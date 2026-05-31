@@ -15,6 +15,13 @@ import { loadProfile, saveProfile, uploadAvatar, Profile, DEFAULT_PROFILE } from
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import { getProfileStats } from '../../lib/social';
+import {
+  checkAndSaveAchievements, getUnlockedAchievements,
+  getEarnedTears, setSelectedTears, ACHIEVEMENTS, Achievement,
+} from '../../lib/achievements';
+import { TearsBadge } from '../../components/TearsBadge';
+import { AchievementToast } from '../../components/AchievementToast';
+import { supabase } from '../../lib/supabase';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -202,12 +209,17 @@ function CriesModal({ cries, onClose }: { cries: Cry[]; onClose: () => void }) {
 
 // ─── Edit profile modal ───────────────────────────────────────────────────────
 
-function EditModal({ profile, onSave, onClose }: {
-  profile: Profile; onSave: (p: Profile) => void; onClose: () => void;
+function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onClose }: {
+  profile: Profile;
+  earnedTears: string[];
+  selectedTears: string[];
+  onSave: (p: Profile, tears: string[]) => void;
+  onClose: () => void;
 }) {
   const [name, setName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
   const [avatarUri, setAvatarUri] = useState(profile.avatarUri);
+  const [chosenTears, setChosenTears] = useState<string[]>(initTears);
   const [saving, setSaving] = useState(false);
 
   async function pickFromSource(source: 'camera' | 'library') {
@@ -265,9 +277,11 @@ function EditModal({ profile, onSave, onClose }: {
               disabled={saving}
               onPress={async () => {
                 setSaving(true);
-                // Upload avatar to Supabase Storage if it's a local URI
                 const finalUri = avatarUri ? await uploadAvatar(avatarUri) : undefined;
-                await onSave({ ...profile, displayName: name.trim() || 'You', bio: bio.trim(), avatarUri: finalUri });
+                await onSave(
+                  { ...profile, displayName: name.trim() || 'You', bio: bio.trim(), avatarUri: finalUri },
+                  chosenTears
+                );
                 setSaving(false);
               }}
             >
@@ -308,6 +322,38 @@ function EditModal({ profile, onSave, onClose }: {
               maxLength={150}
               textAlignVertical="top"
             />
+
+            {earnedTears.length > 0 && (
+              <>
+                <Text style={ls.label}>My Tears <Text style={{ color: '#4a5568' }}>(choose up to 3 to display)</Text></Text>
+                <View style={ls.tearsGrid}>
+                  {earnedTears.map(tear => {
+                    const chosen = chosenTears.includes(tear);
+                    return (
+                      <TouchableOpacity
+                        key={tear}
+                        style={[ls.tearChip, chosen && ls.tearChipActive]}
+                        onPress={() => {
+                          if (chosen) {
+                            setChosenTears(prev => prev.filter(t => t !== tear));
+                          } else if (chosenTears.length < 3) {
+                            setChosenTears(prev => [...prev, tear]);
+                          }
+                        }}
+                      >
+                        <Text style={ls.tearEmoji}>{tear}</Text>
+                        {chosen && <Text style={ls.tearCheck}>✓</Text>}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {chosenTears.length > 0 && (
+                  <Text style={ls.tearsPreview}>
+                    Preview: @username {chosenTears.join(' ')}
+                  </Text>
+                )}
+              </>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -325,38 +371,93 @@ export default function ProfileScreen() {
   const [cries, setCries] = useState<Cry[]>([]);
   const [modal, setModal] = useState<'edit' | null>(null);
   const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
+  const [recentAchievements, setRecentAchievements] = useState<{ id: string; unlocked_at: string }[]>([]);
+  const [earnedTears, setEarnedTears] = useState<string[]>([]);
+  const [selectedTears, setSelectedTearsState] = useState<string[]>([]);
+  const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
+  const [currentToast, setCurrentToast] = useState<Achievement | null>(null);
+
+  function showNextToast(queue: Achievement[]) {
+    if (queue.length === 0) { setCurrentToast(null); return; }
+    const [next, ...rest] = queue;
+    setCurrentToast(next);
+    setToastQueue(rest);
+  }
 
   useFocusEffect(useCallback(() => {
     loadProfile().then(setProfile);
-    loadCries().then(setCries);
+    const criesPromise = loadCries().then(c => { setCries(c); return c; });
+
     if (session) {
       getProfileStats(session.user.id).then(setStats);
-      // Fetch username separately
-      import('../../lib/supabase').then(({ supabase }) =>
-        supabase.from('profiles').select('username').eq('id', session.user.id).single()
-          .then(({ data }) => setUsername(data?.username ?? null))
+
+      // Fetch username + selected_tears
+      supabase.from('profiles')
+        .select('username, selected_tears')
+        .eq('id', session.user.id).single()
+        .then(({ data }) => {
+          setUsername(data?.username ?? null);
+          setSelectedTearsState(data?.selected_tears ?? []);
+        });
+
+      // Fetch earned tears
+      getEarnedTears(session.user.id).then(setEarnedTears);
+
+      // Fetch recent achievements
+      getUnlockedAchievements(session.user.id).then(list => {
+        setRecentAchievements(list.slice(0, 4));
+      });
+
+      // Check for new achievements
+      criesPromise.then(c =>
+        checkAndSaveAchievements(c, session).then(newOnes => {
+          if (newOnes.length > 0) {
+            setRecentAchievements(prev => [
+              ...newOnes.map(a => ({ id: a.id, unlocked_at: new Date().toISOString() })),
+              ...prev,
+            ].slice(0, 4));
+            showNextToast(newOnes);
+          }
+        })
       );
     }
   }, [session]));
 
-  async function handleSave(updated: Profile) {
+  async function handleSave(updated: Profile, newSelectedTears?: string[]) {
     await saveProfile(updated);
     setProfile(updated);
+    if (newSelectedTears !== undefined && session) {
+      await setSelectedTears(session.user.id, newSelectedTears);
+      setSelectedTearsState(newSelectedTears);
+    }
     setModal(null);
   }
 
-  const badges = computeBadges(cries);
-  const streak = computeStreak(cries);
-  const earnedCount = badges.filter(b => b.earned).length;
+  // Countries from cries
+  const countryCount = new Set(cries.filter(c => c.country).map(c => c.country!)).size;
+  const unlockedCount = recentAchievements.length; // approximate until full list loaded
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity onPress={() => setModal('edit')} style={styles.editBtn}>
-          <Text style={styles.editTxt}>Edit</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity onPress={() => router.push('/stats')} style={styles.editBtn}>
+            <Text style={styles.editTxt}>📊</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/calendar')} style={styles.editBtn}>
+            <Text style={styles.editTxt}>📅</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setModal('edit')} style={styles.editBtn}>
+            <Text style={styles.editTxt}>Edit</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <AchievementToast
+        achievement={currentToast}
+        onDismiss={() => showNextToast(toastQueue)}
+      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Avatar */}
@@ -365,7 +466,12 @@ export default function ProfileScreen() {
             <Avatar uri={profile.avatarUri} size={88} />
           </TouchableOpacity>
           <Text style={styles.displayName}>{profile.displayName}</Text>
-          {username && <Text style={styles.usernameLabel}>@{username}</Text>}
+          {username && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.usernameLabel}>@{username}</Text>
+              {selectedTears.length > 0 && <TearsBadge tears={selectedTears} />}
+            </View>
+          )}
           {profile.bio
             ? <Text style={styles.bio}>{profile.bio}</Text>
             : <TouchableOpacity onPress={() => setModal('edit')}>
@@ -374,24 +480,24 @@ export default function ProfileScreen() {
           }
         </View>
 
-        {/* Stats */}
+        {/* Stats — Cries · Countries · Following · Followers */}
         <View style={styles.statsRow}>
           <TouchableOpacity style={styles.statCell} onPress={() => router.push('/my-cries')}>
             <Text style={styles.statValue}>{stats.cry_count || cries.length}</Text>
             <Text style={[styles.statLabel, styles.statTappable]}>Cries</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
-          <View style={styles.statCell}>
-            <Text style={styles.statValue}>{streak}</Text>
-            <Text style={styles.statLabel}>Streak</Text>
-          </View>
+          <TouchableOpacity style={styles.statCell} onPress={() => router.push('/stats')}>
+            <Text style={styles.statValue}>{countryCount}</Text>
+            <Text style={[styles.statLabel, styles.statTappable]}>Countries</Text>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
           <TouchableOpacity
             style={styles.statCell}
             onPress={() => session && router.push(`/follow-list?userId=${session.user.id}&type=following`)}
           >
             <Text style={styles.statValue}>{stats.following_count}</Text>
-            <Text style={[styles.statLabel, session && styles.statTappable]}>Following</Text>
+            <Text style={[styles.statLabel, session ? styles.statTappable : {}]}>Following</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <TouchableOpacity
@@ -399,32 +505,55 @@ export default function ProfileScreen() {
             onPress={() => session && router.push(`/follow-list?userId=${session.user.id}&type=followers`)}
           >
             <Text style={styles.statValue}>{stats.follower_count}</Text>
-            <Text style={[styles.statLabel, session && styles.statTappable]}>Followers</Text>
+            <Text style={[styles.statLabel, session ? styles.statTappable : {}]}>Followers</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Badges */}
+        {/* Recent Achievements */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Badges</Text>
-            <Text style={styles.sectionMeta}>{earnedCount}/{badges.length}</Text>
+            <Text style={styles.sectionTitle}>Achievements</Text>
+            <TouchableOpacity onPress={() => router.push('/achievements')}>
+              <Text style={styles.sectionAction}>View all →</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.badgeList}>
-            {badges.map(b => (
-              <View key={b.id} style={[styles.badgeRow, !b.earned && styles.badgeRowLocked]}>
-                <Text style={[styles.badgeEmoji, !b.earned && { opacity: 0.3 }]}>{b.emoji}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.badgeName, !b.earned && { color: '#374151' }]}>{b.name}</Text>
-                  <Text style={styles.badgeDesc}>{b.description}</Text>
-                </View>
-                {b.earned && <Text style={styles.badgeCheck}>✓</Text>}
+            {recentAchievements.length === 0 ? (
+              <View style={styles.emptyAch}>
+                <Text style={styles.emptyAchTxt}>Log your first cry to start earning achievements</Text>
               </View>
-            ))}
+            ) : recentAchievements.map(a => {
+              const def = ACHIEVEMENTS.find(x => x.id === a.id);
+              if (!def) return null;
+              return (
+                <TouchableOpacity
+                  key={a.id}
+                  style={styles.badgeRow}
+                  onPress={() => router.push('/achievements')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.badgeEmoji}>{def.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.badgeName}>{def.title}</Text>
+                    <Text style={styles.badgeDesc} numberOfLines={1}>"{def.unlockMessage}"</Text>
+                  </View>
+                  {def.isTear && <Text style={{ fontSize: 14 }}>{def.tearEmoji}</Text>}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       </ScrollView>
 
-      {modal === 'edit' && <EditModal profile={profile} onSave={handleSave} onClose={() => setModal(null)} />}
+      {modal === 'edit' && (
+        <EditModal
+          profile={profile}
+          earnedTears={earnedTears}
+          selectedTears={selectedTears}
+          onSave={handleSave}
+          onClose={() => setModal(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -462,6 +591,9 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },
   sectionMeta: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
+  sectionAction: { color: '#6fe0e6', fontSize: 12, fontWeight: '600' },
+  emptyAch: { padding: 20, alignItems: 'center' },
+  emptyAchTxt: { color: '#374151', fontSize: 13, textAlign: 'center' },
   badgeList: { backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden' },
   badgeRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -515,6 +647,16 @@ const ls = StyleSheet.create({
   saveBtn: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   label: { color: '#94a3b8', fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 8 },
   input: { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937', borderRadius: 12, padding: 12, color: '#e2e8f0', fontSize: 15, marginTop: 6 },
+  tearsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
+  tearChip: {
+    width: 52, height: 52, borderRadius: 14, borderWidth: 1,
+    borderColor: '#1f2937', backgroundColor: '#0d1117',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  tearChipActive: { borderColor: '#f2cf6b', backgroundColor: '#f2cf6b15' },
+  tearEmoji: { fontSize: 24 },
+  tearCheck: { position: 'absolute', bottom: 2, right: 4, fontSize: 10, color: '#f2cf6b', fontWeight: '700' },
+  tearsPreview: { color: '#4a5568', fontSize: 12, marginTop: 8, fontStyle: 'italic' },
   changePhotoBtn: {
     paddingHorizontal: 18, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1, borderColor: '#6fe0e6',

@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
 import { emotionById, EMOTIONS, Emotion } from '../../lib/emotions';
+import { TearsBadge } from '../../components/TearsBadge';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
@@ -221,9 +222,13 @@ function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
       <Avatar uri={cry.profile.avatar_uri} size={44} />
       <View style={styles.itemContent}>
         <View style={styles.itemTop}>
-          <Text style={styles.itemUser}>{cry.profile.display_name}
-            <Text style={styles.itemHandle}> @{cry.profile.username}</Text>
-          </Text>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+            <Text style={styles.itemUser}>{cry.profile.display_name}</Text>
+            <Text style={styles.itemHandle}>@{cry.profile.username}</Text>
+            {cry.profile.selected_tears && cry.profile.selected_tears.length > 0 && (
+              <TearsBadge tears={cry.profile.selected_tears} />
+            )}
+          </View>
           <Text style={styles.timeAgo}>{formatDate(cry.created_at)}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>

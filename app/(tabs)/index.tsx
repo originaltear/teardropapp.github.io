@@ -114,23 +114,29 @@ function Drops({ intensity }: { intensity: number }) {
 }
 
 // ─── Android bitmap-capture fix ─────────────────────────────────────────────────
-// react-native-maps rasterises custom markers to a bitmap. If it captures BEFORE
-// the view has laid out, the bitmap is too small and round shapes get clipped to
-// a square. Keeping tracksViewChanges=true until after layout fixes this; we then
-// flip to false so the markers don't keep re-rendering every frame.
+// react-native-maps rasterises custom markers to a bitmap. Two things go wrong on
+// Android and BOTH are handled here:
+//   1) Capture timing — if it captures before the view has laid out, the bitmap is
+//      too small. We keep tracksViewChanges=true and only flip to false a moment
+//      AFTER the view has reported its layout (onLayout), so at least one fully
+//      laid-out frame is captured.
+//   2) Edge clipping — even a correctly-sized capture can shave a few pixels off
+//      the bitmap edge, turning a circle into a rounded square. We wrap the circle
+//      in a larger TRANSPARENT padded box, so any clipping eats the transparent
+//      margin instead of the circle itself.
 function useSettleTracking() {
   const [tracks, setTracks] = useState(true);
-  useEffect(() => {
-    const id = setTimeout(() => setTracks(false), 600);
-    return () => clearTimeout(id);
+  const settle = useCallback(() => {
+    // Give the freshly-laid-out frame a tick to be captured, then stop tracking.
+    setTimeout(() => setTracks(false), 200);
   }, []);
-  return tracks;
+  return { tracks, settle };
 }
 
 // ─── Single cry marker ──────────────────────────────────────────────────────────
 
 function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
-  const tracks = useSettleTracking();
+  const { tracks, settle } = useSettleTracking();
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
   return (
@@ -140,8 +146,11 @@ function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
       onPress={onPress}
       tracksViewChanges={tracks}
     >
-      <View style={[styles.pin, { backgroundColor: color }]}>
-        <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+      {/* Transparent padded box — bigger than the circle, absorbs any edge clipping */}
+      <View style={styles.pinWrap} onLayout={settle}>
+        <View style={[styles.pin, { backgroundColor: color }]}>
+          <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+        </View>
       </View>
     </Marker>
   );
@@ -150,7 +159,7 @@ function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
 // ─── Cluster marker ──────────────────────────────────────────────────────────────
 
 function ClusterMarker({ cluster, onPress }: { cluster: ClusterGroup; onPress: () => void }) {
-  const tracks = useSettleTracking();
+  const { tracks, settle } = useSettleTracking();
   return (
     <Marker
       coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
@@ -158,8 +167,10 @@ function ClusterMarker({ cluster, onPress }: { cluster: ClusterGroup; onPress: (
       onPress={onPress}
       tracksViewChanges={tracks}
     >
-      <View style={[styles.clusterPin, { backgroundColor: cluster.dominantColor }]}>
-        <Text style={styles.clusterPinText}>{cluster.cries.length}</Text>
+      <View style={styles.pinWrap} onLayout={settle}>
+        <View style={[styles.clusterPin, { backgroundColor: cluster.dominantColor }]}>
+          <Text style={styles.clusterPinText}>{cluster.cries.length}</Text>
+        </View>
       </View>
     </Marker>
   );
@@ -444,6 +455,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
   fabIcon: { fontSize: 32, color: '#0d1117', lineHeight: 36, fontWeight: '300' },
+
+  // Transparent padded wrapper — makes the captured bitmap larger than the circle
+  // so Android edge-clipping eats the margin, not the circle. backgroundColor is
+  // intentionally transparent.
+  pinWrap: {
+    padding: 8,
+    backgroundColor: 'transparent',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   // Single cry pin — plain circle, no border
   pin: {

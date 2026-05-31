@@ -225,27 +225,34 @@ export default function MapScreen() {
         })}
       </MapView>
 
-      <SafeAreaView edges={['top']} style={styles.topOverlay} pointerEvents="box-none">
-        <View style={styles.header} pointerEvents="none">
-          <Text style={styles.headerTitle}>💧 Teardrop</Text>
-        </View>
-        {session && (
-          <View style={styles.filterRow} pointerEvents="box-none">
-            {(['mine', 'following', 'global'] as MapFilter[]).map(f => (
+      {/* Header title */}
+      <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="none">
+        <Text style={styles.headerTitle}>💧 Teardrop</Text>
+      </SafeAreaView>
+
+      {/* Segmented filter — centered, floating above FAB */}
+      {session && (
+        <View style={styles.filterContainer} pointerEvents="box-none">
+          <View style={styles.segmented}>
+            {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => (
               <TouchableOpacity
                 key={f}
-                style={[styles.filterChip, mapFilter === f && styles.filterChipActive]}
+                style={[
+                  styles.segment,
+                  mapFilter === f && styles.segmentActive,
+                  i < 2 && styles.segmentBorder,
+                ]}
                 onPress={() => setMapFilter(f)}
-                activeOpacity={0.8}
+                activeOpacity={0.75}
               >
-                <Text style={[styles.filterTxt, mapFilter === f && styles.filterTxtActive]}>
-                  {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'Global'}
+                <Text style={styles.segmentEmoji}>
+                  {f === 'mine' ? '👤' : f === 'following' ? '👥' : '🌍'}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-        )}
-      </SafeAreaView>
+        </View>
+      )}
 
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
         <TouchableOpacity style={styles.fab} onPress={handleAddCry} activeOpacity={0.85}>
@@ -274,17 +281,30 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
   map: { flex: 1 },
-  topOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
-  filterRow: {
-    flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 10,
+
+  // Header
+  headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
+
+  // Segmented control — centered, floating
+  filterContainer: {
+    position: 'absolute', bottom: 110, left: 0, right: 0,
+    alignItems: 'center',
   },
-  filterChip: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
-    backgroundColor: 'rgba(17,24,39,0.85)', borderWidth: 1, borderColor: '#1f2937',
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(13,17,23,0.88)',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    overflow: 'hidden',
   },
-  filterChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
-  filterTxt: { color: '#94a3b8', fontSize: 12, fontWeight: '700' },
-  filterTxtActive: { color: '#0d1117' },
+  segment: {
+    paddingHorizontal: 26, paddingVertical: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
+  segmentActive: { backgroundColor: '#6fe0e6' },
+  segmentEmoji: { fontSize: 22 },
   center: {
     flex: 1, backgroundColor: '#0d1117',
     alignItems: 'center', justifyContent: 'center',
@@ -294,7 +314,6 @@ const styles = StyleSheet.create({
   errorTitle: { color: '#6fe0e6', fontSize: 18, fontWeight: '600' },
   errorSub: { color: '#4a5568', fontSize: 14, textAlign: 'center' },
 
-  header: { position: 'absolute', top: 0, left: 0, right: 0 },
   headerTitle: {
     color: '#6fe0e6', fontSize: 18, fontWeight: '700', letterSpacing: 1,
     paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8,

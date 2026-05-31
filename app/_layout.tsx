@@ -3,8 +3,6 @@ import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../lib/auth';
 
-// ─── Inner navigator (needs auth context) ────────────────────────────────────
-
 function RootNav() {
   const { session, loading } = useAuth();
   const segments = useSegments();
@@ -13,9 +11,10 @@ function RootNav() {
   useEffect(() => {
     if (loading) return;
     const inAuth = segments[0] === '(auth)';
-    if (!session && !inAuth) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuth) {
+
+    // Only auto-navigate AWAY from auth screens when already logged in.
+    // Guest users (no session) can freely use the app — no forced redirect.
+    if (session && inAuth) {
       router.replace('/(tabs)/');
     }
   }, [session, loading, segments]);
@@ -36,8 +35,6 @@ function RootNav() {
     </Stack>
   );
 }
-
-// ─── Root layout (wraps everything in AuthProvider) ───────────────────────────
 
 export default function RootLayout() {
   return (

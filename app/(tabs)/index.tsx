@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal,
+  ActivityIndicator, Modal, Image, Alert,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
 
@@ -50,6 +51,43 @@ function Drops({ intensity }: { intensity: number }) {
   );
 }
 
+// ─── Audio player ─────────────────────────────────────────────────────────────
+
+function AudioPlayer({ uri }: { uri: string }) {
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  async function toggle() {
+    if (playing) {
+      await soundRef.current?.stopAsync();
+      setPlaying(false);
+      return;
+    }
+    try {
+      await soundRef.current?.unloadAsync();
+      const { sound } = await Audio.Sound.createAsync({ uri });
+      soundRef.current = sound;
+      setPlaying(true);
+      sound.setOnPlaybackStatusUpdate(s => {
+        if (s.isLoaded && s.didJustFinish) {
+          setPlaying(false);
+          sound.unloadAsync();
+        }
+      });
+      await sound.playAsync();
+    } catch {
+      Alert.alert('Error', 'Could not play audio.');
+    }
+  }
+
+  return (
+    <TouchableOpacity style={styles.audioPlayer} onPress={toggle} activeOpacity={0.8}>
+      <Text style={styles.audioIcon}>{playing ? '⏹' : '▶'}</Text>
+      <Text style={styles.audioLabel}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Cry detail card ──────────────────────────────────────────────────────────
 
 function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
@@ -70,6 +108,13 @@ function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
       </View>
       <Text style={styles.dateText}>{formatDate(cry.createdAt)}</Text>
       <Drops intensity={cry.intensity} />
+
+      {/* Photo */}
+      {cry.photoUri ? (
+        <Image source={{ uri: cry.photoUri }} style={styles.photo} resizeMode="cover" />
+      ) : null}
+
+      {/* Note */}
       {cry.note ? (
         <View style={styles.noteBox}>
           <Text style={styles.noteText}>{cry.note}</Text>
@@ -77,6 +122,9 @@ function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
       ) : (
         <Text style={styles.noNote}>No note</Text>
       )}
+
+      {/* Audio */}
+      {cry.audioUri ? <AudioPlayer uri={cry.audioUri} /> : null}
     </>
   );
 }
@@ -256,10 +304,22 @@ const styles = StyleSheet.create({
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: '#4a5568', fontSize: 18 },
   dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  photo: {
+    width: '100%', height: 180, borderRadius: 12,
+    backgroundColor: '#0d1117',
+  },
   noteBox: {
     backgroundColor: '#0d1117', borderRadius: 10,
     padding: 12, borderWidth: 1, borderColor: '#1f2937',
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  audioPlayer: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#0d1117', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: '#6fe0e6',
+  },
+  audioIcon: { fontSize: 18, color: '#6fe0e6' },
+  audioLabel: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
 });

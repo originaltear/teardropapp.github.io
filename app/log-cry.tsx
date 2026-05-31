@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Animated, Image, Alert,
+  Image, Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,7 +10,9 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { EMOTIONS } from '../lib/emotions';
 import { saveCry, loadCries } from '../lib/storage';
-import { computeBadges, Badge } from '../lib/badges';
+import { checkAndSaveAchievements, Achievement } from '../lib/achievements';
+import { AchievementToast } from '../components/AchievementToast';
+import { useAuth } from '../lib/auth';
 
 function generateId(): string {
   // RFC 4122 v4 UUID — required by Supabase uuid column type
@@ -20,39 +22,21 @@ function generateId(): string {
   });
 }
 
-// ─── Achievement banner ───────────────────────────────────────────────────────
-
-function AchievementBanner({ badge }: { badge: Badge }) {
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.delay(1800),
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={[styles.achievement, { opacity }]}>
-      <Text style={styles.achievementTag}>Achievement Unlocked!</Text>
-      <Text style={styles.achievementEmoji}>{badge.emoji}</Text>
-      <Text style={styles.achievementName}>{badge.name}</Text>
-    </Animated.View>
-  );
-}
+// (Achievement toast is now handled by AchievementToast modal component)
 
 // ─── Log Cry screen ───────────────────────────────────────────────────────────
 
 export default function LogCryScreen() {
   const router = useRouter();
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
+  const { session } = useAuth();
 
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const [unlockedBadge, setUnlockedBadge] = useState<Badge | null>(null);
+  const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
+  const [currentToast, setCurrentToast] = useState<Achievement | null>(null);
 
   // ── Photo state ──
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -190,14 +174,20 @@ export default function LogCryScreen() {
     return `${m}:${s}`;
   }
 
+  // ── Toast queue ──
+
+  function showNextToast(queue: Achievement[]) {
+    if (queue.length === 0) { setCurrentToast(null); return; }
+    const [next, ...rest] = queue;
+    setCurrentToast(next);
+    setToastQueue(rest);
+  }
+
   // ── Save ──
 
   async function handleSave() {
     if (!emotion || !lat || !lng) return;
     setSaving(true);
-
-    const criesBefore = await loadCries();
-    const badgesBefore = computeBadges(criesBefore);
 
     await saveCry({
       id: generateId(),
@@ -211,15 +201,15 @@ export default function LogCryScreen() {
       audioUri: audioUri ?? undefined,
     });
 
-    const criesAfter = await loadCries();
-    const badgesAfter = computeBadges(criesAfter);
-    const newlyEarned = badgesAfter.find((b, i) => b.earned && !badgesBefore[i].earned);
-
     setSaving(false);
 
-    if (newlyEarned) {
-      setUnlockedBadge(newlyEarned);
-      await new Promise(r => setTimeout(r, 2400));
+    // Check achievements (non-blocking — don't await before navigating)
+    if (session) {
+      loadCries().then(cries =>
+        checkAndSaveAchievements(cries, session).then(newOnes => {
+          if (newOnes.length > 0) showNextToast(newOnes);
+        })
+      );
     }
 
     if (router.canGoBack()) router.back();
@@ -250,7 +240,10 @@ export default function LogCryScreen() {
           <View style={{ width: 36 }} />
         </View>
 
-        {unlockedBadge && <AchievementBanner badge={unlockedBadge} />}
+        <AchievementToast
+          achievement={currentToast}
+          onDismiss={() => showNextToast(toastQueue)}
+        />
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
 
@@ -386,19 +379,6 @@ export default function LogCryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
-
-  // Achievement banner
-  achievement: {
-    marginHorizontal: 20,
-    backgroundColor: '#111827',
-    borderRadius: 16, borderWidth: 1, borderColor: '#6fe0e6',
-    padding: 16, alignItems: 'center', gap: 4,
-    shadowColor: '#6fe0e6', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 12, elevation: 10,
-  },
-  achievementTag: { color: '#6fe0e6', fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },
-  achievementEmoji: { fontSize: 36 },
-  achievementName: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

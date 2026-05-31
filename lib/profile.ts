@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface Profile {
   displayName: string;
   bio: string;
+  avatarUri?: string;   // Phase 2C: custom photo. Absent = default teardrop icon.
+  // Kept for backwards-compat with stored data — no longer editable via UI
   avatarColor: string;
   avatarEmoji: string;
 }
@@ -16,16 +18,9 @@ export const DEFAULT_PROFILE: Profile = {
   avatarEmoji: '💧',
 };
 
-export const AVATAR_COLORS = [
-  '#6fe0e6', '#f2cf6b', '#ef6f6f', '#a99cf0',
-  '#6fa8e0', '#ef9bb3', '#8fe0a8', '#f2a86b', '#8a9bb5',
-];
-
-export const AVATAR_EMOJIS = [
-  '💧', '✨', '🔥', '🌀', '💔',
-  '🌸', '🌫️', '🍃', '🌊', '😶',
-  '🥺', '😭', '🤧', '💫', '🫧',
-];
+// Still exported so existing imports don't break — but no longer shown in UI
+export const AVATAR_COLORS: string[] = [];
+export const AVATAR_EMOJIS: string[] = [];
 
 export async function loadProfile(): Promise<Profile> {
   const raw = await AsyncStorage.getItem(KEY);

@@ -1,17 +1,17 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, Platform, FlatList,
+  Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
 import { computeBadges, computeStreak, Badge } from '../../lib/badges';
-import {
-  loadProfile, saveProfile, Profile,
-  AVATAR_COLORS, AVATAR_EMOJIS, DEFAULT_PROFILE,
-} from '../../lib/profile';
+import { loadProfile, saveProfile, Profile, DEFAULT_PROFILE } from '../../lib/profile';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +39,65 @@ function Drops({ intensity }: { intensity: number }) {
   );
 }
 
+// ─── Avatar component (shared) ────────────────────────────────────────────────
+
+function Avatar({ uri, size = 88 }: { uri?: string; size?: number }) {
+  if (uri) {
+    return (
+      <Image
+        source={{ uri }}
+        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#1f2937' }}
+        resizeMode="cover"
+      />
+    );
+  }
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Text style={{ fontSize: size * 0.48 }}>💧</Text>
+    </View>
+  );
+}
+
+// ─── Audio player ─────────────────────────────────────────────────────────────
+
+function AudioPlayer({ uri }: { uri: string }) {
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  async function toggle() {
+    if (playing) {
+      await soundRef.current?.stopAsync();
+      setPlaying(false);
+      return;
+    }
+    try {
+      await soundRef.current?.unloadAsync();
+      const { sound } = await Audio.Sound.createAsync({ uri });
+      soundRef.current = sound;
+      setPlaying(true);
+      sound.setOnPlaybackStatusUpdate(s => {
+        if (s.isLoaded && s.didJustFinish) {
+          setPlaying(false);
+          sound.unloadAsync();
+        }
+      });
+      await sound.playAsync();
+    } catch {
+      Alert.alert('Error', 'Could not play audio.');
+    }
+  }
+
+  return (
+    <TouchableOpacity style={ls.audioPlayer} onPress={toggle} activeOpacity={0.8}>
+      <Text style={ls.audioIcon}>{playing ? '⏹' : '▶'}</Text>
+      <Text style={ls.audioLabel}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Cry detail card (inside modal) ──────────────────────────────────────────
 
 function CryDetailSheet({ cry, onBack }: { cry: Cry; onBack: () => void }) {
@@ -60,9 +119,13 @@ function CryDetailSheet({ cry, onBack }: { cry: Cry; onBack: () => void }) {
         {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
       </Text>
       <Drops intensity={cry.intensity} />
+      {cry.photoUri ? (
+        <Image source={{ uri: cry.photoUri }} style={ls.photo} resizeMode="cover" />
+      ) : null}
       {cry.note
         ? <View style={ls.noteBox}><Text style={ls.noteText}>{cry.note}</Text></View>
         : <Text style={ls.noNote}>No note</Text>}
+      {cry.audioUri ? <AudioPlayer uri={cry.audioUri} /> : null}
     </>
   );
 }
@@ -109,7 +172,15 @@ function CriesModal({ cries, onClose }: { cries: Cry[]; onClose: () => void }) {
                     <Text style={ls.cryDate}>{formatDate(cry.createdAt)}</Text>
                     {cry.note ? <Text style={ls.cryNote} numberOfLines={1}>{cry.note}</Text> : null}
                   </View>
-                  <Drops intensity={cry.intensity} />
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Drops intensity={cry.intensity} />
+                    {(cry.photoUri || cry.audioUri) ? (
+                      <View style={{ flexDirection: 'row', gap: 3 }}>
+                        {cry.photoUri ? <Text style={{ fontSize: 11 }}>📷</Text> : null}
+                        {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
+                      </View>
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               );
             }}
@@ -157,8 +228,49 @@ function EditModal({ profile, onSave, onClose }: {
 }) {
   const [name, setName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
-  const [color, setColor] = useState(profile.avatarColor);
-  const [emoji, setEmoji] = useState(profile.avatarEmoji);
+  const [avatarUri, setAvatarUri] = useState(profile.avatarUri);
+
+  async function pickFromSource(source: 'camera' | 'library') {
+    if (source === 'camera') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera access is required.');
+        return;
+      }
+      const res = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'images',
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+      if (!res.canceled) setAvatarUri(res.assets[0].uri);
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library access is required.');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        quality: 0.8,
+        allowsEditing: true,
+        aspect: [1, 1],
+      });
+      if (!res.canceled) setAvatarUri(res.assets[0].uri);
+    }
+  }
+
+  function handleChangePhoto() {
+    const options: { text: string; onPress?: () => void; style?: 'cancel' | 'destructive' }[] = [
+      { text: '📷  Take Photo', onPress: () => pickFromSource('camera') },
+      { text: '🖼  Choose from Library', onPress: () => pickFromSource('library') },
+    ];
+    if (avatarUri) {
+      options.push({ text: 'Use Default (Teardrop)', onPress: () => setAvatarUri(undefined), style: 'destructive' });
+    }
+    options.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert('Change Profile Photo', undefined, options);
+  }
 
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
@@ -169,37 +281,47 @@ function EditModal({ profile, onSave, onClose }: {
           <View style={ls.sheetHeader}>
             <TouchableOpacity onPress={onClose}><Text style={ls.cancel}>Cancel</Text></TouchableOpacity>
             <Text style={ls.sheetTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={() => onSave({ displayName: name.trim() || 'You', bio: bio.trim(), avatarColor: color, avatarEmoji: emoji })}>
+            <TouchableOpacity onPress={() => onSave({
+              ...profile,
+              displayName: name.trim() || 'You',
+              bio: bio.trim(),
+              avatarUri,
+            })}>
               <Text style={ls.saveBtn}>Save</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 8, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
-            <View style={[ls.avatarPreview, { backgroundColor: color }]}>
-              <Text style={{ fontSize: 36 }}>{emoji}</Text>
+          <ScrollView
+            contentContainerStyle={{ padding: 20, gap: 8, paddingBottom: 32 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Avatar preview + change button */}
+            <View style={{ alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <Avatar uri={avatarUri} size={88} />
+              <TouchableOpacity style={ls.changePhotoBtn} onPress={handleChangePhoto} activeOpacity={0.8}>
+                <Text style={ls.changePhotoTxt}>Change Photo</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={ls.label}>Colour</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {AVATAR_COLORS.map(c => (
-                <TouchableOpacity key={c} onPress={() => setColor(c)}
-                  style={[ls.swatch, { backgroundColor: c }, c === color && ls.swatchSelected]} />
-              ))}
-            </View>
-            <Text style={ls.label}>Emoji</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {AVATAR_EMOJIS.map(e => (
-                <TouchableOpacity key={e} onPress={() => setEmoji(e)}
-                  style={[ls.emojiBtn, e === emoji && { backgroundColor: '#1f2937' }]}>
-                  <Text style={{ fontSize: 26 }}>{e}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+
             <Text style={ls.label}>Display name</Text>
-            <TextInput style={ls.input} value={name} onChangeText={setName}
-              placeholder="Your name" placeholderTextColor="#4a5568" maxLength={40} />
+            <TextInput
+              style={ls.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+              placeholderTextColor="#4a5568"
+              maxLength={40}
+            />
             <Text style={ls.label}>Bio <Text style={{ color: '#4a5568' }}>(optional)</Text></Text>
-            <TextInput style={[ls.input, { height: 80 }]} value={bio} onChangeText={setBio}
-              placeholder="A few words about you…" placeholderTextColor="#4a5568"
-              multiline maxLength={150} textAlignVertical="top" />
+            <TextInput
+              style={[ls.input, { height: 80 }]}
+              value={bio}
+              onChangeText={setBio}
+              placeholder="A few words about you…"
+              placeholderTextColor="#4a5568"
+              multiline
+              maxLength={150}
+              textAlignVertical="top"
+            />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -244,9 +366,7 @@ export default function ProfileScreen() {
         {/* Avatar */}
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={() => setModal('edit')}>
-            <View style={[styles.avatar, { backgroundColor: profile.avatarColor }]}>
-              <Text style={styles.avatarEmoji}>{profile.avatarEmoji}</Text>
-            </View>
+            <Avatar uri={profile.avatarUri} size={88} />
           </TouchableOpacity>
           <Text style={styles.displayName}>{profile.displayName}</Text>
           {profile.bio
@@ -323,8 +443,6 @@ const styles = StyleSheet.create({
   editTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
   content: { paddingBottom: 48 },
   avatarSection: { alignItems: 'center', paddingVertical: 28, gap: 8 },
-  avatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-  avatarEmoji: { fontSize: 44 },
   displayName: { color: '#e2e8f0', fontSize: 22, fontWeight: '700' },
   bio: { color: '#64748b', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 },
   bioPlaceholder: { color: '#374151', fontSize: 14, fontStyle: 'italic' },
@@ -361,7 +479,7 @@ const styles = StyleSheet.create({
 const ls = StyleSheet.create({
   backdrop: { flex: 1 },
   sheet: {
-    backgroundColor: '#111827', maxHeight: '85%',
+    backgroundColor: '#111827', maxHeight: '90%',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: '#1f2937',
   },
@@ -382,6 +500,7 @@ const ls = StyleSheet.create({
   emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   emotionLabel: { fontSize: 16, fontWeight: '700' },
   dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  photo: { width: '100%', height: 160, borderRadius: 12, backgroundColor: '#0d1117' },
   noteBox: { backgroundColor: '#0d1117', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#1f2937' },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
@@ -393,10 +512,19 @@ const ls = StyleSheet.create({
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
   cancel: { color: '#4a5568', fontSize: 15 },
   saveBtn: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
-  avatarPreview: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 8 },
   label: { color: '#94a3b8', fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 8 },
-  swatch: { width: 32, height: 32, borderRadius: 16 },
-  swatchSelected: { borderWidth: 3, borderColor: '#fff' },
-  emojiBtn: { width: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   input: { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937', borderRadius: 12, padding: 12, color: '#e2e8f0', fontSize: 15, marginTop: 6 },
+  changePhotoBtn: {
+    paddingHorizontal: 18, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1, borderColor: '#6fe0e6',
+  },
+  changePhotoTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  audioPlayer: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#0d1117', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: '#6fe0e6',
+  },
+  audioIcon: { fontSize: 18, color: '#6fe0e6' },
+  audioLabel: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
 });

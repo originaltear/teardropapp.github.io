@@ -76,7 +76,10 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
 
       <View style={styles.rowContent}>
         <Text style={styles.rowText}>{notifText(notif)}</Text>
-        {notif.cry && (
+        {notif.comment_content && (
+          <Text style={styles.rowComment} numberOfLines={2}>"{notif.comment_content}"</Text>
+        )}
+        {!notif.comment_content && notif.cry && (
           <Text style={styles.rowSub}>
             {notif.cry.emotion} · {'💧'.repeat(notif.cry.intensity)}
           </Text>
@@ -221,6 +224,7 @@ const styles = StyleSheet.create({
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
   rowContent: { flex: 1, gap: 2 },
   rowText: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 },
+  rowComment: { color: '#64748b', fontSize: 13, fontStyle: 'italic', lineHeight: 18 },
   rowSub: { color: '#4a5568', fontSize: 12 },
   rowTime: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6fe0e6' },

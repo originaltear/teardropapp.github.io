@@ -398,15 +398,28 @@ export default function FeedScreen() {
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>💧</Text>
               <Text style={styles.emptyTitle}>
-                {session ? (tab === 'mine' ? 'No cries match' : 'Nothing here yet') : 'Log in to see the feed'}
+                {!session
+                  ? 'Log in to see the feed'
+                  : tab === 'mine'
+                    ? 'No cries match'
+                    : 'No cries yet'}
               </Text>
               <Text style={styles.emptySub}>
-                {session
-                  ? tab === 'mine'
-                    ? 'Try changing your search or filter'
-                    : 'Follow friends to see their cries here'
-                  : 'Create an account to follow friends and see their cries'}
+                {!session
+                  ? 'Create an account to follow friends and see their cries'
+                  : tab === 'mine'
+                    ? 'Try a different filter'
+                    : 'Follow friends to see their cries here'}
               </Text>
+              {session && tab === 'following' && (
+                <TouchableOpacity
+                  style={styles.emptyBtn}
+                  onPress={() => router.push('/friends')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.emptyBtnTxt}>👥  Find Friends</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -486,6 +499,11 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
   emptyTitle: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  emptyBtn: {
+    marginTop: 8, backgroundColor: '#6fe0e6',
+    paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20,
+  },
+  emptyBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 
   item: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },

@@ -8,6 +8,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
+import { useAuth } from '../../lib/auth';
+import { AuthGateModal } from '../../components/AuthGateModal';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -164,8 +166,10 @@ function FeedItem({ cry, onPress }: { cry: Cry; onPress: () => void }) {
 // ─── Feed screen ──────────────────────────────────────────────────────────────
 
 export default function FeedScreen() {
+  const { session } = useAuth();
   const [cries, setCries] = useState<Cry[]>([]);
   const [selected, setSelected] = useState<Cry | null>(null);
+  const [authGate, setAuthGate] = useState(false);
 
   useFocusEffect(
     useCallback(() => { loadCries().then(setCries); }, [])
@@ -176,10 +180,16 @@ export default function FeedScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Feed</Text>
-        <TouchableOpacity style={styles.addFriendsBtn} activeOpacity={0.7} disabled>
+        <TouchableOpacity
+          style={styles.addFriendsBtn}
+          activeOpacity={0.7}
+          onPress={() => session ? undefined : setAuthGate(true)}
+        >
           <Text style={styles.addFriendsTxt}>Add Friends</Text>
         </TouchableOpacity>
       </View>
+
+      <AuthGateModal visible={authGate} onClose={() => setAuthGate(false)} />
 
       <FlatList
         data={cries}

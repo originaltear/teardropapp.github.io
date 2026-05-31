@@ -255,12 +255,16 @@ export default function MapScreen() {
           }
 
           // ── Cluster bubble → same technique, just bigger + a count ──
+          // tracksViewChanges={true}: the bubble remounts as you zoom (its
+          // membership changes), so force it to keep re-capturing its bitmap.
+          // That way it never caches a half-laid-out frame → always a full circle.
           return (
             <Marker
               key={cluster.id}
               coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
               onPress={() => handleClusterPress(cluster)}
+              tracksViewChanges
             >
               <View style={[styles.clusterPin, { backgroundColor: cluster.dominantColor }]}>
                 <Text style={styles.clusterPinText}>{cluster.cries.length}</Text>

@@ -11,6 +11,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
+import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
+import { useAuth } from '../../lib/auth';
 
 // ─── Map style ────────────────────────────────────────────────────────────────
 
@@ -133,13 +135,15 @@ function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
 
 export default function MapScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const mapRef = useRef<MapView>(null);
   const initialRegionRef = useRef<Region | null>(null);
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [cries, setCries] = useState<Cry[]>([]);
+  const [cries, setCries] = useState<(Cry | SocialCry)[]>([]);
   const [selectedCry, setSelectedCry] = useState<Cry | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [mapFilter, setMapFilter] = useState<MapFilter>('mine');
 
   useEffect(() => {
     (async () => {
@@ -158,11 +162,13 @@ export default function MapScreen() {
     })();
   }, []);
 
-  useEffect(() => { loadCries().then(setCries); }, []);
-
-  useFocusEffect(
-    useCallback(() => { loadCries().then(setCries); }, [])
-  );
+  useFocusEffect(useCallback(() => {
+    if (session && mapFilter !== 'mine') {
+      getMapCries(mapFilter).then(setCries);
+    } else {
+      loadCries().then(setCries);
+    }
+  }, [session, mapFilter]));
 
   function handleAddCry() {
     if (!gpsCoords) return;
@@ -219,8 +225,26 @@ export default function MapScreen() {
         })}
       </MapView>
 
-      <SafeAreaView edges={['top']} style={styles.header} pointerEvents="none">
-        <Text style={styles.headerTitle}>💧 Teardrop</Text>
+      <SafeAreaView edges={['top']} style={styles.topOverlay} pointerEvents="box-none">
+        <View style={styles.header} pointerEvents="none">
+          <Text style={styles.headerTitle}>💧 Teardrop</Text>
+        </View>
+        {session && (
+          <View style={styles.filterRow} pointerEvents="box-none">
+            {(['mine', 'following', 'global'] as MapFilter[]).map(f => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.filterChip, mapFilter === f && styles.filterChipActive]}
+                onPress={() => setMapFilter(f)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.filterTxt, mapFilter === f && styles.filterTxtActive]}>
+                  {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'Global'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </SafeAreaView>
 
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
@@ -250,6 +274,17 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
   map: { flex: 1 },
+  topOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
+  filterRow: {
+    flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 10,
+  },
+  filterChip: {
+    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: 'rgba(17,24,39,0.85)', borderWidth: 1, borderColor: '#1f2937',
+  },
+  filterChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
+  filterTxt: { color: '#94a3b8', fontSize: 12, fontWeight: '700' },
+  filterTxtActive: { color: '#0d1117' },
   center: {
     flex: 1, backgroundColor: '#0d1117',
     alignItems: 'center', justifyContent: 'center',

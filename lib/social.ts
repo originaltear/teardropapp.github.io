@@ -175,81 +175,106 @@ export async function getPendingRequests(): Promise<FriendRequest[]> {
   return (data ?? []) as FriendRequest[];
 }
 
-// ─── Social feed ──────────────────────────────────────────────────────────────
+// ─── Shared helper: enrich raw cry rows with like/comment counts ──────────────
 
-export async function getSocialFeed(
-  radiusKm: number | null,
-  userLat?: number,
-  userLng?: number
+async function enrichCries(
+  cries: any[],
+  userId: string
 ): Promise<SocialCry[]> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return [];
-
-  // Get IDs of people the user follows + self
-  const { data: followData } = await supabase
-    .from('follows')
-    .select('following_id')
-    .eq('follower_id', session.user.id);
-
-  const followingIds = (followData ?? []).map(f => f.following_id);
-  const allIds = [session.user.id, ...followingIds];
-
-  let query = supabase
-    .from('cries')
-    .select(`
-      id, user_id, created_at, latitude, longitude, emotion,
-      intensity, note, photo_uri, audio_uri, country,
-      profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri)
-    `)
-    .in('user_id', allIds)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  const { data: cries, error } = await query;
-  if (error || !cries) return [];
-
-  // Fetch like/comment counts and "liked by me"
+  if (cries.length === 0) return [];
   const cryIds = cries.map(c => c.id);
   const [likesRes, commentsRes, myLikesRes] = await Promise.all([
     supabase.from('likes').select('cry_id').in('cry_id', cryIds),
     supabase.from('comments').select('cry_id').in('cry_id', cryIds),
-    supabase.from('likes').select('cry_id').in('cry_id', cryIds).eq('user_id', session.user.id),
+    supabase.from('likes').select('cry_id').in('cry_id', cryIds).eq('user_id', userId),
   ]);
-
   const likeMap: Record<string, number> = {};
   const commentMap: Record<string, number> = {};
   const myLikedSet = new Set((myLikesRes.data ?? []).map(l => l.cry_id));
-
   for (const l of likesRes.data ?? []) likeMap[l.cry_id] = (likeMap[l.cry_id] ?? 0) + 1;
   for (const c of commentsRes.data ?? []) commentMap[c.cry_id] = (commentMap[c.cry_id] ?? 0) + 1;
-
-  let results = cries.map(c => ({
+  return cries.map(c => ({
     ...c,
     like_count: likeMap[c.id] ?? 0,
     comment_count: commentMap[c.id] ?? 0,
     liked_by_me: myLikedSet.has(c.id),
-    profile: (c as any).profile ?? { username: 'unknown', display_name: 'Unknown', avatar_uri: null },
+    profile: c.profile ?? { username: 'unknown', display_name: 'Unknown', avatar_uri: null },
   })) as SocialCry[];
-
-  // Client-side radius filter
-  if (radiusKm !== null && userLat !== undefined && userLng !== undefined) {
-    results = results.filter(c => {
-      const d = haversineKm(userLat, userLng, c.latitude, c.longitude);
-      return d <= radiusKm;
-    });
-  }
-
-  return results;
 }
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+const CRY_SELECT = `
+  id, user_id, created_at, latitude, longitude, emotion,
+  intensity, note, photo_uri, audio_uri, country,
+  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri)
+`;
+
+// ─── Following feed ───────────────────────────────────────────────────────────
+
+export async function getSocialFeed(): Promise<SocialCry[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+
+  const { data: followData } = await supabase
+    .from('follows').select('following_id').eq('follower_id', session.user.id);
+
+  const followingIds = (followData ?? []).map(f => f.following_id);
+  const allIds = [session.user.id, ...followingIds];
+
+  const { data: cries, error } = await supabase
+    .from('cries').select(CRY_SELECT)
+    .in('user_id', allIds)
+    .order('created_at', { ascending: false })
+    .limit(60);
+
+  if (error || !cries) return [];
+  return enrichCries(cries, session.user.id);
+}
+
+// ─── Global feed (public profiles) ───────────────────────────────────────────
+
+export async function getGlobalFeed(): Promise<SocialCry[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+
+  const { data: cries, error } = await supabase
+    .from('cries').select(CRY_SELECT)
+    .order('created_at', { ascending: false })
+    .limit(60);
+
+  if (error || !cries) return [];
+  // Filter to only public profiles (RLS handles access; filter out private locally)
+  const publicCries = cries.filter(c => (c.profile as any)?.is_public !== false || c.user_id === session.user.id);
+  return enrichCries(publicCries, session.user.id);
+}
+
+// ─── Map cries by filter ──────────────────────────────────────────────────────
+
+export type MapFilter = 'mine' | 'following' | 'global';
+
+export async function getMapCries(filter: MapFilter): Promise<SocialCry[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+
+  if (filter === 'mine') {
+    const { data: cries } = await supabase
+      .from('cries').select(CRY_SELECT)
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+    return enrichCries(cries ?? [], session.user.id);
+  }
+
+  if (filter === 'following') {
+    const { data: followData } = await supabase
+      .from('follows').select('following_id').eq('follower_id', session.user.id);
+    const ids = [(followData ?? []).map(f => f.following_id), session.user.id].flat();
+    const { data: cries } = await supabase
+      .from('cries').select(CRY_SELECT).in('user_id', ids)
+      .order('created_at', { ascending: false });
+    return enrichCries(cries ?? [], session.user.id);
+  }
+
+  // global
+  return getGlobalFeed();
 }
 
 // ─── Likes ────────────────────────────────────────────────────────────────────

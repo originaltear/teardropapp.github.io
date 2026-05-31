@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Modal, FlatList,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
+import Svg, { Circle, Text as SvgText } from 'react-native-svg';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -113,30 +114,36 @@ function Drops({ intensity }: { intensity: number }) {
   );
 }
 
-// ─── Android bitmap-capture fix ─────────────────────────────────────────────────
-// react-native-maps rasterises custom markers to a bitmap. Two things go wrong on
-// Android and BOTH are handled here:
-//   1) Capture timing — if it captures before the view has laid out, the bitmap is
-//      too small. We keep tracksViewChanges=true and only flip to false a moment
-//      AFTER the view has reported its layout (onLayout), so at least one fully
-//      laid-out frame is captured.
-//   2) Edge clipping — even a correctly-sized capture can shave a few pixels off
-//      the bitmap edge, turning a circle into a rounded square. We wrap the circle
-//      in a larger TRANSPARENT padded box, so any clipping eats the transparent
-//      margin instead of the circle itself.
+// ─── Markers drawn with SVG ─────────────────────────────────────────────────────
+// Why SVG: a plain <View> with borderRadius gets its size asynchronously after
+// layout, and react-native-maps on Android often rasterises the marker bitmap
+// BEFORE that size settles → the circle ends up bigger than its frame and gets
+// clipped into a square. An <Svg> has an explicit width/height/viewBox from the
+// very first frame, so the rasteriser knows the exact frame size immediately and
+// the circle (drawn well inside the viewBox) always fits. Like a Roblox Frame
+// with the circle sized to sit inside it.
+//
+// FRAME = 60×60. Single pin circle r=18 (≈36px). Cluster circle r=23 (≈46px).
+// Both sit centred at (30,30), comfortably inside the 60×60 frame.
+
+const FRAME = 60;
+const CENTER = FRAME / 2;
+
+// tracksViewChanges: keep true briefly so the first correct frame is captured,
+// then turn off for performance.
 function useSettleTracking() {
   const [tracks, setTracks] = useState(true);
-  const settle = useCallback(() => {
-    // Give the freshly-laid-out frame a tick to be captured, then stop tracking.
-    setTimeout(() => setTracks(false), 200);
+  useEffect(() => {
+    const id = setTimeout(() => setTracks(false), 1000);
+    return () => clearTimeout(id);
   }, []);
-  return { tracks, settle };
+  return tracks;
 }
 
 // ─── Single cry marker ──────────────────────────────────────────────────────────
 
 function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
-  const { tracks, settle } = useSettleTracking();
+  const tracks = useSettleTracking();
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
   return (
@@ -146,11 +153,12 @@ function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
       onPress={onPress}
       tracksViewChanges={tracks}
     >
-      {/* Transparent padded box — bigger than the circle, absorbs any edge clipping */}
-      <View style={styles.pinWrap} onLayout={settle}>
-        <View style={[styles.pin, { backgroundColor: color }]}>
-          <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
-        </View>
+      {/* SVG circle (the frame) + emoji overlaid on top, both inside a 60×60 box */}
+      <View style={styles.markerFrame}>
+        <Svg width={FRAME} height={FRAME}>
+          <Circle cx={CENTER} cy={CENTER} r={18} fill={color} />
+        </Svg>
+        <Text style={styles.pinEmojiOverlay}>{emotion?.emoji ?? '💧'}</Text>
       </View>
     </Marker>
   );
@@ -159,7 +167,7 @@ function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
 // ─── Cluster marker ──────────────────────────────────────────────────────────────
 
 function ClusterMarker({ cluster, onPress }: { cluster: ClusterGroup; onPress: () => void }) {
-  const { tracks, settle } = useSettleTracking();
+  const tracks = useSettleTracking();
   return (
     <Marker
       coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
@@ -167,10 +175,22 @@ function ClusterMarker({ cluster, onPress }: { cluster: ClusterGroup; onPress: (
       onPress={onPress}
       tracksViewChanges={tracks}
     >
-      <View style={styles.pinWrap} onLayout={settle}>
-        <View style={[styles.clusterPin, { backgroundColor: cluster.dominantColor }]}>
-          <Text style={styles.clusterPinText}>{cluster.cries.length}</Text>
-        </View>
+      {/* Whole marker drawn in SVG: circle + count text, both inside the viewBox */}
+      <View style={styles.markerFrame}>
+        <Svg width={FRAME} height={FRAME}>
+          <Circle cx={CENTER} cy={CENTER} r={23} fill={cluster.dominantColor} />
+          <SvgText
+            x={CENTER}
+            y={CENTER}
+            fontSize={17}
+            fontWeight="bold"
+            fill="#0d1117"
+            textAnchor="middle"
+            alignmentBaseline="central"
+          >
+            {String(cluster.cries.length)}
+          </SvgText>
+        </Svg>
       </View>
     </Marker>
   );
@@ -456,28 +476,16 @@ const styles = StyleSheet.create({
   },
   fabIcon: { fontSize: 32, color: '#0d1117', lineHeight: 36, fontWeight: '300' },
 
-  // Transparent padded wrapper — makes the captured bitmap larger than the circle
-  // so Android edge-clipping eats the margin, not the circle. backgroundColor is
-  // intentionally transparent.
-  pinWrap: {
-    padding: 8,
-    backgroundColor: 'transparent',
+  // 60×60 frame holding the SVG; emoji is absolutely centred on top of it
+  markerFrame: {
+    width: 60, height: 60,
     alignItems: 'center', justifyContent: 'center',
   },
-
-  // Single cry pin — plain circle, no border
-  pin: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
+  pinEmojiOverlay: {
+    position: 'absolute',
+    fontSize: 18,
+    textAlign: 'center',
   },
-  pinEmoji: { fontSize: 18 },
-
-  // Cluster pin — plain circle with count, no border
-  clusterPin: {
-    width: 46, height: 46, borderRadius: 23,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  clusterPinText: { color: '#0d1117', fontSize: 16, fontWeight: '800' },
 
   // Shared modal pieces
   backdrop: { flex: 1 },

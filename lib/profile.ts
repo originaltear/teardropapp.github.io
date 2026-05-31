@@ -101,7 +101,8 @@ export async function uploadAvatar(localUri: string): Promise<string> {
       .from('avatars')
       .getPublicUrl(fileName);
 
-    return publicUrl;
+    // Add cache-buster so React Native Image doesn't serve the old cached version
+    return `${publicUrl}?t=${Date.now()}`;
   } catch (err) {
     console.warn('[uploadAvatar] Upload failed — keeping local URI:', err);
     return localUri;

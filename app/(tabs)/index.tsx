@@ -274,22 +274,31 @@ export default function MapScreen() {
         showsUserLocation
         showsMyLocationButton={false}
       >
-        {cries.map(cry => {
-          const emotion = emotionById(cry.emotion);
-          const color = emotion?.color ?? '#6fe0e6';
-          return (
-            <Marker
-              key={cry.id}
-              coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              onPress={() => setSelectedCry(cry)}
-            >
-              <View style={[styles.pin, { backgroundColor: color }]}>
-                <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
-              </View>
-            </Marker>
-          );
-        })}
+        {cries
+          // Guard: skip pins with invalid coords or private profiles (global filter)
+          .filter(cry => {
+            if (!cry.latitude || !cry.longitude) return false;
+            const sc = cry as SocialCry;
+            // For global filter, only show public profiles
+            if (mapFilter === 'global' && sc.profile && (sc.profile as any).is_public === false) return false;
+            return true;
+          })
+          .map(cry => {
+            const emotion = emotionById(cry.emotion);
+            const color = emotion?.color ?? '#6fe0e6';
+            return (
+              <Marker
+                key={cry.id}
+                coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                onPress={() => setSelectedCry(cry)}
+              >
+                <View style={[styles.pin, { backgroundColor: color }]}>
+                  <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+                </View>
+              </Marker>
+            );
+          })}
       </MapView>
 
       {/* Header title */}

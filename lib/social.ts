@@ -63,6 +63,7 @@ export interface Notification {
   created_at: string;
   actor: { username: string; display_name: string; avatar_uri: string | null };
   cry?: { emotion: string; intensity: number } | null;
+  comment_content?: string | null;
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
@@ -290,13 +291,13 @@ export async function getMapCries(filter: MapFilter): Promise<SocialCry[]> {
     ]);
     const blockedIds = new Set((blocksData.data ?? []).map(b => b.blocked_id));
     const followingIds = (followData.data ?? []).map(f => f.following_id).filter(id => !blockedIds.has(id));
-    const ids = [session.user.id, ...followingIds];
+    // Exclude own cries — use 'mine' filter for those
+    if (followingIds.length === 0) return [];
     const { data: cries } = await supabase
-      .from('cries').select(CRY_SELECT).in('user_id', ids)
+      .from('cries').select(CRY_SELECT).in('user_id', followingIds)
       .order('created_at', { ascending: false });
-    const visible = (cries ?? []).filter(c =>
-      c.user_id === session.user.id || (c.profile as any)?.is_public !== false
-    );
+    // Filter out private profiles
+    const visible = (cries ?? []).filter(c => (c.profile as any)?.is_public !== false);
     return enrichCries(visible, session.user.id);
   }
 
@@ -423,7 +424,28 @@ export async function getNotifications(): Promise<Notification[]> {
     .order('created_at', { ascending: false })
     .limit(50);
 
-  return (data ?? []) as Notification[];
+  if (!data) return [];
+
+  // Fetch comment content for comment-type notifications
+  const commentNotifIds = data
+    .filter(n => n.type === 'comment' && n.reference_id)
+    .map(n => n.reference_id as string);
+
+  let commentMap: Record<string, string> = {};
+  if (commentNotifIds.length > 0) {
+    const { data: comments } = await supabase
+      .from('comments')
+      .select('id, content')
+      .in('id', commentNotifIds);
+    commentMap = Object.fromEntries((comments ?? []).map(c => [c.id, c.content]));
+  }
+
+  return data.map(n => ({
+    ...n,
+    comment_content: n.type === 'comment' && n.reference_id
+      ? (commentMap[n.reference_id] ?? null)
+      : null,
+  })) as Notification[];
 }
 
 export async function markNotificationsRead(ids: string[]): Promise<void> {

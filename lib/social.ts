@@ -83,12 +83,13 @@ export async function searchUsers(query: string): Promise<UserResult[]> {
 
   if (error || !data) return [];
 
-  // Fetch current user's follows and sent requests in parallel
-  const [followsRes, requestsRes] = await Promise.all([
+  // Fetch follows, pending requests, and blocks in parallel
+  const [followsRes, requestsRes, blocksRes] = await Promise.all([
     supabase.from('follows').select('following_id').eq('follower_id', session.user.id),
     supabase.from('friend_requests').select('to_user_id, from_user_id, status').or(
       `from_user_id.eq.${session.user.id},to_user_id.eq.${session.user.id}`
     ).eq('status', 'pending'),
+    supabase.from('blocks').select('blocked_id').eq('blocker_id', session.user.id),
   ]);
 
   const followingIds = new Set((followsRes.data ?? []).map(f => f.following_id));
@@ -96,17 +97,20 @@ export async function searchUsers(query: string): Promise<UserResult[]> {
     .filter(r => r.from_user_id === session.user.id).map(r => r.to_user_id));
   const receivedFrom = new Set((requestsRes.data ?? [])
     .filter(r => r.to_user_id === session.user.id).map(r => r.from_user_id));
+  const blockedIds = new Set((blocksRes.data ?? []).map(b => b.blocked_id));
 
-  return data.map(u => ({
-    ...u,
-    relation: followingIds.has(u.id)
-      ? 'following'
-      : sentTo.has(u.id)
-        ? 'request_sent'
-        : receivedFrom.has(u.id)
-          ? 'request_received'
-          : 'none',
-  })) as UserResult[];
+  return data
+    .filter(u => !blockedIds.has(u.id))
+    .map(u => ({
+      ...u,
+      relation: followingIds.has(u.id)
+        ? 'following'
+        : sentTo.has(u.id)
+          ? 'request_sent'
+          : receivedFrom.has(u.id)
+            ? 'request_received'
+            : 'none',
+    })) as UserResult[];
 }
 
 // ─── Follows ──────────────────────────────────────────────────────────────────
@@ -205,7 +209,7 @@ async function enrichCries(
 const CRY_SELECT = `
   id, user_id, created_at, latitude, longitude, emotion,
   intensity, note, photo_uri, audio_uri, country,
-  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri)
+  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public)
 `;
 
 // ─── Following feed ───────────────────────────────────────────────────────────
@@ -214,11 +218,14 @@ export async function getSocialFeed(): Promise<SocialCry[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return [];
 
-  const { data: followData } = await supabase
-    .from('follows').select('following_id').eq('follower_id', session.user.id);
+  const [followData, blocksData] = await Promise.all([
+    supabase.from('follows').select('following_id').eq('follower_id', session.user.id),
+    supabase.from('blocks').select('blocked_id').eq('blocker_id', session.user.id),
+  ]);
 
-  const followingIds = (followData ?? []).map(f => f.following_id);
-  const allIds = [session.user.id, ...followingIds];
+  const followingIds = (followData.data ?? []).map(f => f.following_id);
+  const blockedIds = new Set((blocksData.data ?? []).map(b => b.blocked_id));
+  const allIds = [session.user.id, ...followingIds.filter(id => !blockedIds.has(id))];
 
   const { data: cries, error } = await supabase
     .from('cries').select(CRY_SELECT)
@@ -227,7 +234,11 @@ export async function getSocialFeed(): Promise<SocialCry[]> {
     .limit(60);
 
   if (error || !cries) return [];
-  return enrichCries(cries, session.user.id);
+  // Filter out private profiles (except own cries)
+  const visible = cries.filter(c =>
+    c.user_id === session.user.id || (c.profile as any)?.is_public !== false
+  );
+  return enrichCries(visible, session.user.id);
 }
 
 // ─── Global feed (public profiles) ───────────────────────────────────────────
@@ -236,15 +247,22 @@ export async function getGlobalFeed(): Promise<SocialCry[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return [];
 
+  const { data: blocksData } = await supabase
+    .from('blocks').select('blocked_id').eq('blocker_id', session.user.id);
+  const blockedIds = new Set((blocksData ?? []).map(b => b.blocked_id));
+
   const { data: cries, error } = await supabase
     .from('cries').select(CRY_SELECT)
     .order('created_at', { ascending: false })
     .limit(60);
 
   if (error || !cries) return [];
-  // Filter to only public profiles (RLS handles access; filter out private locally)
-  const publicCries = cries.filter(c => (c.profile as any)?.is_public !== false || c.user_id === session.user.id);
-  return enrichCries(publicCries, session.user.id);
+  // Only public profiles; never show blocked users; own cries always visible
+  const visible = cries.filter(c =>
+    !blockedIds.has(c.user_id) &&
+    ((c.profile as any)?.is_public !== false || c.user_id === session.user.id)
+  );
+  return enrichCries(visible, session.user.id);
 }
 
 // ─── Map cries by filter ──────────────────────────────────────────────────────
@@ -264,17 +282,84 @@ export async function getMapCries(filter: MapFilter): Promise<SocialCry[]> {
   }
 
   if (filter === 'following') {
-    const { data: followData } = await supabase
-      .from('follows').select('following_id').eq('follower_id', session.user.id);
-    const ids = [(followData ?? []).map(f => f.following_id), session.user.id].flat();
+    const [followData, blocksData] = await Promise.all([
+      supabase.from('follows').select('following_id').eq('follower_id', session.user.id),
+      supabase.from('blocks').select('blocked_id').eq('blocker_id', session.user.id),
+    ]);
+    const blockedIds = new Set((blocksData.data ?? []).map(b => b.blocked_id));
+    const followingIds = (followData.data ?? []).map(f => f.following_id).filter(id => !blockedIds.has(id));
+    const ids = [session.user.id, ...followingIds];
     const { data: cries } = await supabase
       .from('cries').select(CRY_SELECT).in('user_id', ids)
       .order('created_at', { ascending: false });
-    return enrichCries(cries ?? [], session.user.id);
+    const visible = (cries ?? []).filter(c =>
+      c.user_id === session.user.id || (c.profile as any)?.is_public !== false
+    );
+    return enrichCries(visible, session.user.id);
   }
 
   // global
   return getGlobalFeed();
+}
+
+// ─── Single cry + user's public cries ────────────────────────────────────────
+
+export async function getCry(cryId: string): Promise<SocialCry | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data, error } = await supabase
+    .from('cries').select(CRY_SELECT).eq('id', cryId).single();
+  if (error || !data) return null;
+  const enriched = await enrichCries([data], session?.user.id ?? '');
+  return enriched[0] ?? null;
+}
+
+export async function getUserCries(userId: string): Promise<SocialCry[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data: cries, error } = await supabase
+    .from('cries').select(CRY_SELECT)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error || !cries) return [];
+  return enrichCries(cries, session?.user.id ?? '');
+}
+
+// ─── Block / unblock ──────────────────────────────────────────────────────────
+
+export async function blockUser(targetId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await Promise.all([
+    supabase.from('blocks').upsert(
+      { blocker_id: session.user.id, blocked_id: targetId },
+      { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true }
+    ),
+    // Also unfollow them so their cries disappear immediately
+    supabase.from('follows')
+      .delete()
+      .eq('follower_id', session.user.id)
+      .eq('following_id', targetId),
+  ]);
+}
+
+export async function unblockUser(targetId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await supabase.from('blocks')
+    .delete()
+    .eq('blocker_id', session.user.id)
+    .eq('blocked_id', targetId);
+}
+
+export async function isUserBlocked(targetId: string): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  const { data } = await supabase
+    .from('blocks').select('id')
+    .eq('blocker_id', session.user.id)
+    .eq('blocked_id', targetId)
+    .maybeSingle();
+  return !!data;
 }
 
 // ─── Likes ────────────────────────────────────────────────────────────────────

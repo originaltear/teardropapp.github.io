@@ -114,6 +114,27 @@ function isValidUuid(id: string): boolean { return UUID_RE.test(id); }
 
 // ─── Sync local cries to Supabase (called on login) ──────────────────────────
 
+export async function deleteCry(id: string): Promise<void> {
+  // Remove from local storage
+  const all = await localLoad();
+  await localSave(all.filter(c => c.id !== id));
+
+  // Remove from Supabase (only if logged in and UUID is valid)
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) return;
+  if (!isValidUuid(id)) return;
+
+  const { error } = await supabase
+    .from('cries')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', sessionData.session.user.id);
+
+  if (error) {
+    console.warn('[deleteCry] Supabase delete failed:', error.message);
+  }
+}
+
 export async function syncLocalToSupabase(userId: string, userEmail?: string): Promise<void> {
   const local = await localLoad();
   if (local.length === 0) return;

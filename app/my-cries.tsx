@@ -5,12 +5,12 @@
 import { useRef, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Modal, ScrollView, Image, Alert,
+  Modal, ScrollView, Image, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
-import { loadCries, Cry } from '../lib/storage';
+import { loadCries, deleteCry, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
@@ -61,14 +61,44 @@ function AudioPlayer({ uri }: { uri: string }) {
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
-function DetailModal({ cry, onClose }: { cry: Cry; onClose: () => void }) {
+function DetailModal({ cry, onClose, onDelete }: {
+  cry: Cry;
+  onClose: () => void;
+  onDelete: (id: string) => void;
+}) {
   const emotion = emotionById(cry.emotion);
+  const [deleting, setDeleting] = useState(false);
+
+  function confirmDelete() {
+    Alert.alert(
+      'Delete Cry',
+      'This cry will be permanently deleted. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive', onPress: async () => {
+            setDeleting(true);
+            await deleteCry(cry.id);
+            setDeleting(false);
+            onDelete(cry.id);
+            onClose();
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView edges={['bottom']} style={s.sheet}>
         <View style={s.handle} />
         <View style={s.sheetTop}>
+          <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={s.deleteBtn}>
+            {deleting
+              ? <ActivityIndicator size="small" color="#ef4444" />
+              : <Text style={s.deleteTxt}>🗑 Delete</Text>}
+          </TouchableOpacity>
           <TouchableOpacity onPress={onClose}>
             <Text style={s.closeTxt}>✕</Text>
           </TouchableOpacity>
@@ -103,6 +133,11 @@ export default function MyCriesScreen() {
   const [selected, setSelected] = useState<Cry | null>(null);
 
   useFocusEffect(useCallback(() => { loadCries().then(setCries); }, []));
+
+  function handleDelete(id: string) {
+    setCries(prev => prev.filter(c => c.id !== id));
+    setSelected(null);
+  }
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -153,7 +188,13 @@ export default function MyCriesScreen() {
         }
       />
 
-      {selected && <DetailModal cry={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <DetailModal
+          cry={selected}
+          onClose={() => setSelected(null)}
+          onDelete={handleDelete}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -189,8 +230,14 @@ const s = StyleSheet.create({
     borderTopWidth: 1, borderColor: '#1f2937',
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#374151', alignSelf: 'center', marginTop: 12 },
-  sheetTop: { alignItems: 'flex-end', paddingHorizontal: 20, paddingVertical: 12 },
+  sheetTop: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: '#1f2937',
+  },
   closeTxt: { color: '#4a5568', fontSize: 18 },
+  deleteBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  deleteTxt: { color: '#ef4444', fontSize: 14, fontWeight: '600' },
   emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
   dateLabel: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },

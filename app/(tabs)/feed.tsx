@@ -2,13 +2,13 @@ import { useCallback, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
   Modal, Image, Alert, TextInput, KeyboardAvoidingView,
-  Platform, ScrollView, ActivityIndicator,
+  Platform, ScrollView, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
-import { emotionById } from '../../lib/emotions';
+import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
@@ -254,21 +254,42 @@ type FeedTab = 'mine' | 'following';
 export default function FeedScreen() {
   const { session } = useAuth();
   const router = useRouter();
-  const [cries, setCries] = useState<SocialCry[]>([]);
+  const [allCries, setAllCries] = useState<SocialCry[]>([]);
   const [selected, setSelected] = useState<SocialCry | null>(null);
   const [authGate, setAuthGate] = useState(false);
   const [tab, setTab] = useState<FeedTab>('following');
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  // Mine tab filters
+  const [mineSearch, setMineSearch] = useState('');
+  const [mineEmotion, setMineEmotion] = useState<string | null>(null);
+
+  async function loadFeed(isRefresh = false) {
+    if (!session) return;
+    isRefresh ? setRefreshing(true) : setLoading(true);
+    const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
+    const feed = await loader;
+    setAllCries(feed);
+    isRefresh ? setRefreshing(false) : setLoading(false);
+  }
 
   useFocusEffect(useCallback(() => {
-    if (!session) return;
-    setLoading(true);
-    const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
-    loader.then(feed => { setCries(feed); setLoading(false); });
+    loadFeed();
   }, [session, tab]));
 
+  // Filter mine tab by search text + emotion
+  const displayCries = tab === 'mine'
+    ? allCries.filter(c => {
+        const emotionOk = !mineEmotion || c.emotion === mineEmotion;
+        const searchOk = !mineSearch.trim() ||
+          (c.note?.toLowerCase().includes(mineSearch.toLowerCase()) ?? false) ||
+          c.emotion.toLowerCase().includes(mineSearch.toLowerCase());
+        return emotionOk && searchOk;
+      })
+    : allCries;
+
   function handleLikeToggle(cryId: string, liked: boolean) {
-    setCries(prev => prev.map(c => c.id === cryId
+    setAllCries(prev => prev.map(c => c.id === cryId
       ? { ...c, liked_by_me: liked, like_count: c.like_count + (liked ? 1 : -1) }
       : c
     ));
@@ -308,6 +329,49 @@ export default function FeedScreen() {
         </View>
       )}
 
+      {/* Mine-tab search + emotion filter */}
+      {session && tab === 'mine' && (
+        <>
+          <View style={styles.searchRow}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              value={mineSearch}
+              onChangeText={setMineSearch}
+              placeholder="Search notes…"
+              placeholderTextColor="#4a5568"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.emotionFilters}
+          >
+            <TouchableOpacity
+              style={[styles.emotionChipFilter, !mineEmotion && styles.emotionChipActive]}
+              onPress={() => setMineEmotion(null)}
+            >
+              <Text style={[styles.emotionChipTxt, !mineEmotion && styles.emotionChipTxtActive]}>
+                All
+              </Text>
+            </TouchableOpacity>
+            {EMOTIONS.map(e => (
+              <TouchableOpacity
+                key={e.id}
+                style={[styles.emotionChipFilter, mineEmotion === e.id && styles.emotionChipActive]}
+                onPress={() => setMineEmotion(prev => prev === e.id ? null : e.id)}
+              >
+                <Text style={[styles.emotionChipTxt, mineEmotion === e.id && styles.emotionChipTxtActive]}>
+                  {e.emoji} {e.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
+
       <AuthGateModal visible={authGate} onClose={() => setAuthGate(false)} />
 
       {loading ? (
@@ -316,23 +380,33 @@ export default function FeedScreen() {
         </View>
       ) : (
         <FlatList
-          data={cries}
+          data={displayCries}
           keyExtractor={c => c.id}
           style={{ flex: 1 }}
           renderItem={({ item }) => (
             <FeedItem cry={item} onPress={() => setSelected(item)} />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          contentContainerStyle={cries.length === 0 ? styles.emptyContainer : styles.listContent}
+          contentContainerStyle={displayCries.length === 0 ? styles.emptyContainer : styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadFeed(true)}
+              tintColor="#6fe0e6"
+              colors={['#6fe0e6']}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>💧</Text>
               <Text style={styles.emptyTitle}>
-                {session ? 'Nothing here yet' : 'Log in to see the feed'}
+                {session ? (tab === 'mine' ? 'No cries match' : 'Nothing here yet') : 'Log in to see the feed'}
               </Text>
               <Text style={styles.emptySub}>
                 {session
-                  ? 'Follow friends to see their cries here'
+                  ? tab === 'mine'
+                    ? 'Try changing your search or filter'
+                    : 'Follow friends to see their cries here'
                   : 'Create an account to follow friends and see their cries'}
               </Text>
             </View>
@@ -370,8 +444,26 @@ const styles = StyleSheet.create({
 
   tabRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
-    borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 6,
+    backgroundColor: '#111827', borderRadius: 12,
+    borderWidth: 1, borderColor: '#1f2937',
+    paddingHorizontal: 12,
+  },
+  searchIcon: { fontSize: 14 },
+  searchInput: { flex: 1, color: '#e2e8f0', fontSize: 14, paddingVertical: 10 },
+  emotionFilters: {
+    paddingHorizontal: 16, paddingBottom: 8, gap: 6, flexDirection: 'row',
+  },
+  emotionChipFilter: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+    borderWidth: 1, borderColor: '#1f2937', backgroundColor: 'transparent',
+  },
+  emotionChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
+  emotionChipTxt: { color: '#4a5568', fontSize: 12, fontWeight: '600' },
+  emotionChipTxtActive: { color: '#0d1117' },
   tabChip: {
     flex: 1, paddingVertical: 9, borderRadius: 20,
     borderWidth: 1, borderColor: '#1f2937', alignItems: 'center',

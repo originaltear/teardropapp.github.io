@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal,
+  ActivityIndicator, Modal, FlatList,
 } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -10,6 +10,54 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
+
+// ─── Clustering (own logic) ─────────────────────────────────────────────────────
+
+interface ClusterGroup {
+  id: string;
+  latitude: number;
+  longitude: number;
+  cries: Cry[];          // newest-first
+  dominantColor: string;
+}
+
+function clusterCries(cries: Cry[], longitudeDelta: number): ClusterGroup[] {
+  // Merge cries that fall within ~8% of the visible span of one another.
+  const threshold = Math.max(longitudeDelta * 0.08, 0.00005);
+  const buckets: { lat: number; lng: number; cries: Cry[] }[] = [];
+
+  for (const cry of cries) {
+    let merged = false;
+    for (const bucket of buckets) {
+      if (
+        Math.abs(cry.latitude - bucket.lat) < threshold &&
+        Math.abs(cry.longitude - bucket.lng) < threshold
+      ) {
+        bucket.cries.push(cry);
+        bucket.lat = bucket.cries.reduce((s, c) => s + c.latitude, 0) / bucket.cries.length;
+        bucket.lng = bucket.cries.reduce((s, c) => s + c.longitude, 0) / bucket.cries.length;
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) buckets.push({ lat: cry.latitude, lng: cry.longitude, cries: [cry] });
+  }
+
+  return buckets.map(b => {
+    const counts: Record<string, number> = {};
+    for (const c of b.cries) counts[c.emotion] = (counts[c.emotion] ?? 0) + 1;
+    const dominant = Object.entries(counts).sort((a, z) => z[1] - a[1])[0][0];
+    return {
+      id: b.cries.map(c => c.id).sort().join('|'),
+      latitude: b.lat,
+      longitude: b.lng,
+      cries: [...b.cries].sort(
+        (a, z) => new Date(z.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+      dominantColor: emotionById(dominant)?.color ?? '#6fe0e6',
+    };
+  });
+}
 
 // ─── Map style ────────────────────────────────────────────────────────────────
 
@@ -38,6 +86,19 @@ function formatDate(iso: string) {
     ' · ' +
     d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   );
+}
+
+function formatRelative(iso: string) {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMs / 3600000);
+  const days = Math.floor(diffMs / 86400000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 function Drops({ intensity }: { intensity: number }) {
@@ -91,7 +152,9 @@ export default function MapScreen() {
   const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cries, setCries] = useState<Cry[]>([]);
   const [selectedCry, setSelectedCry] = useState<Cry | null>(null);
+  const [clusterList, setClusterList] = useState<ClusterGroup | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [region, setRegion] = useState<Region | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -105,16 +168,23 @@ export default function MapScreen() {
         longitudeDelta: 0.05,
       };
       initialRegionRef.current = r;
+      setRegion(r);
       setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       setGpsReady(true);
     })();
   }, []);
 
   useEffect(() => { loadCries().then(setCries); }, []);
-
   useFocusEffect(
     useCallback(() => { loadCries().then(setCries); }, [])
   );
+
+  // Recompute clusters when cries or zoom level change
+  const clusters = useMemo(() => {
+    const r = region ?? initialRegionRef.current;
+    if (!r) return [];
+    return clusterCries(cries, r.longitudeDelta);
+  }, [cries, region]);
 
   function handleAddCry() {
     if (!gpsCoords) return;
@@ -122,6 +192,16 @@ export default function MapScreen() {
       pathname: '/log-cry',
       params: { lat: String(gpsCoords.latitude), lng: String(gpsCoords.longitude) },
     });
+  }
+
+  function handleClusterPress(cluster: ClusterGroup) {
+    if (cluster.cries.length === 1) setSelectedCry(cluster.cries[0]);
+    else setClusterList(cluster);
+  }
+
+  function handleClusterCryPress(cry: Cry) {
+    setClusterList(null);
+    setTimeout(() => setSelectedCry(cry), 150);
   }
 
   if (permissionDenied) {
@@ -152,19 +232,38 @@ export default function MapScreen() {
         customMapStyle={DARK_MAP_STYLE}
         showsUserLocation
         showsMyLocationButton={false}
+        onRegionChangeComplete={setRegion}
       >
-        {cries.map(cry => {
-          const emotion = emotionById(cry.emotion);
-          const color = emotion?.color ?? '#6fe0e6';
+        {clusters.map(cluster => {
+          // ── Single cry → exact same plain-View pin that renders round ──
+          if (cluster.cries.length === 1) {
+            const cry = cluster.cries[0];
+            const emotion = emotionById(cry.emotion);
+            const color = emotion?.color ?? '#6fe0e6';
+            return (
+              <Marker
+                key={cluster.id}
+                coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                onPress={() => setSelectedCry(cry)}
+              >
+                <View style={[styles.pin, { backgroundColor: color }]}>
+                  <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+                </View>
+              </Marker>
+            );
+          }
+
+          // ── Cluster bubble → same technique, just bigger + a count ──
           return (
             <Marker
-              key={cry.id}
-              coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
+              key={cluster.id}
+              coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
-              onPress={() => setSelectedCry(cry)}
+              onPress={() => handleClusterPress(cluster)}
             >
-              <View style={[styles.pin, { backgroundColor: color }]}>
-                <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+              <View style={[styles.clusterPin, { backgroundColor: cluster.dominantColor }]}>
+                <Text style={styles.clusterPinText}>{cluster.cries.length}</Text>
               </View>
             </Marker>
           );
@@ -181,6 +280,7 @@ export default function MapScreen() {
         </TouchableOpacity>
       </SafeAreaView>
 
+      {/* Single cry detail */}
       {selectedCry && (
         <Modal transparent animationType="slide" onRequestClose={() => setSelectedCry(null)}>
           <TouchableOpacity
@@ -190,6 +290,57 @@ export default function MapScreen() {
           />
           <SafeAreaView edges={['bottom']} style={styles.card}>
             <CryDetailCard cry={selectedCry} onClose={() => setSelectedCry(null)} />
+          </SafeAreaView>
+        </Modal>
+      )}
+
+      {/* Cluster list */}
+      {clusterList && (
+        <Modal transparent animationType="slide" onRequestClose={() => setClusterList(null)}>
+          <TouchableOpacity
+            style={styles.backdrop}
+            activeOpacity={1}
+            onPress={() => setClusterList(null)}
+          />
+          <SafeAreaView edges={['bottom']} style={[styles.card, styles.clusterCard]}>
+            <View style={styles.handle} />
+            <View style={styles.clusterHeader}>
+              <Text style={styles.clusterHeaderTitle}>{clusterList.cries.length} cries here</Text>
+              <TouchableOpacity onPress={() => setClusterList(null)} style={styles.closeBtn}>
+                <Text style={styles.closeTxt}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={clusterList.cries}
+              keyExtractor={c => c.id}
+              style={styles.clusterFlatList}
+              ItemSeparatorComponent={() => <View style={styles.itemSep} />}
+              renderItem={({ item }) => {
+                const emotion = emotionById(item.emotion);
+                const color = emotion?.color ?? '#6fe0e6';
+                return (
+                  <TouchableOpacity
+                    style={styles.clusterItem}
+                    onPress={() => handleClusterCryPress(item)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.clusterItemDot, { backgroundColor: color }]}>
+                      <Text style={styles.clusterItemEmoji}>{emotion?.emoji ?? '💧'}</Text>
+                    </View>
+                    <View style={styles.clusterItemContent}>
+                      <Text style={[styles.clusterItemEmotion, { color }]}>
+                        {emotion?.label ?? item.emotion}
+                      </Text>
+                      <Text style={styles.clusterItemDate}>{formatRelative(item.createdAt)}</Text>
+                      {item.note ? (
+                        <Text style={styles.clusterItemNote} numberOfLines={1}>{item.note}</Text>
+                      ) : null}
+                    </View>
+                    <Text style={styles.clusterItemArrow}>›</Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
           </SafeAreaView>
         </Modal>
       )}
@@ -228,11 +379,19 @@ const styles = StyleSheet.create({
   },
   fabIcon: { fontSize: 32, color: '#0d1117', lineHeight: 36, fontWeight: '300' },
 
+  // Single pin — the known-good round circle
   pin: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
   pinEmoji: { fontSize: 18 },
+
+  // Cluster bubble — identical technique, bigger + count
+  clusterPin: {
+    width: 46, height: 46, borderRadius: 23,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  clusterPinText: { color: '#0d1117', fontSize: 16, fontWeight: '800' },
 
   backdrop: { flex: 1 },
   card: {
@@ -262,4 +421,27 @@ const styles = StyleSheet.create({
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+
+  // Cluster list modal
+  clusterCard: { paddingBottom: 8 },
+  clusterHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  clusterHeaderTitle: { color: '#6fe0e6', fontSize: 16, fontWeight: '700' },
+  clusterFlatList: { maxHeight: 340 },
+  itemSep: { height: 1, backgroundColor: '#1f2937' },
+  clusterItem: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 12, paddingHorizontal: 4, gap: 12,
+  },
+  clusterItemDot: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  clusterItemEmoji: { fontSize: 20 },
+  clusterItemContent: { flex: 1, gap: 3 },
+  clusterItemEmotion: { fontSize: 14, fontWeight: '600' },
+  clusterItemDate: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  clusterItemNote: { color: '#64748b', fontSize: 13 },
+  clusterItemArrow: { color: '#4a5568', fontSize: 24, fontWeight: '300' },
 });

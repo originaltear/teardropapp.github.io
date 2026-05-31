@@ -4,20 +4,28 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../lib/auth';
 
 function RootNav() {
-  const { session, loading } = useAuth();
+  const { session, loading, hasUsername } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
     const inAuth = segments[0] === '(auth)';
+    const onSetup = inAuth && segments[1] === 'setup-profile';
 
-    // Only auto-navigate AWAY from auth screens when already logged in.
-    // Guest users (no session) can freely use the app — no forced redirect.
-    if (session && inAuth) {
+    if (!session) return; // Guest — free to roam
+
+    // Logged in but username check still loading — wait
+    if (hasUsername === null) return;
+
+    if (!hasUsername && !onSetup) {
+      // New user — needs to pick a username
+      router.replace('/(auth)/setup-profile');
+    } else if (hasUsername && inAuth) {
+      // Profile complete — go to app
       router.replace('/(tabs)/');
     }
-  }, [session, loading, segments]);
+  }, [session, loading, hasUsername, segments]);
 
   if (loading) {
     return (
@@ -33,6 +41,7 @@ function RootNav() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="log-cry" options={{ presentation: 'modal' }} />
     </Stack>
+
   );
 }
 

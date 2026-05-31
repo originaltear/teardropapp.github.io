@@ -43,7 +43,8 @@
         {
           "microphonePermission": "Teardrop uses your microphone to record voice notes for your cries."
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }

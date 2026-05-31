@@ -201,11 +201,9 @@ export default function MapScreen() {
         onClusterPress={handleClusterPress}
         renderCluster={(cluster: any) => {
           /*
-           * Custom cluster pin — same flat-circle structure as the working
-           * single pins. No borderWidth, no position:absolute layers,
-           * just a single colored View with a Text child.
-           * collapsable={false} prevents Android from collapsing the view
-           * hierarchy before the native bitmap is captured.
+           * collapsable={false} is placed directly on the circle View so
+           * Android captures the bitmap at exactly the circle's own size
+           * (46×46). No outer wrapper = no size mismatch = no clipping.
            */
           const { onPress, geometry, properties } = cluster;
           const count: number = properties.point_count;
@@ -219,31 +217,33 @@ export default function MapScreen() {
               anchor={{ x: 0.5, y: 0.5 }}
               onPress={onPress}
             >
-              <View collapsable={false}>
-                <View style={styles.clusterPin}>
-                  <Text style={styles.clusterPinText}>{count}</Text>
-                </View>
+              <View
+                collapsable={false}
+                style={styles.clusterPin}
+              >
+                <Text style={styles.clusterPinText}>{count}</Text>
               </View>
             </Marker>
           );
         }}
       >
-        {/* Individual cry markers */}
+        {/* Individual cry markers — collapsable={false} on the circle itself */}
         {cries.map(cry => {
           const emotion = emotionById(cry.emotion);
           const color = emotion?.color ?? '#6fe0e6';
           return (
             <Marker
               key={cry.id}
-              identifier={cry.id}           // stored in GeoJSON → used by onClusterPress
+              identifier={cry.id}
               coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
               anchor={{ x: 0.5, y: 0.5 }}
               onPress={() => setSelectedCry(cry)}
             >
-              <View collapsable={false}>
-                <View style={[styles.pin, { backgroundColor: color }]}>
-                  <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
-                </View>
+              <View
+                collapsable={false}
+                style={[styles.pin, { backgroundColor: color }]}
+              >
+                <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
               </View>
             </Marker>
           );

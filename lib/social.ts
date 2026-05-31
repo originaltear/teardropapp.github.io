@@ -225,7 +225,9 @@ export async function getSocialFeed(): Promise<SocialCry[]> {
 
   const followingIds = (followData.data ?? []).map(f => f.following_id);
   const blockedIds = new Set((blocksData.data ?? []).map(b => b.blocked_id));
-  const allIds = [session.user.id, ...followingIds.filter(id => !blockedIds.has(id))];
+  // Only followed users — own cries shown separately in "Mine" tab
+  const allIds = followingIds.filter(id => !blockedIds.has(id));
+  if (allIds.length === 0) return [];
 
   const { data: cries, error } = await supabase
     .from('cries').select(CRY_SELECT)

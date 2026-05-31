@@ -7,42 +7,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from '../../lib/supabase';
+import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
 
 WebBrowser.maybeCompleteAuthSession();
-
-// ─── Helper: friendly message for unconfigured OAuth providers ────────────────
-
-function friendlyOAuthError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
-  const lower = raw.toLowerCase();
-  if (
-    lower.includes('not enabled') ||
-    lower.includes('provider') && lower.includes('enable') ||
-    lower.includes('oauth') && (lower.includes('disabled') || lower.includes('not configured'))
-  ) {
-    return 'This login method is not available yet. Please use email and password.';
-  }
-  return raw || 'Sign-in failed. Please try again.';
-}
-
-// ─── Shared OAuth flow ────────────────────────────────────────────────────────
-
-async function runOAuth(provider: 'google' | 'facebook'): Promise<void> {
-  const redirectTo = makeRedirectUri({ scheme: 'teardrop' });
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error) throw error;
-  if (!data.url) throw new Error('No OAuth URL returned');
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type === 'success') {
-    const { error: exchErr } = await supabase.auth.exchangeCodeForSession(result.url);
-    if (exchErr) throw exchErr;
-  }
-}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 

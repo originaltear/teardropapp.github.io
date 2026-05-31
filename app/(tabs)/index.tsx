@@ -1,17 +1,65 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
   ActivityIndicator, Modal, FlatList,
 } from 'react-native';
-// ─── react-native-map-clustering wraps MapView and handles all clustering ───
-import ClusterMapView from 'react-native-map-clustering';
-import { Marker, Region } from 'react-native-maps';
+import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ClusterGroup {
+  id: string;
+  latitude: number;
+  longitude: number;
+  cries: Cry[];           // sorted newest-first
+  dominantColor: string;
+}
+
+// ─── Clustering (own logic, full control) ───────────────────────────────────────
+
+function clusterCries(cries: Cry[], longitudeDelta: number): ClusterGroup[] {
+  // Merge cries whose lat/lng are within ~8% of the visible span of each other.
+  const threshold = Math.max(longitudeDelta * 0.08, 0.00005);
+  const buckets: { lat: number; lng: number; cries: Cry[] }[] = [];
+
+  for (const cry of cries) {
+    let merged = false;
+    for (const bucket of buckets) {
+      if (
+        Math.abs(cry.latitude - bucket.lat) < threshold &&
+        Math.abs(cry.longitude - bucket.lng) < threshold
+      ) {
+        bucket.cries.push(cry);
+        bucket.lat = bucket.cries.reduce((s, c) => s + c.latitude, 0) / bucket.cries.length;
+        bucket.lng = bucket.cries.reduce((s, c) => s + c.longitude, 0) / bucket.cries.length;
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) buckets.push({ lat: cry.latitude, lng: cry.longitude, cries: [cry] });
+  }
+
+  return buckets.map(b => {
+    const counts: Record<string, number> = {};
+    for (const c of b.cries) counts[c.emotion] = (counts[c.emotion] ?? 0) + 1;
+    const dominant = Object.entries(counts).sort((a, z) => z[1] - a[1])[0][0];
+    return {
+      id: b.cries.map(c => c.id).sort().join('|'),
+      latitude: b.lat,
+      longitude: b.lng,
+      cries: [...b.cries].sort(
+        (a, z) => new Date(z.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
+      dominantColor: emotionById(dominant)?.color ?? '#6fe0e6',
+    };
+  });
+}
 
 // ─── Map style ────────────────────────────────────────────────────────────────
 
@@ -65,6 +113,58 @@ function Drops({ intensity }: { intensity: number }) {
   );
 }
 
+// ─── Android bitmap-capture fix ─────────────────────────────────────────────────
+// react-native-maps rasterises custom markers to a bitmap. If it captures BEFORE
+// the view has laid out, the bitmap is too small and round shapes get clipped to
+// a square. Keeping tracksViewChanges=true until after layout fixes this; we then
+// flip to false so the markers don't keep re-rendering every frame.
+function useSettleTracking() {
+  const [tracks, setTracks] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setTracks(false), 600);
+    return () => clearTimeout(id);
+  }, []);
+  return tracks;
+}
+
+// ─── Single cry marker ──────────────────────────────────────────────────────────
+
+function CryMarker({ cry, onPress }: { cry: Cry; onPress: () => void }) {
+  const tracks = useSettleTracking();
+  const emotion = emotionById(cry.emotion);
+  const color = emotion?.color ?? '#6fe0e6';
+  return (
+    <Marker
+      coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      onPress={onPress}
+      tracksViewChanges={tracks}
+    >
+      <View style={[styles.pin, { backgroundColor: color }]}>
+        <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
+      </View>
+    </Marker>
+  );
+}
+
+// ─── Cluster marker ──────────────────────────────────────────────────────────────
+
+function ClusterMarker({ cluster, onPress }: { cluster: ClusterGroup; onPress: () => void }) {
+  const tracks = useSettleTracking();
+  return (
+    <Marker
+      coordinate={{ latitude: cluster.latitude, longitude: cluster.longitude }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      onPress={onPress}
+      tracksViewChanges={tracks}
+    >
+      <View style={[styles.clusterPin, { backgroundColor: cluster.dominantColor }]}>
+        <Text style={styles.clusterPinText}>{cluster.cries.length}</Text>
+      </View>
+    </Marker>
+  );
+}
+
 // ─── Cry detail card ──────────────────────────────────────────────────────────
 
 function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
@@ -100,14 +200,16 @@ function CryDetailCard({ cry, onClose }: { cry: Cry; onClose: () => void }) {
 
 export default function MapScreen() {
   const router = useRouter();
+  const mapRef = useRef<MapView>(null);
   const initialRegionRef = useRef<Region | null>(null);
 
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cries, setCries] = useState<Cry[]>([]);
   const [selectedCry, setSelectedCry] = useState<Cry | null>(null);
-  const [clusterList, setClusterList] = useState<Cry[] | null>(null);
+  const [clusterList, setClusterList] = useState<ClusterGroup | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [region, setRegion] = useState<Region | null>(null);
 
   // GPS init
   useEffect(() => {
@@ -115,20 +217,29 @@ export default function MapScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setPermissionDenied(true); return; }
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      initialRegionRef.current = {
+      const r: Region = {
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       };
+      initialRegionRef.current = r;
+      setRegion(r);
       setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       setGpsReady(true);
     })();
   }, []);
 
-  // Load cries on mount and whenever the tab gains focus
+  // Load cries on mount and on focus
   useEffect(() => { loadCries().then(setCries); }, []);
   useFocusEffect(useCallback(() => { loadCries().then(setCries); }, []));
+
+  // Recompute clusters when cries or zoom level change
+  const clusters = useMemo(() => {
+    const r = region ?? initialRegionRef.current;
+    if (!r) return [];
+    return clusterCries(cries, r.longitudeDelta);
+  }, [cries, region]);
 
   function handleAddCry() {
     if (!gpsCoords) return;
@@ -138,16 +249,11 @@ export default function MapScreen() {
     });
   }
 
-  // Cluster press: show list of cries inside the cluster
-  function handleClusterPress(_cluster: unknown, leaves?: unknown[]) {
-    const ids = new Set((leaves ?? []).map((l: any) => l.properties?.identifier));
-    const list = cries
-      .filter(c => ids.has(c.id))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    if (list.length > 0) setClusterList(list);
+  function handleClusterPress(cluster: ClusterGroup) {
+    if (cluster.cries.length === 1) setSelectedCry(cluster.cries[0]);
+    else setClusterList(cluster);
   }
 
-  // Close cluster list, then open single-cry detail (avoid stacking modals)
   function handleClusterCryPress(cry: Cry) {
     setClusterList(null);
     setTimeout(() => setSelectedCry(cry), 150);
@@ -180,75 +286,31 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/*
-        ClusterMapView wraps react-native-maps MapView and clusters markers
-        automatically via supercluster. All standard MapView props pass through.
-
-        preserveClusterPressBehavior — keeps our custom onClusterPress in charge;
-          the library will not auto-zoom/fit the map on cluster tap.
-        clusterColor / clusterTextColor — used by the default cluster marker (kept
-          as fallback; we override with renderCluster below).
-      */}
-      <ClusterMapView
+      <MapView
+        ref={mapRef}
         style={styles.map}
         initialRegion={initialRegionRef.current!}
         customMapStyle={DARK_MAP_STYLE}
         showsUserLocation
         showsMyLocationButton={false}
-        preserveClusterPressBehavior
-        clusterColor="#6fe0e6"
-        clusterTextColor="#0d1117"
-        onClusterPress={handleClusterPress}
-        renderCluster={(cluster: any) => {
-          /*
-           * collapsable={false} is placed directly on the circle View so
-           * Android captures the bitmap at exactly the circle's own size
-           * (46×46). No outer wrapper = no size mismatch = no clipping.
-           */
-          const { onPress, geometry, properties } = cluster;
-          const count: number = properties.point_count;
-          return (
-            <Marker
-              key={`cluster-${cluster.id}`}
-              coordinate={{
-                latitude: geometry.coordinates[1],
-                longitude: geometry.coordinates[0],
-              }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              onPress={onPress}
-            >
-              <View
-                collapsable={false}
-                style={styles.clusterPin}
-              >
-                <Text style={styles.clusterPinText}>{count}</Text>
-              </View>
-            </Marker>
-          );
-        }}
+        onRegionChangeComplete={setRegion}
       >
-        {/* Individual cry markers — collapsable={false} on the circle itself */}
-        {cries.map(cry => {
-          const emotion = emotionById(cry.emotion);
-          const color = emotion?.color ?? '#6fe0e6';
-          return (
-            <Marker
-              key={cry.id}
-              identifier={cry.id}
-              coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
-              anchor={{ x: 0.5, y: 0.5 }}
-              onPress={() => setSelectedCry(cry)}
-            >
-              <View
-                collapsable={false}
-                style={[styles.pin, { backgroundColor: color }]}
-              >
-                <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
-              </View>
-            </Marker>
-          );
-        })}
-      </ClusterMapView>
+        {clusters.map(cluster =>
+          cluster.cries.length === 1 ? (
+            <CryMarker
+              key={cluster.id}
+              cry={cluster.cries[0]}
+              onPress={() => setSelectedCry(cluster.cries[0])}
+            />
+          ) : (
+            <ClusterMarker
+              key={cluster.id}
+              cluster={cluster}
+              onPress={() => handleClusterPress(cluster)}
+            />
+          )
+        )}
+      </MapView>
 
       {/* Header overlay */}
       <SafeAreaView edges={['top']} style={styles.header} pointerEvents="none">
@@ -297,7 +359,7 @@ export default function MapScreen() {
 
             <View style={styles.clusterHeader}>
               <Text style={styles.clusterHeaderTitle}>
-                {clusterList.length} cries here
+                {clusterList.cries.length} cries here
               </Text>
               <TouchableOpacity
                 onPress={() => setClusterList(null)}
@@ -308,7 +370,7 @@ export default function MapScreen() {
             </View>
 
             <FlatList
-              data={clusterList}
+              data={clusterList.cries}
               keyExtractor={c => c.id}
               style={styles.clusterFlatList}
               ItemSeparatorComponent={() => <View style={styles.itemSep} />}
@@ -383,17 +445,16 @@ const styles = StyleSheet.create({
   },
   fabIcon: { fontSize: 32, color: '#0d1117', lineHeight: 36, fontWeight: '300' },
 
-  // Single cry pin — flat circle, NO borders
+  // Single cry pin — plain circle, no border
   pin: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
   pinEmoji: { fontSize: 18 },
 
-  // Cluster pin — same flat-circle structure as single pin, just larger + number
+  // Cluster pin — plain circle with count, no border
   clusterPin: {
     width: 46, height: 46, borderRadius: 23,
-    backgroundColor: '#6fe0e6',
     alignItems: 'center', justifyContent: 'center',
   },
   clusterPinText: { color: '#0d1117', fontSize: 16, fontWeight: '800' },
@@ -436,9 +497,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
   },
-  clusterHeaderTitle: {
-    color: '#6fe0e6', fontSize: 16, fontWeight: '700',
-  },
+  clusterHeaderTitle: { color: '#6fe0e6', fontSize: 16, fontWeight: '700' },
 
   clusterFlatList: { maxHeight: 340 },
   itemSep: { height: 1, backgroundColor: '#1f2937' },

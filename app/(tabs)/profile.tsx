@@ -11,7 +11,7 @@ import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
 import { computeBadges, computeStreak, Badge } from '../../lib/badges';
-import { loadProfile, saveProfile, Profile, DEFAULT_PROFILE } from '../../lib/profile';
+import { loadProfile, saveProfile, uploadAvatar, Profile, DEFAULT_PROFILE } from '../../lib/profile';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -229,6 +229,7 @@ function EditModal({ profile, onSave, onClose }: {
   const [name, setName] = useState(profile.displayName);
   const [bio, setBio] = useState(profile.bio);
   const [avatarUri, setAvatarUri] = useState(profile.avatarUri);
+  const [saving, setSaving] = useState(false);
 
   async function pickFromSource(source: 'camera' | 'library') {
     if (source === 'camera') {
@@ -281,13 +282,19 @@ function EditModal({ profile, onSave, onClose }: {
           <View style={ls.sheetHeader}>
             <TouchableOpacity onPress={onClose}><Text style={ls.cancel}>Cancel</Text></TouchableOpacity>
             <Text style={ls.sheetTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={() => onSave({
-              ...profile,
-              displayName: name.trim() || 'You',
-              bio: bio.trim(),
-              avatarUri,
-            })}>
-              <Text style={ls.saveBtn}>Save</Text>
+            <TouchableOpacity
+              disabled={saving}
+              onPress={async () => {
+                setSaving(true);
+                // Upload avatar to Supabase Storage if it's a local URI
+                const finalUri = avatarUri ? await uploadAvatar(avatarUri) : undefined;
+                await onSave({ ...profile, displayName: name.trim() || 'You', bio: bio.trim(), avatarUri: finalUri });
+                setSaving(false);
+              }}
+            >
+              <Text style={[ls.saveBtn, saving && { opacity: 0.5 }]}>
+                {saving ? 'Saving…' : 'Save'}
+              </Text>
             </TouchableOpacity>
           </View>
           <ScrollView

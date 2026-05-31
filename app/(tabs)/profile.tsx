@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, Platform, FlatList,
-  Image, Alert,
+  Image, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -10,8 +10,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
-import { computeBadges, computeStreak, Badge } from '../../lib/badges';
+import { computeBadges, computeStreak } from '../../lib/badges';
 import { loadProfile, saveProfile, uploadAvatar, Profile, DEFAULT_PROFILE } from '../../lib/profile';
+import { useAuth } from '../../lib/auth';
+import { getProfileStats, getFollowList, followUser, unfollowUser, UserResult } from '../../lib/social';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -197,25 +199,79 @@ function CriesModal({ cries, onClose }: { cries: Cry[]; onClose: () => void }) {
   );
 }
 
-// ─── Following / Followers modal (placeholder) ────────────────────────────────
+// ─── Follow list modal ────────────────────────────────────────────────────────
 
-function SocialModal({ title, onClose }: { title: string; onClose: () => void }) {
+function FollowListModal({ userId, type, onClose }: {
+  userId: string; type: 'followers' | 'following'; onClose: () => void;
+}) {
+  const [users, setUsers] = useState<UserResult[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useCallback(() => {
+    getFollowList(userId, type).then(u => { setUsers(u); setLoading(false); });
+  }, [])();
+
+  async function handleToggleFollow(u: UserResult) {
+    if (u.relation === 'following') {
+      await unfollowUser(u.id);
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, relation: 'none' } : x));
+    } else if (u.relation === 'none') {
+      await followUser(u.id);
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, relation: 'following' } : x));
+    }
+  }
+
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView edges={['bottom']} style={ls.sheet}>
         <View style={ls.handle} />
         <View style={ls.sheetHeader}>
-          <Text style={ls.sheetTitle}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={ls.closeBtn}>
-            <Text style={ls.closeTxt}>✕</Text>
-          </TouchableOpacity>
+          <Text style={ls.sheetTitle}>{type === 'followers' ? 'Followers' : 'Following'}</Text>
+          <TouchableOpacity onPress={onClose} style={ls.closeBtn}><Text style={ls.closeTxt}>✕</Text></TouchableOpacity>
         </View>
-        <View style={ls.empty}>
-          <Text style={{ fontSize: 40, opacity: 0.3 }}>👥</Text>
-          <Text style={ls.emptyTxt}>Coming in a later phase</Text>
-          <Text style={ls.emptySub}>Social features unlock when accounts are added.</Text>
-        </View>
+        {loading
+          ? <ActivityIndicator color="#6fe0e6" style={{ margin: 32 }} />
+          : (
+            <FlatList
+              data={users}
+              keyExtractor={u => u.id}
+              style={{ flex: 1 }}
+              contentContainerStyle={users.length === 0 ? ls.emptyContainer : undefined}
+              ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#1f2937', marginLeft: 68 }} />}
+              renderItem={({ item: u }) => (
+                <View style={ls.userRow}>
+                  {u.avatar_uri
+                    ? <Image source={{ uri: u.avatar_uri }} style={ls.userAvatar} />
+                    : <View style={ls.userAvatarFallback}><Text style={{ fontSize: 18 }}>💧</Text></View>
+                  }
+                  <View style={{ flex: 1 }}>
+                    <Text style={ls.userName}>{u.display_name}</Text>
+                    <Text style={ls.userHandle}>@{u.username}</Text>
+                  </View>
+                  {u.relation !== 'self' && (
+                    <TouchableOpacity
+                      style={u.relation === 'following' ? ls.btnFollowing : ls.btnFollow}
+                      onPress={() => handleToggleFollow(u)}
+                    >
+                      <Text style={u.relation === 'following' ? ls.btnFollowingTxt : ls.btnFollowTxt}>
+                        {u.relation === 'following' ? 'Following' : 'Follow'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+              ListEmptyComponent={
+                <View style={ls.empty}>
+                  <Text style={{ fontSize: 36, opacity: 0.3 }}>👥</Text>
+                  <Text style={ls.emptyTxt}>
+                    {type === 'followers' ? 'No followers yet' : 'Not following anyone'}
+                  </Text>
+                </View>
+              }
+            />
+          )
+        }
       </SafeAreaView>
     </Modal>
   );
@@ -341,14 +397,25 @@ function EditModal({ profile, onSave, onClose }: {
 type ModalType = 'cries' | 'following' | 'followers' | 'edit' | null;
 
 export default function ProfileScreen() {
+  const { session } = useAuth();
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
+  const [username, setUsername] = useState<string | null>(null);
   const [cries, setCries] = useState<Cry[]>([]);
   const [modal, setModal] = useState<ModalType>(null);
+  const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
 
   useFocusEffect(useCallback(() => {
     loadProfile().then(setProfile);
     loadCries().then(setCries);
-  }, []));
+    if (session) {
+      getProfileStats(session.user.id).then(setStats);
+      // Fetch username separately
+      import('../../lib/supabase').then(({ supabase }) =>
+        supabase.from('profiles').select('username').eq('id', session.user.id).single()
+          .then(({ data }) => setUsername(data?.username ?? null))
+      );
+    }
+  }, [session]));
 
   async function handleSave(updated: Profile) {
     await saveProfile(updated);
@@ -376,6 +443,7 @@ export default function ProfileScreen() {
             <Avatar uri={profile.avatarUri} size={88} />
           </TouchableOpacity>
           <Text style={styles.displayName}>{profile.displayName}</Text>
+          {username && <Text style={styles.usernameLabel}>@{username}</Text>}
           {profile.bio
             ? <Text style={styles.bio}>{profile.bio}</Text>
             : <TouchableOpacity onPress={() => setModal('edit')}>
@@ -387,7 +455,7 @@ export default function ProfileScreen() {
         {/* Stats */}
         <View style={styles.statsRow}>
           <TouchableOpacity style={styles.statCell} onPress={() => setModal('cries')}>
-            <Text style={styles.statValue}>{cries.length}</Text>
+            <Text style={styles.statValue}>{stats.cry_count || cries.length}</Text>
             <Text style={[styles.statLabel, styles.statTappable]}>Cries</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
@@ -396,14 +464,14 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Streak</Text>
           </View>
           <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statCell} onPress={() => setModal('following')}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={[styles.statLabel, styles.statTappable]}>Following</Text>
+          <TouchableOpacity style={styles.statCell} onPress={() => session && setModal('following')}>
+            <Text style={styles.statValue}>{stats.following_count}</Text>
+            <Text style={[styles.statLabel, session && styles.statTappable]}>Following</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statCell} onPress={() => setModal('followers')}>
-            <Text style={styles.statValue}>0</Text>
-            <Text style={[styles.statLabel, styles.statTappable]}>Followers</Text>
+          <TouchableOpacity style={styles.statCell} onPress={() => session && setModal('followers')}>
+            <Text style={styles.statValue}>{stats.follower_count}</Text>
+            <Text style={[styles.statLabel, session && styles.statTappable]}>Followers</Text>
           </TouchableOpacity>
         </View>
 
@@ -429,8 +497,12 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {modal === 'cries' && <CriesModal cries={cries} onClose={() => setModal(null)} />}
-      {modal === 'following' && <SocialModal title="Following" onClose={() => setModal(null)} />}
-      {modal === 'followers' && <SocialModal title="Followers" onClose={() => setModal(null)} />}
+      {modal === 'following' && session && (
+        <FollowListModal userId={session.user.id} type="following" onClose={() => setModal(null)} />
+      )}
+      {modal === 'followers' && session && (
+        <FollowListModal userId={session.user.id} type="followers" onClose={() => setModal(null)} />
+      )}
       {modal === 'edit' && <EditModal profile={profile} onSave={handleSave} onClose={() => setModal(null)} />}
     </SafeAreaView>
   );
@@ -451,6 +523,7 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 48 },
   avatarSection: { alignItems: 'center', paddingVertical: 28, gap: 8 },
   displayName: { color: '#e2e8f0', fontSize: 22, fontWeight: '700' },
+  usernameLabel: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
   bio: { color: '#64748b', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 },
   bioPlaceholder: { color: '#374151', fontSize: 14, fontStyle: 'italic' },
   statsRow: {
@@ -526,6 +599,15 @@ const ls = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, borderColor: '#6fe0e6',
   },
   changePhotoTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  userRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
+  userAvatar: { width: 44, height: 44, borderRadius: 22 },
+  userAvatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
+  userName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
+  userHandle: { color: '#4a5568', fontSize: 12 },
+  btnFollow: { backgroundColor: '#6fe0e6', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  btnFollowTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
+  btnFollowing: { borderWidth: 1, borderColor: '#1f2937', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  btnFollowingTxt: { color: '#4a5568', fontSize: 13 },
   audioPlayer: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#0d1117', borderRadius: 10,

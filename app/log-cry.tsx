@@ -17,7 +17,7 @@ type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 
 const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] = [
   { value: 'everyone',      icon: '🌍', label: 'Everyone' },
-  { value: 'followers',     icon: '👥', label: 'Followers' },
+  { value: 'followers',     icon: '👥', label: 'Friends' },
   { value: 'close_friends', icon: '🔒', label: 'Close friends' },
   { value: 'only_me',       icon: '🫥', label: 'Only me' },
 ];

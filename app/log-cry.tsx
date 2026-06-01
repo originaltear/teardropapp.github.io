@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import { getProfileSettings } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAuth } from '../lib/auth';
+import { showPostCryAd } from '../lib/ads';
 
 type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 
@@ -227,13 +228,15 @@ export default function LogCryScreen() {
       visibility,
     });
 
-    // Trigger achievement check in background immediately after saving
-    // (fire-and-forget — unlocked badges appear on the Profile tab)
+    // Trigger achievement check in background (fire-and-forget)
     if (session) {
       loadCries()
         .then(cries => checkAndSaveAchievements(cries, session))
         .catch(() => { /* best-effort */ });
     }
+
+    // Show post-cry ad (skipped for premium users, placeholder until AppLovin is live)
+    showPostCryAd().catch(() => {});
 
     setSaving(false);
 

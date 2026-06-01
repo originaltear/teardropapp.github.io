@@ -191,11 +191,11 @@ export default function ProfileScreen() {
   }
 
   useFocusEffect(useCallback(() => {
-    loadProfile().then(setProfile);
     const criesP = loadCries().then(c => { setCries(c); return c; });
 
     if (!session) {
-      // Clear any stale data from a previous logged-in user
+      // Show a blank guest state — don't leak the previous user's profile
+      setProfile(DEFAULT_PROFILE);
       setStats({ cry_count: 0, follower_count: 0, following_count: 0 });
       setUsername(null);
       setEarnedTears([]);
@@ -203,6 +203,8 @@ export default function ProfileScreen() {
       setRecentAchievements([]);
       return;
     }
+
+    loadProfile().then(setProfile);
 
     if (session) {
       getProfileStats(session.user.id).then(setStats);

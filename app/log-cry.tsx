@@ -9,9 +9,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { EMOTIONS } from '../lib/emotions';
-import { saveCry } from '../lib/storage';
+import { saveCry, loadCries } from '../lib/storage';
 import * as Location from 'expo-location';
 import { getProfileSettings } from '../lib/social';
+import { checkAndSaveAchievements } from '../lib/achievements';
+import { useAuth } from '../lib/auth';
 
 type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 
@@ -36,6 +38,7 @@ function generateId(): string {
 
 export default function LogCryScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
@@ -224,9 +227,16 @@ export default function LogCryScreen() {
       visibility,
     });
 
+    // Trigger achievement check in background immediately after saving
+    // (fire-and-forget — unlocked badges appear on the Profile tab)
+    if (session) {
+      loadCries()
+        .then(cries => checkAndSaveAchievements(cries, session))
+        .catch(() => { /* best-effort */ });
+    }
+
     setSaving(false);
 
-    // Navigate immediately — achievement toasts show on Profile tab (checked on focus)
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/');
   }

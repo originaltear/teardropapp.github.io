@@ -117,9 +117,17 @@ export default function CryDetailScreen() {
   async function submitComment() {
     if (!commentText.trim() || !session) return;
     setPosting(true);
-    const c = await addComment(id!, commentText.trim());
-    if (c) setComments(prev => [...prev, c]);
-    setCommentText('');
+    try {
+      const c = await addComment(id!, commentText.trim());
+      if (c) setComments(prev => [...prev, c]);
+      setCommentText('');
+    } catch (e: any) {
+      if (e?.code === 'COMMENTS_DISABLED') {
+        Alert.alert('Comments disabled', 'The owner has turned off comments on their cries.');
+      } else {
+        Alert.alert('Error', 'Could not post comment. Please try again.');
+      }
+    }
     setPosting(false);
   }
 
@@ -269,8 +277,8 @@ export default function CryDetailScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* Comment input */}
-        {session && (
+        {/* Comment input — hidden if owner has comments disabled */}
+        {session && cry.profile?.allow_comments !== false && (
           <View style={s.inputRow}>
             <TextInput
               style={s.inputField}

@@ -91,7 +91,7 @@ export default function CloseFriendsScreen() {
       </View>
 
       <Text style={styles.subtitle}>
-        Close Friends can see cries you mark as "Close Friends only"
+        Close Friends can see cries you mark as "Close Friends only". You can only add people who already follow you back.
       </Text>
 
       {loading ? (

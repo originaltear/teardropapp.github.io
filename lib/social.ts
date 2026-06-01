@@ -41,7 +41,7 @@ export interface SocialCry {
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
-  profile: { username: string; display_name: string; avatar_uri: string | null; selected_tears?: string[] };
+  profile: { username: string; display_name: string; avatar_uri: string | null; selected_tears?: string[]; allow_comments?: boolean };
 }
 
 export interface BlockedUser {
@@ -239,7 +239,7 @@ async function enrichCries(
 const CRY_SELECT = `
   id, user_id, created_at, latitude, longitude, emotion,
   intensity, note, photo_uri, audio_uri, country, visibility,
-  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public, selected_tears)
+  profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public, selected_tears, allow_comments)
 `;
 
 // ─── Following feed ───────────────────────────────────────────────────────────
@@ -266,11 +266,8 @@ export async function getSocialFeed(): Promise<SocialCry[]> {
     .limit(60);
 
   if (error || !cries) return [];
-  // Filter out private profiles (except own cries)
-  const visible = cries.filter(c =>
-    c.user_id === session.user.id || (c.profile as any)?.is_public !== false
-  );
-  return enrichCries(visible, session.user.id);
+  // RLS already enforces visibility + block rules — no client-side is_public filter needed
+  return enrichCries(cries, session.user.id);
 }
 
 // ─── Global feed (public profiles) ───────────────────────────────────────────
@@ -325,9 +322,8 @@ export async function getMapCries(filter: MapFilter): Promise<SocialCry[]> {
     const { data: cries } = await supabase
       .from('cries').select(CRY_SELECT).in('user_id', followingIds)
       .order('created_at', { ascending: false });
-    // Filter out private profiles
-    const visible = (cries ?? []).filter(c => (c.profile as any)?.is_public !== false);
-    return enrichCries(visible, session.user.id);
+    // RLS already enforces visibility + block rules
+    return enrichCries(cries ?? [], session.user.id);
   }
 
   // global
@@ -428,7 +424,11 @@ export async function isUserBlocked(targetId: string): Promise<boolean> {
 export async function likeCry(cryId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
-  await supabase.from('likes').insert({ user_id: session.user.id, cry_id: cryId });
+  const { error } = await supabase.from('likes').insert({ user_id: session.user.id, cry_id: cryId });
+  // 23505 = unique_violation — user already liked this cry (idempotent, not an error)
+  if (error && error.code !== '23505') {
+    console.warn('[likeCry] error:', error.message);
+  }
 }
 
 export async function unlikeCry(cryId: string): Promise<void> {
@@ -453,6 +453,23 @@ export async function getComments(cryId: string): Promise<Comment[]> {
 export async function addComment(cryId: string, content: string): Promise<Comment | null> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
+
+  // Check if the cry owner has comments enabled before inserting
+  const { data: cryRow } = await supabase
+    .from('cries')
+    .select('user_id, profile:profiles!cries_user_id_fkey(allow_comments)')
+    .eq('id', cryId)
+    .single();
+
+  const isOwner = cryRow?.user_id === session.user.id;
+  const ownerAllowsComments = (cryRow?.profile as any)?.allow_comments;
+
+  if (!isOwner && ownerAllowsComments === false) {
+    const err = new Error('Comments are turned off for this cry.') as any;
+    err.code = 'COMMENTS_DISABLED';
+    throw err;
+  }
+
   const { data } = await supabase
     .from('comments')
     .insert({ user_id: session.user.id, cry_id: cryId, content })

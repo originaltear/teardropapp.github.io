@@ -281,14 +281,9 @@ export default function MapScreen() {
         showsMyLocationButton={false}
       >
         {cries
-          // Guard: skip pins with invalid coords or private profiles (global filter)
-          .filter(cry => {
-            if (!cry.latitude || !cry.longitude) return false;
-            const sc = cry as SocialCry;
-            // For global filter, only show public profiles
-            if (mapFilter === 'global' && sc.profile && (sc.profile as any).is_public === false) return false;
-            return true;
-          })
+          // Guard: skip pins with invalid coords
+          // RLS + getGlobalFeed() already filter is_public and blocks — no client filter needed
+          .filter(cry => cry.latitude && cry.longitude)
           .map(cry => {
             const emotion = emotionById(cry.emotion);
             const color = emotion?.color ?? '#6fe0e6';

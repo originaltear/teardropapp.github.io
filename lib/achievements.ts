@@ -160,11 +160,18 @@ function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): num
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** Returns YYYY-MM-DD in the device's local timezone (avoids UTC midnight drift). */
+function toLocalDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  // en-CA locale uses YYYY-MM-DD format natively
+  return d.toLocaleDateString('en-CA');
+}
+
 function computeStreak(cries: Cry[]): number {
   if (!cries.length) return 0;
-  const days = [...new Set(cries.map(c => c.createdAt.slice(0, 10)))].sort().reverse();
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const days = [...new Set(cries.map(c => toLocalDate(c.createdAt)))].sort().reverse();
+  const today     = toLocalDate(new Date());
+  const yesterday = toLocalDate(new Date(Date.now() - 86_400_000));
   if (days[0] !== today && days[0] !== yesterday) return 0;
   let s = 1;
   for (let i = 0; i < days.length - 1; i++) {

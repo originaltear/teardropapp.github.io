@@ -82,22 +82,23 @@ export async function loadCries(): Promise<Cry[]> {
   if (session) {
     const { data, error } = await supabase
       .from('cries')
-      .select('id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country')
+      .select('id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, visibility')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
       return data.map(r => ({
-        id:        r.id,
-        createdAt: r.created_at,
-        latitude:  r.latitude,
-        longitude: r.longitude,
-        emotion:   r.emotion,
-        intensity: r.intensity,
-        note:      r.note      ?? undefined,
-        photoUri:  r.photo_uri ?? undefined,
-        audioUri:  r.audio_uri ?? undefined,
-        country:   r.country   ?? undefined,
+        id:         r.id,
+        createdAt:  r.created_at,
+        latitude:   r.latitude,
+        longitude:  r.longitude,
+        emotion:    r.emotion,
+        intensity:  r.intensity,
+        note:       r.note       ?? undefined,
+        photoUri:   r.photo_uri  ?? undefined,
+        audioUri:   r.audio_uri  ?? undefined,
+        country:    r.country    ?? undefined,
+        visibility: (r.visibility as Cry['visibility']) ?? 'everyone',
       }));
     }
     if (error) {

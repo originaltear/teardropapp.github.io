@@ -17,6 +17,7 @@ import {
   getSocialFeed, getMapCries, likeCry, unlikeCry, getComments, addComment,
   SocialCry, Comment,
 } from '../../lib/social';
+import { supabase } from '../../lib/supabase';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -94,10 +95,23 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [commentsDisabled, setCommentsDisabled] = useState(false);
   const isOwn = myId === cry.user_id;
 
   useFocusEffect(useCallback(() => {
     getComments(cry.id).then(c => { setComments(c); setLoadingComments(false); });
+
+    // Check if owner has disabled comments (direct query — not relying on profile join)
+    if (!isOwn) {
+      supabase
+        .from('profiles')
+        .select('allow_comments')
+        .eq('id', cry.user_id)
+        .single()
+        .then(({ data }) => {
+          if (data?.allow_comments === false) setCommentsDisabled(true);
+        });
+    }
   }, [cry.id]));
 
   async function toggleLike() {
@@ -112,9 +126,17 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
   async function submitComment() {
     if (!commentText.trim() || !myId) return;
     setPosting(true);
-    const c = await addComment(cry.id, commentText.trim());
-    if (c) setComments(prev => [...prev, c]);
-    setCommentText('');
+    try {
+      const c = await addComment(cry.id, commentText.trim());
+      if (c) setComments(prev => [...prev, c]);
+      setCommentText('');
+    } catch (e: any) {
+      if (e?.code === 'COMMENTS_DISABLED') {
+        setCommentsDisabled(true);
+      } else {
+        Alert.alert('Error', 'Could not post comment. Please try again.');
+      }
+    }
     setPosting(false);
   }
 
@@ -168,25 +190,28 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
 
             {/* Comments */}
             <Text style={styles.commentsHeader}>Comments</Text>
-            {loadingComments
-              ? <ActivityIndicator color="#6fe0e6" style={{ marginVertical: 12 }} />
-              : comments.length === 0
-                ? <Text style={styles.noComments}>No comments yet</Text>
-                : comments.map(c => (
-                  <View key={c.id} style={styles.commentRow}>
-                    <Avatar uri={c.profile.avatar_uri} size={28} />
-                    <View style={styles.commentBubble}>
-                      <Text style={styles.commentUser}>{c.profile.display_name}</Text>
-                      <Text style={styles.commentText}>{c.content}</Text>
-                    </View>
+            {commentsDisabled ? (
+              <Text style={styles.noComments}>💬  Comments have been turned off</Text>
+            ) : loadingComments ? (
+              <ActivityIndicator color="#6fe0e6" style={{ marginVertical: 12 }} />
+            ) : comments.length === 0 ? (
+              <Text style={styles.noComments}>No comments yet</Text>
+            ) : (
+              comments.map(c => (
+                <View key={c.id} style={styles.commentRow}>
+                  <Avatar uri={c.profile.avatar_uri} size={28} />
+                  <View style={styles.commentBubble}>
+                    <Text style={styles.commentUser}>{c.profile.display_name}</Text>
+                    <Text style={styles.commentText}>{c.content}</Text>
                   </View>
-                ))
-            }
+                </View>
+              ))
+            )}
             <View style={{ height: 80 }} />
           </ScrollView>
 
-          {/* Comment input */}
-          {myId && (
+          {/* Comment input — hidden entirely when comments are disabled */}
+          {myId && !commentsDisabled && (
             <View style={styles.commentInput}>
               <TextInput
                 style={styles.commentField}

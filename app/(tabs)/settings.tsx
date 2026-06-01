@@ -16,6 +16,8 @@ import {
   ProfileSettings, BlockedUser,
 } from '../../lib/social';
 import { clearPushToken } from '../../lib/notifications';
+import { checkPremium } from '../../lib/purchases';
+import { useTheme, THEMES } from '../../lib/themes';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -93,12 +95,15 @@ const DEFAULT_NOTIF_PREFS: ProfileSettings['notification_preferences'] = {
 export default function SettingsScreen() {
   const { session } = useAuth();
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
 
   // ── State ──
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   // Privacy settings
   const [profileVisibility, setProfileVisibility] =
@@ -126,9 +131,10 @@ export default function SettingsScreen() {
     if (!session) { setLoading(false); return; }
     (async () => {
       setLoading(true);
-      const [settings, blocked] = await Promise.all([
+      const [settings, blocked, premium] = await Promise.all([
         getProfileSettings(),
         getBlockedUsers(),
+        checkPremium(),
       ]);
       if (settings) {
         setProfileVisibility(settings.profile_visibility);
@@ -136,6 +142,7 @@ export default function SettingsScreen() {
         setNotifPrefs({ ...DEFAULT_NOTIF_PREFS, ...settings.notification_preferences });
       }
       setBlockedUsers(blocked);
+      setIsPremium(premium);
       setLoading(false);
     })();
   }, [session]));
@@ -373,6 +380,50 @@ export default function SettingsScreen() {
             />
           </SettingsGroup>
 
+          {/* Premium */}
+          <SectionLabel text="Premium" />
+          <SettingsGroup>
+            {isPremium ? (
+              <>
+                <View style={[styles.row, { gap: 8 }]}>
+                  <Text style={styles.rowLabel}>Teardrop Pro</Text>
+                  <Text style={{ color: '#6fe0e6', fontSize: 13, fontWeight: '700' }}>💎 Active</Text>
+                </View>
+                <SettingsRow
+                  label="Pro Analytics"
+                  onPress={() => router.push('/pro-analytics')}
+                />
+                <SettingsRow
+                  label={`Theme: ${theme.emoji} ${theme.name}`}
+                  onPress={() => setShowThemePicker(true)}
+                />
+                <SettingsRow
+                  label="Manage subscription"
+                  value="Google Play ›"
+                  onPress={() => Alert.alert('Manage subscription', 'Open Google Play → Subscriptions to manage or cancel your plan.')}
+                />
+              </>
+            ) : (
+              <>
+                <SettingsRow
+                  label="Upgrade to Pro 💎"
+                  value="Unlock features ›"
+                  onPress={() => router.push('/paywall')}
+                />
+                <SettingsRow
+                  label="Pro Analytics"
+                  value="Premium only"
+                  onPress={() => router.push('/paywall')}
+                />
+                <SettingsRow
+                  label="Custom themes"
+                  value="Premium only"
+                  onPress={() => router.push('/paywall')}
+                />
+              </>
+            )}
+          </SettingsGroup>
+
           {/* Data */}
           <SectionLabel text="Data" />
           <SettingsGroup>
@@ -488,6 +539,28 @@ export default function SettingsScreen() {
         </SafeAreaView>
       </Modal>
 
+      {/* ── Theme picker modal ── */}
+      <Modal visible={showThemePicker} transparent animationType="fade" onRequestClose={() => setShowThemePicker(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowThemePicker(false)} />
+        <View style={styles.pickerCard}>
+          <Text style={styles.pickerTitle}>Choose theme</Text>
+          {THEMES.map(t => (
+            <TouchableOpacity
+              key={t.id}
+              style={[styles.pickerOption, theme.id === t.id && styles.pickerOptionActive]}
+              onPress={() => { setTheme(t); setShowThemePicker(false); }}
+            >
+              <View style={[styles.themeCircle, { backgroundColor: t.accent }]} />
+              <Text style={[styles.pickerOptionTxt, theme.id === t.id && { color: t.accent }]}>
+                {t.emoji}  {t.name}
+                {t.premium && !isPremium ? '  🔒' : ''}
+              </Text>
+              {theme.id === t.id && <Text style={[styles.pickerCheck, { color: t.accent }]}>✓</Text>}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Modal>
+
       {/* ── Report a problem modal ── */}
       <Modal visible={showReport} transparent animationType="slide" onRequestClose={() => setShowReport(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowReport(false)} />
@@ -591,6 +664,7 @@ const styles = StyleSheet.create({
   pickerOptionTxt: { color: '#94a3b8', fontSize: 16 },
   pickerOptionTxtActive: { color: '#6fe0e6' },
   pickerCheck: { color: '#6fe0e6', fontSize: 16, fontWeight: '700' },
+  themeCircle: { width: 18, height: 18, borderRadius: 9, marginRight: 4 },
 
   // Bottom sheet
   sheetContainer: {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Close Friends screen
  *
  * Shows your current close friends list with remove option.
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../lib/auth';
 import {
@@ -29,6 +30,7 @@ function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
 
 export default function CloseFriendsScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const { session } = useAuth();
 
   const [closeFriends, setCloseFriends] = useState<CloseFriend[]>([]);
@@ -96,7 +98,7 @@ export default function CloseFriendsScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color="#6fe0e6" />
+          <ActivityIndicator color={accent} />
         </View>
       ) : followers.length === 0 ? (
         <View style={styles.centered}>

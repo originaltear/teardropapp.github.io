@@ -17,6 +17,7 @@ import { EMOTIONS, emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import { checkPremium } from '../lib/purchases';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../lib/themes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,14 +74,16 @@ function SectionHeader({ title, premium }: { title: string; premium?: boolean })
 }
 
 /** Horizontal bar row */
-function HBar({ label, value, max, color = '#6fe0e6', labelWidth = 80 }: {
+function HBar({ label, value, max, color, labelWidth = 80 }: {
   label: string; value: number; max: number; color?: string; labelWidth?: number;
 }) {
+  const { theme: { accent } } = useTheme();
+  const fillColor = color ?? accent;
   return (
     <View style={hb.row}>
       <Text style={[hb.label, { width: labelWidth }]} numberOfLines={1}>{label}</Text>
       <View style={hb.bg}>
-        <View style={[hb.fill, { width: `${Math.max((value / Math.max(max, 1)) * 100, value > 0 ? 2 : 0)}%`, backgroundColor: color }]} />
+        <View style={[hb.fill, { width: `${Math.max((value / Math.max(max, 1)) * 100, value > 0 ? 2 : 0)}%`, backgroundColor: fillColor }]} />
       </View>
       <Text style={hb.val}>{value}</Text>
     </View>
@@ -96,13 +99,14 @@ const hb = StyleSheet.create({
 
 /** Vertical bar chart for 24 hours */
 function HourChart({ buckets }: { buckets: { hour: number; count: number }[] }) {
+  const { theme: { accent } } = useTheme();
   const max = Math.max(...buckets.map(b => b.count), 1);
   const peak = buckets.reduce((best, b) => (b.count > best.count ? b : best), { hour: 0, count: 0 });
   return (
     <View>
       {peak.count > 0 && (
         <Text style={s.peakLabel}>
-          Peak: <Text style={{ color: '#6fe0e6', fontWeight: '700' }}>{hour12(peak.hour)}</Text>
+          Peak: <Text style={{ color: accent, fontWeight: '700' }}>{hour12(peak.hour)}</Text>
           {'  '}({peak.count} {peak.count === 1 ? 'cry' : 'cries'})
         </Text>
       )}
@@ -112,7 +116,7 @@ function HourChart({ buckets }: { buckets: { hour: number; count: number }[] }) 
             <View style={{
               width: '80%',
               height: Math.max(b.count > 0 ? 4 : 2, (b.count / max) * 68),
-              backgroundColor: b.hour === peak.hour ? '#6fe0e6' : '#1f2937',
+              backgroundColor: b.hour === peak.hour ? accent : '#1f2937',
               borderRadius: 2,
             }} />
           </View>
@@ -131,6 +135,7 @@ function HourChart({ buckets }: { buckets: { hour: number; count: number }[] }) 
 
 /** Locked overlay — renders over premium content for free users */
 function LockedOverlay({ onPress }: { onPress: () => void }) {
+  const { theme: { accent } } = useTheme();
   return (
     <TouchableOpacity
       style={s.lockOverlay}
@@ -138,7 +143,7 @@ function LockedOverlay({ onPress }: { onPress: () => void }) {
       activeOpacity={0.9}
     >
       <Text style={{ fontSize: 32, marginBottom: 8 }}>💎</Text>
-      <Text style={s.lockTitle}>Unlock with Crystal Tear</Text>
+      <Text style={[s.lockTitle, { color: accent }]}>Unlock with Crystal Tear</Text>
       <Text style={s.lockSub}>Tap to upgrade</Text>
     </TouchableOpacity>
   );
@@ -169,6 +174,7 @@ function PremiumSection({
 export default function StatsScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const { theme: { accent } } = useTheme();
 
   const [cries, setCries] = useState<Cry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -320,7 +326,7 @@ export default function StatsScreen() {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
         <Header onBack={() => router.back()} />
-        <ActivityIndicator size="large" color="#6fe0e6" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
       </SafeAreaView>
     );
   }
@@ -444,7 +450,7 @@ export default function StatsScreen() {
                   <Text style={s.likerName}>{liker.display_name || liker.username}</Text>
                   <Text style={s.likerHandle}>@{liker.username}</Text>
                 </View>
-                <Text style={s.likerCount}>{liker.count} 💧</Text>
+                <Text style={[s.likerCount, { color: accent }]}>{liker.count} 💧</Text>
               </View>
             ))
           )}
@@ -489,7 +495,7 @@ function Header({ onBack }: { onBack: () => void }) {
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onBack} style={s.backBtn}>
-        <Text style={s.backTxt}>←</Text>
+        <Text style={[s.backTxt, { color: accent }]}>←</Text>
       </TouchableOpacity>
       <Text style={s.title}>Statistics</Text>
       <View style={{ width: 36 }} />

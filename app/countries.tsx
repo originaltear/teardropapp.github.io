@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Countries screen — shows all countries the user has cried in with counts.
  * Route: /countries
  */
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../lib/storage';
 
@@ -39,6 +40,7 @@ function getFlag(country: string): string {
 
 export default function CountriesScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [rows, setRows] = useState<{ country: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +73,7 @@ export default function CountriesScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#6fe0e6" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
       ) : rows.length === 0 ? (
         <View style={s.empty}>
           <Text style={s.emptyEmoji}>🌍</Text>

@@ -14,6 +14,7 @@ import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { useAuth } from '../../lib/auth';
 import { TearsBadge } from '../../components/TearsBadge';
+import { useTheme } from '../../lib/themes';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
 
@@ -91,6 +92,7 @@ function Drops({ intensity }: { intensity: number }) {
 // ─── Audio player ─────────────────────────────────────────────────────────────
 
 function AudioPlayer({ uri }: { uri: string }) {
+  const { theme: { accent } } = useTheme();
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -118,9 +120,9 @@ function AudioPlayer({ uri }: { uri: string }) {
   }
 
   return (
-    <TouchableOpacity style={styles.audioPlayer} onPress={toggle} activeOpacity={0.8}>
-      <Text style={styles.audioIcon}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={styles.audioLabel}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
+    <TouchableOpacity style={[styles.audioPlayer, { borderColor: accent }]} onPress={toggle} activeOpacity={0.8}>
+      <Text style={[styles.audioIcon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
+      <Text style={[styles.audioLabel, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
     </TouchableOpacity>
   );
 }
@@ -128,11 +130,12 @@ function AudioPlayer({ uri }: { uri: string }) {
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
 function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
+  const { theme: { accent } } = useTheme();
   if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: accent, alignItems: 'center', justifyContent: 'center',
     }}>
       <Text style={{ fontSize: size * 0.45 }}>💧</Text>
     </View>
@@ -209,6 +212,7 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
 export default function MapScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const { theme: { accent } } = useTheme();
   const mapRef = useRef<MapView>(null);
   const initialRegionRef = useRef<Region | null>(null);
   const [gpsReady, setGpsReady] = useState(false);
@@ -264,7 +268,7 @@ export default function MapScreen() {
   if (!gpsReady) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6fe0e6" />
+        <ActivityIndicator size="large" color={accent} />
         <Text style={styles.loadingText}>Finding your location…</Text>
       </View>
     );
@@ -304,7 +308,7 @@ export default function MapScreen() {
 
       {/* Header title */}
       <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="none">
-        <Text style={styles.headerTitle}>💧 Teardrop</Text>
+        <Text style={[styles.headerTitle, { color: accent }]}>💧 Teardrop</Text>
       </SafeAreaView>
 
       {/* Segmented filter — centered, floating above FAB */}
@@ -316,7 +320,7 @@ export default function MapScreen() {
                 key={f}
                 style={[
                   styles.segment,
-                  mapFilter === f && styles.segmentActive,
+                  mapFilter === f && { backgroundColor: accent },
                   i < 2 && styles.segmentBorder,
                 ]}
                 onPress={() => setMapFilter(f)}
@@ -332,7 +336,7 @@ export default function MapScreen() {
       )}
 
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
-        <TouchableOpacity style={styles.fab} onPress={handleAddCry} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]} onPress={handleAddCry} activeOpacity={0.85}>
           <Text style={styles.fabIcon}>+</Text>
         </TouchableOpacity>
       </SafeAreaView>

@@ -13,6 +13,7 @@ import {
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
 import { clearBadge } from '../../lib/notifications';
+import { useTheme } from '../../lib/themes';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,12 +58,13 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
   followBackDone?: boolean;
 }) {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const isFollow = notif.type === 'follow';
   const isFriendReq = notif.type === 'friend_request';
 
   return (
     <TouchableOpacity
-      style={[styles.row, !notif.read && styles.rowUnread]}
+      style={[styles.row, !notif.read && { backgroundColor: accent + '10' }]}
       onPress={onPress}
       activeOpacity={0.75}
     >
@@ -98,7 +100,7 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
           </TouchableOpacity>
           {(isFollow || isFriendReq) && onFollowBack && (
             <TouchableOpacity
-              style={followBackDone ? styles.btnFollowing : styles.btnFollowBack}
+              style={followBackDone ? styles.btnFollowing : [styles.btnFollowBack, { backgroundColor: accent }]}
               onPress={followBackDone ? undefined : onFollowBack}
             >
               <Text style={followBackDone ? styles.btnFollowingTxt : styles.btnFollowBackTxt}>
@@ -109,7 +111,7 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
         </View>
       </View>
 
-      {!notif.read && <View style={styles.unreadDot} />}
+      {!notif.read && <View style={[styles.unreadDot, { backgroundColor: accent }]} />}
     </TouchableOpacity>
   );
 }
@@ -119,6 +121,7 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
 export default function NotificationsScreen() {
   const { session } = useAuth();
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   // Track which actor IDs have been followed back
@@ -193,7 +196,7 @@ export default function NotificationsScreen() {
 
       {loading ? (
         <View style={styles.empty}>
-          <ActivityIndicator size="large" color="#6fe0e6" />
+          <ActivityIndicator size="large" color={accent} />
         </View>
       ) : (
         <FlatList

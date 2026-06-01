@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Phase 5E — Calendar view.
  * Route: /calendar
  */
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../lib/storage';
 import { emotionById, EMOTIONS } from '../lib/emotions';
@@ -85,6 +86,7 @@ const d = StyleSheet.create({
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -145,7 +147,7 @@ export default function CalendarScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#6fe0e6" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
       ) : (
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {/* Month navigation */}

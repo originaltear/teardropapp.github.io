@@ -3,9 +3,9 @@ import { Tabs } from 'expo-router';
 import { View, Text } from 'react-native';
 import { useAuth } from '../../lib/auth';
 import { getUnreadCount } from '../../lib/social';
+import { useTheme } from '../../lib/themes';
 
 const TAB_BAR_BG = '#111827';
-const ACTIVE = '#6fe0e6';
 const INACTIVE = '#4a5568';
 
 function TabIcon({ emoji, color }: { emoji: string; color: string }) {
@@ -14,6 +14,7 @@ function TabIcon({ emoji, color }: { emoji: string; color: string }) {
 
 function NotifIcon({ color }: { color: string }) {
   const { session } = useAuth();
+  const { theme: { accent } } = useTheme();
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ function NotifIcon({ color }: { color: string }) {
       {count > 0 && (
         <View style={{
           position: 'absolute', top: -4, right: -6,
-          backgroundColor: '#6fe0e6', borderRadius: 8,
+          backgroundColor: accent, borderRadius: 8,
           minWidth: 16, height: 16,
           alignItems: 'center', justifyContent: 'center',
           paddingHorizontal: 3,
@@ -44,6 +45,7 @@ function NotifIcon({ color }: { color: string }) {
 }
 
 export default function TabLayout() {
+  const { theme: { accent } } = useTheme();
   return (
     <Tabs
       screenOptions={{
@@ -55,7 +57,7 @@ export default function TabLayout() {
           height: 60,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: ACTIVE,
+        tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: INACTIVE,
       }}
     >

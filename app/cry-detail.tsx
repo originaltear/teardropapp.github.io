@@ -88,6 +88,7 @@ export default function CryDetailScreen() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
+  const [commentsDisabled, setCommentsDisabled] = useState(false);
 
   useFocusEffect(useCallback(() => {
     if (!id) return;
@@ -100,6 +101,11 @@ export default function CryDetailScreen() {
         setCry(cryData);
         setLiked(cryData.liked_by_me);
         setLikeCount(cryData.like_count);
+        // Disable comments if owner has turned them off (and viewer isn't the owner)
+        const isOwner = cryData.user_id === session?.user.id;
+        if (!isOwner && cryData.profile?.allow_comments === false) {
+          setCommentsDisabled(true);
+        }
       }
       setComments(commentData);
       setLoading(false);
@@ -123,7 +129,7 @@ export default function CryDetailScreen() {
       setCommentText('');
     } catch (e: any) {
       if (e?.code === 'COMMENTS_DISABLED') {
-        Alert.alert('Comments disabled', 'The owner has turned off comments on their cries.');
+        setCommentsDisabled(true); // swap input for the notice bar
       } else {
         Alert.alert('Error', 'Could not post comment. Please try again.');
       }
@@ -277,8 +283,12 @@ export default function CryDetailScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* Comment input — hidden if owner has comments disabled */}
-        {session && cry.profile?.allow_comments !== false && (
+        {/* Comment input — replaced with notice if owner has disabled comments */}
+        {session && commentsDisabled ? (
+          <View style={s.commentsOffRow}>
+            <Text style={s.commentsOffTxt}>💬  Comments have been turned off</Text>
+          </View>
+        ) : session && (
           <View style={s.inputRow}>
             <TextInput
               style={s.inputField}
@@ -376,6 +386,13 @@ const s = StyleSheet.create({
   },
   commentUser: { color: '#6fe0e6', fontSize: 12, fontWeight: '600', marginBottom: 3 },
   commentText: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
+
+  commentsOffRow: {
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderTopWidth: 1, borderTopColor: '#1f2937',
+    backgroundColor: '#0d1117', alignItems: 'center',
+  },
+  commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,

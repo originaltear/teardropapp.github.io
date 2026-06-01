@@ -390,10 +390,6 @@ export default function SettingsScreen() {
                   <Text style={{ color: '#6fe0e6', fontSize: 13, fontWeight: '700' }}>💎 Active</Text>
                 </View>
                 <SettingsRow
-                  label="Pro Analytics"
-                  onPress={() => router.push('/pro-analytics')}
-                />
-                <SettingsRow
                   label={`Theme: ${theme.emoji} ${theme.name}`}
                   onPress={() => setShowThemePicker(true)}
                 />
@@ -408,11 +404,6 @@ export default function SettingsScreen() {
                 <SettingsRow
                   label="Upgrade to Pro 💎"
                   value="Unlock features ›"
-                  onPress={() => router.push('/paywall')}
-                />
-                <SettingsRow
-                  label="Pro Analytics"
-                  value="Premium only"
                   onPress={() => router.push('/paywall')}
                 />
                 <SettingsRow

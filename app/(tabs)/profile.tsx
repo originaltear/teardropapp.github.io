@@ -13,7 +13,7 @@ import { useAuth } from '../../lib/auth';
 import { getProfileStats } from '../../lib/social';
 import {
   checkAndSaveAchievements, getUnlockedAchievements,
-  getEarnedTears, setSelectedTears, ACHIEVEMENTS, Achievement,
+  getEarnedTears, setSelectedTears, ACHIEVEMENTS, Achievement, getTearInfo,
 } from '../../lib/achievements';
 import { TearsBadge } from '../../components/TearsBadge';
 import { AchievementToast } from '../../components/AchievementToast';
@@ -133,6 +133,7 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                 <View style={ls.tearsGrid}>
                   {earnedTears.map(tear => {
                     const chosen = chosenTears.includes(tear);
+                    const info = getTearInfo(tear);
                     return (
                       <TouchableOpacity
                         key={tear}
@@ -142,6 +143,10 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                             chosen ? prev.filter(t => t !== tear) : prev.length < 3 ? [...prev, tear] : prev
                           )
                         }
+                        onLongPress={() => {
+                          if (info) Alert.alert(info.name, info.howObtained);
+                        }}
+                        delayLongPress={400}
                       >
                         <Text style={ls.tearEmoji}>{tear}</Text>
                         {chosen && <Text style={ls.tearCheck}>✓</Text>}
@@ -149,6 +154,7 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                     );
                   })}
                 </View>
+                <Text style={ls.tearsHint}>Tap to select · Hold to see how you earned it</Text>
                 {chosenTears.length > 0 && (
                   <Text style={ls.tearsPreview}>Preview: @username {chosenTears.join(' ')}</Text>
                 )}
@@ -418,5 +424,6 @@ const ls = StyleSheet.create({
   tearChipActive: { borderColor: '#f2cf6b', backgroundColor: '#f2cf6b15' },
   tearEmoji: { fontSize: 24 },
   tearCheck: { position: 'absolute', bottom: 2, right: 4, fontSize: 10, color: '#f2cf6b', fontWeight: '700' },
-  tearsPreview: { color: '#4a5568', fontSize: 12, marginTop: 8, fontStyle: 'italic' },
+  tearsHint: { color: '#374151', fontSize: 11, marginTop: 6, fontFamily: 'monospace' },
+  tearsPreview: { color: '#4a5568', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
 });

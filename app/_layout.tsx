@@ -97,9 +97,8 @@ function RootNav() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="onboarding" />
-      <Stack.Screen name="paywall"      options={{ presentation: 'modal' }} />
-      <Stack.Screen name="pro-analytics" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="log-cry"       options={{ presentation: 'modal' }} />
+      <Stack.Screen name="paywall"  options={{ presentation: 'modal' }} />
+      <Stack.Screen name="log-cry"  options={{ presentation: 'modal' }} />
       <Stack.Screen name="friends"       options={{ presentation: 'modal' }} />
       <Stack.Screen name="user-profile"  options={{ presentation: 'modal' }} />
       <Stack.Screen name="my-cries"      options={{ presentation: 'modal' }} />

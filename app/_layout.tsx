@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 import { registerPushToken, clearBadge } from '../lib/notifications';
 import { initPurchases, syncCrystalTear } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
@@ -144,14 +145,53 @@ function OnboardingGate({ children }: { children: React.ReactNode }) {
 
 function ThemedApp() {
   const [theme, setThemeState] = useState<ThemeDef>(DEFAULT_THEME);
+  const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    loadSavedTheme().then(setThemeState);
+    // Load theme for the initial session (if any)
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const uid = session?.user.id ?? null;
+      currentUserIdRef.current = uid;
+      if (uid) {
+        const saved = await loadSavedTheme(uid);
+        if (saved.premium) {
+          // Verify premium before applying a premium theme
+          const { data } = await supabase.from('profiles').select('is_premium').eq('id', uid).single();
+          setThemeState(data?.is_premium === true ? saved : DEFAULT_THEME);
+        } else {
+          setThemeState(saved);
+        }
+      } else {
+        loadSavedTheme().then(setThemeState);
+      }
+    });
+
+    // Reset / reload theme when account switches
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        const uid = session?.user.id ?? null;
+        currentUserIdRef.current = uid;
+
+        if (event === 'SIGNED_OUT') {
+          setThemeState(DEFAULT_THEME);
+        } else if (event === 'SIGNED_IN' && uid) {
+          const saved = await loadSavedTheme(uid);
+          if (saved.premium) {
+            const { data } = await supabase.from('profiles').select('is_premium').eq('id', uid).single();
+            setThemeState(data?.is_premium === true ? saved : DEFAULT_THEME);
+          } else {
+            setThemeState(saved);
+          }
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   function setTheme(t: ThemeDef) {
     setThemeState(t);
-    saveTheme(t);
+    saveTheme(t, currentUserIdRef.current ?? undefined);
   }
 
   return (

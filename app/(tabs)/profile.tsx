@@ -194,6 +194,16 @@ export default function ProfileScreen() {
     loadProfile().then(setProfile);
     const criesP = loadCries().then(c => { setCries(c); return c; });
 
+    if (!session) {
+      // Clear any stale data from a previous logged-in user
+      setStats({ cry_count: 0, follower_count: 0, following_count: 0 });
+      setUsername(null);
+      setEarnedTears([]);
+      setSelectedTearsState([]);
+      setRecentAchievements([]);
+      return;
+    }
+
     if (session) {
       getProfileStats(session.user.id).then(setStats);
 

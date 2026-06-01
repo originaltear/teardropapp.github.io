@@ -26,11 +26,19 @@ const CRYSTAL_TEAR = '💎';
 
 // ─── Initialise (call once at app start, after auth resolves) ─────────────────
 
+let _rcConfigured = false;
+
 export function initPurchases(userId?: string) {
   try {
     Purchases.setLogLevel(LOG_LEVEL.WARN);
     if (Platform.OS === 'android') {
-      Purchases.configure({ apiKey: RC_API_KEY_ANDROID, appUserID: userId ?? null });
+      if (!_rcConfigured) {
+        Purchases.configure({ apiKey: RC_API_KEY_ANDROID, appUserID: userId ?? null });
+        _rcConfigured = true;
+      } else if (userId) {
+        // Already configured — just switch user ID without re-configuring
+        Purchases.logIn(userId).catch(() => {});
+      }
     }
     // iOS key added here when ready:
     // if (Platform.OS === 'ios') Purchases.configure({ apiKey: 'ios_key', appUserID: userId });
@@ -41,10 +49,30 @@ export function initPurchases(userId?: string) {
 
 // ─── Entitlement check ────────────────────────────────────────────────────────
 
+/**
+ * Returns true if user has active premium.
+ * Checks RevenueCat first; falls back to DB `is_premium` flag
+ * (used in development before products are live in Play Store).
+ */
 export async function checkPremium(): Promise<boolean> {
+  // 1. Try RevenueCat (the real source of truth in production)
   try {
     const info: CustomerInfo = await Purchases.getCustomerInfo();
-    return ENTITLEMENT_ID in info.entitlements.active;
+    if (ENTITLEMENT_ID in info.entitlements.active) return true;
+  } catch {
+    // RC not configured or unavailable — fall through to DB check
+  }
+
+  // 2. Fallback: check DB is_premium flag (dev / sandbox mode)
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+    const { data } = await supabase
+      .from('profiles')
+      .select('is_premium')
+      .eq('id', session.user.id)
+      .single();
+    return data?.is_premium === true;
   } catch {
     return false;
   }
@@ -117,8 +145,21 @@ export type PurchaseResult = 'success' | 'cancelled' | 'error';
 
 export async function purchasePlan(plan: PlanOption): Promise<PurchaseResult> {
   if (!plan.pkg) {
-    // Sandbox / no live product yet — simulate success in dev
-    console.log('[purchases] No live package — sandbox purchase skipped');
+    // Sandbox / no live product yet — grant premium via DB flag
+    console.log('[purchases] No live package — granting premium via DB flag');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase
+          .from('profiles')
+          .update({ is_premium: true })
+          .eq('id', session.user.id);
+        // Immediately sync Crystal Tear
+        await syncCrystalTear(session.user.id);
+      }
+    } catch (e) {
+      console.warn('[purchases] sandbox grant error:', e);
+    }
     return 'success';
   }
   try {

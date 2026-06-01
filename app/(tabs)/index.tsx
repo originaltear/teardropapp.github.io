@@ -13,6 +13,7 @@ import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { useAuth } from '../../lib/auth';
+import { TearsBadge } from '../../components/TearsBadge';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
 
@@ -27,7 +28,7 @@ interface NormalizedCry {
   audioUri?: string;
   latitude: number;
   longitude: number;
-  profile?: { display_name: string; username: string; avatar_uri: string | null };
+  profile?: { display_name: string; username: string; avatar_uri: string | null; selected_tears?: string[] };
 }
 
 function normalizeCry(c: Cry | SocialCry): NormalizedCry {
@@ -160,7 +161,12 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
           <Avatar uri={cry.profile!.avatar_uri} size={38} />
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{cry.profile!.display_name}</Text>
-            <Text style={styles.profileHandle}>@{cry.profile!.username}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.profileHandle}>@{cry.profile!.username}</Text>
+              {cry.profile!.selected_tears && cry.profile!.selected_tears.length > 0 && (
+                <TearsBadge tears={cry.profile!.selected_tears} />
+              )}
+            </View>
           </View>
           <Text style={styles.profileArrow}>›</Text>
         </TouchableOpacity>

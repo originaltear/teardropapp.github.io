@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { EMOTIONS } from '../lib/emotions';
 import { saveCry } from '../lib/storage';
+import * as Location from 'expo-location';
 
 function generateId(): string {
   // RFC 4122 v4 UUID — required by Supabase uuid column type
@@ -173,6 +174,16 @@ export default function LogCryScreen() {
     if (!emotion || !lat || !lng) return;
     setSaving(true);
 
+    // Reverse geocode to get country (best-effort — don't block save on failure)
+    let country: string | undefined;
+    try {
+      const geo = await Location.reverseGeocodeAsync({
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lng),
+      });
+      country = geo[0]?.country ?? undefined;
+    } catch { /* ignore geocoding failure */ }
+
     await saveCry({
       id: generateId(),
       createdAt: new Date().toISOString(),
@@ -183,6 +194,7 @@ export default function LogCryScreen() {
       note: note.trim() || undefined,
       photoUri: photoUri ?? undefined,
       audioUri: audioUri ?? undefined,
+      country,
     });
 
     setSaving(false);

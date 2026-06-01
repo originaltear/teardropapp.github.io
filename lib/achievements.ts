@@ -13,9 +13,10 @@ export interface Achievement {
   id: string;
   title: string;
   emoji: string;
-  unlockMessage: string;
-  isTear: boolean;       // whether unlocking this earns a Tear emblem
-  tearEmoji?: string;    // the tear emoji (if isTear)
+  unlockMessage: string;   // shown after unlock (the joke/flavour text)
+  howToUnlock: string;     // shown when locked (plain description of the condition)
+  isTear: boolean;
+  tearEmoji?: string;
   category: 'quantity' | 'timing' | 'geography' | 'emotion' | 'streak' | 'media' | 'social' | 'profile' | 'quirky';
 }
 
@@ -41,188 +42,106 @@ export const TEARS: TearDef[] = [
 
 export const ACHIEVEMENTS: Achievement[] = [
   // ── Quantity ──
-  {
-    id: 'first_tear', title: 'First Tear', emoji: '💧', category: 'quantity', isTear: false,
-    unlockMessage: "And so it begins. Welcome to the club nobody asked to join.",
-  },
-  {
-    id: 'ten_cries', title: 'Getting Good', emoji: '✌️', category: 'quantity', isTear: false,
-    unlockMessage: "You're getting the hang of this.",
-  },
-  {
-    id: 'fifty_cries', title: 'Veteran Crier', emoji: '🎖️', category: 'quantity', isTear: false,
-    unlockMessage: "Fifty. You're practically a professional at this.",
-  },
-  {
-    id: 'hundred_cries', title: 'Triple Digits', emoji: '💯', category: 'quantity', isTear: false,
-    unlockMessage: "Triple digits. Therapists hate this one trick.",
-  },
-  {
-    id: 'five_hundred', title: 'Five Hundred', emoji: '🗂️', category: 'quantity', isTear: false,
-    unlockMessage: "Five hundred cries. A whole archive of feeling.",
-  },
-  {
-    id: 'thousand_cries', title: 'One Thousand', emoji: '🏛️', category: 'quantity', isTear: false,
-    unlockMessage: "A thousand. This is your life's work.",
-  },
-  {
-    id: 'ugly_cry', title: 'Ugly Cry', emoji: '😭', category: 'quantity', isTear: false,
-    unlockMessage: "No half measures. Respect.",
-  },
-  {
-    id: 'single_tear', title: 'A Single Tear', emoji: '😔', category: 'quantity', isTear: false,
-    unlockMessage: "Dignified. Controlled. Suspicious.",
-  },
+  { id: 'first_tear', title: 'First Tear', emoji: '💧', category: 'quantity', isTear: false,
+    howToUnlock: "Log your first cry.", unlockMessage: "And so it begins. Welcome to the club nobody asked to join." },
+  { id: 'ten_cries', title: 'Getting Good', emoji: '✌️', category: 'quantity', isTear: false,
+    howToUnlock: "Log 10 cries in total.", unlockMessage: "You're getting the hang of this." },
+  { id: 'fifty_cries', title: 'Veteran Crier', emoji: '🎖️', category: 'quantity', isTear: false,
+    howToUnlock: "Log 50 cries in total.", unlockMessage: "Fifty. You're practically a professional at this." },
+  { id: 'hundred_cries', title: 'Triple Digits', emoji: '💯', category: 'quantity', isTear: false,
+    howToUnlock: "Log 100 cries in total.", unlockMessage: "Triple digits. Therapists hate this one trick." },
+  { id: 'five_hundred', title: 'Five Hundred', emoji: '🗂️', category: 'quantity', isTear: false,
+    howToUnlock: "Log 500 cries in total.", unlockMessage: "Five hundred cries. A whole archive of feeling." },
+  { id: 'thousand_cries', title: 'One Thousand', emoji: '🏛️', category: 'quantity', isTear: false,
+    howToUnlock: "Log 1000 cries in total.", unlockMessage: "A thousand. This is your life's work." },
+  { id: 'ugly_cry', title: 'Ugly Cry', emoji: '😭', category: 'quantity', isTear: false,
+    howToUnlock: "Log 5 cries with maximum intensity (💧💧💧💧💧).", unlockMessage: "No half measures. Respect." },
+  { id: 'single_tear', title: 'A Single Tear', emoji: '😔', category: 'quantity', isTear: false,
+    howToUnlock: "Log 10 cries with minimum intensity (💧).", unlockMessage: "Dignified. Controlled. Suspicious." },
 
   // ── Timing ──
-  {
-    id: 'midnight_tear', title: 'Midnight Tear', emoji: '🌙', category: 'timing', isTear: true, tearEmoji: '🌙',
-    unlockMessage: "The world's asleep. You're out here feeling things. Valid.",
-  },
-  {
-    id: 'monday_blues', title: 'Monday Blues', emoji: '😞', category: 'timing', isTear: false,
-    unlockMessage: "Mondays really don't miss, do they.",
-  },
-  {
-    id: 'new_years_cry', title: "New Year's Cry", emoji: '🎆', category: 'timing', isTear: false,
-    unlockMessage: "New year, same feelings. Cheers.",
-  },
-  {
-    id: 'lunchtime_crisis', title: 'Lunchtime Crisis', emoji: '🥪', category: 'timing', isTear: false,
-    unlockMessage: "Sandwich can wait.",
-  },
-  {
-    id: 'sunday_sadness', title: 'Sunday Sadness', emoji: '😶', category: 'timing', isTear: false,
-    unlockMessage: "Ah. The Sunday scaries claimed another one.",
-  },
-  {
-    id: 'valentine_cry', title: 'Valentine Cry', emoji: '💘', category: 'timing', isTear: false,
-    unlockMessage: "Ah. February 14th. Of course.",
-  },
+  { id: 'midnight_tear', title: 'Midnight Tear', emoji: '🌙', category: 'timing', isTear: true, tearEmoji: '🌙',
+    howToUnlock: "Log a cry between midnight and 4:00 AM.", unlockMessage: "The world's asleep. You're out here feeling things. Valid." },
+  { id: 'monday_blues', title: 'Monday Blues', emoji: '😞', category: 'timing', isTear: false,
+    howToUnlock: "Log a cry on 5 different Mondays.", unlockMessage: "Mondays really don't miss, do they." },
+  { id: 'new_years_cry', title: "New Year's Cry", emoji: '🎆', category: 'timing', isTear: false,
+    howToUnlock: "Log a cry on January 1st.", unlockMessage: "New year, same feelings. Cheers." },
+  { id: 'lunchtime_crisis', title: 'Lunchtime Crisis', emoji: '🥪', category: 'timing', isTear: false,
+    howToUnlock: "Log a cry between 12:00–14:00 on a weekday.", unlockMessage: "Sandwich can wait." },
+  { id: 'sunday_sadness', title: 'Sunday Sadness', emoji: '😶', category: 'timing', isTear: false,
+    howToUnlock: "Log a cry on 5 different Sundays.", unlockMessage: "Ah. The Sunday scaries claimed another one." },
+  { id: 'valentine_cry', title: 'Valentine Cry', emoji: '💘', category: 'timing', isTear: false,
+    howToUnlock: "Log a cry on February 14th.", unlockMessage: "Ah. February 14th. Of course." },
 
   // ── Geography ──
-  {
-    id: 'home_turf', title: 'Home Turf', emoji: '🏠', category: 'geography', isTear: false,
-    unlockMessage: "Home sweet home, they say.",
-  },
-  {
-    id: 'city_hopper', title: 'City Hopper', emoji: '🗺️', category: 'geography', isTear: false,
-    unlockMessage: "Spreading the tears around. Sharing is caring.",
-  },
-  {
-    id: 'world_tear', title: 'World Tear', emoji: '🌍', category: 'geography', isTear: true, tearEmoji: '🌍',
-    unlockMessage: "A true citizen of the world. A crying citizen.",
-  },
-  {
-    id: 'globetrotter', title: 'Globetrotter', emoji: '✈️', category: 'geography', isTear: false,
-    unlockMessage: "You've cried on multiple continents. Impressive range.",
-  },
+  { id: 'home_turf', title: 'Home Turf', emoji: '🏠', category: 'geography', isTear: false,
+    howToUnlock: "Log 10 cries within 100m of the same spot.", unlockMessage: "Home sweet home, they say." },
+  { id: 'city_hopper', title: 'City Hopper', emoji: '🗺️', category: 'geography', isTear: false,
+    howToUnlock: "Log cries in 5 different areas.", unlockMessage: "Spreading the tears around. Sharing is caring." },
+  { id: 'world_tear', title: 'World Tear', emoji: '🌍', category: 'geography', isTear: true, tearEmoji: '🌍',
+    howToUnlock: "Log cries in 5 different countries.", unlockMessage: "A true citizen of the world. A crying citizen." },
+  { id: 'globetrotter', title: 'Globetrotter', emoji: '✈️', category: 'geography', isTear: false,
+    howToUnlock: "Log cries in 10 different countries.", unlockMessage: "You've cried on multiple continents. Impressive range." },
 
   // ── Emotion ──
-  {
-    id: 'full_spectrum', title: 'Full Spectrum', emoji: '🌈', category: 'emotion', isTear: false,
-    unlockMessage: "Congratulations. You contain multitudes.",
-  },
-  {
-    id: 'complex_soul', title: 'Complex Soul', emoji: '🌀', category: 'emotion', isTear: false,
-    unlockMessage: "Even you don't know how you feel. Relatable.",
-  },
-  {
-    id: 'drama', title: 'Drama', emoji: '🎭', category: 'emotion', isTear: false,
-    unlockMessage: "The rage. The passion. The tears. Shakespearean.",
-  },
-  {
-    id: 'anxious_mind', title: 'Anxious Mind', emoji: '🫨', category: 'emotion', isTear: false,
-    unlockMessage: "The mind never rests. Neither do you.",
-  },
+  { id: 'full_spectrum', title: 'Full Spectrum', emoji: '🌈', category: 'emotion', isTear: false,
+    howToUnlock: "Use all 9 emotion types at least once.", unlockMessage: "Congratulations. You contain multitudes." },
+  { id: 'complex_soul', title: 'Complex Soul', emoji: '🌀', category: 'emotion', isTear: false,
+    howToUnlock: "Log 20 cries with the 'Mixed' emotion.", unlockMessage: "Even you don't know how you feel. Relatable." },
+  { id: 'drama', title: 'Drama', emoji: '🎭', category: 'emotion', isTear: false,
+    howToUnlock: "Log 10 cries with 'Rage Tears'.", unlockMessage: "The rage. The passion. The tears. Shakespearean." },
+  { id: 'anxious_mind', title: 'Anxious Mind', emoji: '🫨', category: 'emotion', isTear: false,
+    howToUnlock: "Log 10 cries with 'Anxiety'.", unlockMessage: "The mind never rests. Neither do you." },
 
   // ── Streaks ──
-  {
-    id: 'week_streak', title: 'Week Streak', emoji: '🔥', category: 'streak', isTear: false,
-    unlockMessage: "Seven days. Consistent, if nothing else.",
-  },
-  {
-    id: 'month_streak', title: 'Month Streak', emoji: '🔥', category: 'streak', isTear: true, tearEmoji: '🔥',
-    unlockMessage: "Thirty days. At this point it's a lifestyle.",
-  },
-  {
-    id: 'century', title: 'Century', emoji: '💫', category: 'streak', isTear: false,
-    unlockMessage: "100 days. This is who you are now.",
-  },
+  { id: 'week_streak', title: 'Week Streak', emoji: '🔥', category: 'streak', isTear: false,
+    howToUnlock: "Log at least one cry per day for 7 days in a row.", unlockMessage: "Seven days. Consistent, if nothing else." },
+  { id: 'month_streak', title: 'Month Streak', emoji: '🔥', category: 'streak', isTear: true, tearEmoji: '🔥',
+    howToUnlock: "Log at least one cry per day for 30 days in a row.", unlockMessage: "Thirty days. At this point it's a lifestyle." },
+  { id: 'century', title: 'Century', emoji: '💫', category: 'streak', isTear: false,
+    howToUnlock: "Log at least one cry per day for 100 days in a row.", unlockMessage: "100 days. This is who you are now." },
 
   // ── Media ──
-  {
-    id: 'photographer', title: 'Photographer', emoji: '📷', category: 'media', isTear: false,
-    unlockMessage: "Documenting the lows for the scrapbook. Archivist behavior.",
-  },
-  {
-    id: 'voice_notes', title: 'Voice Notes', emoji: '🎙️', category: 'media', isTear: false,
-    unlockMessage: "Sometimes you just need to hear yourself cry.",
-  },
-  {
-    id: 'storyteller', title: 'Storyteller', emoji: '📖', category: 'media', isTear: false,
-    unlockMessage: "You really committed to this one.",
-  },
+  { id: 'photographer', title: 'Photographer', emoji: '📷', category: 'media', isTear: false,
+    howToUnlock: "Add a photo to 10 cries.", unlockMessage: "Documenting the lows for the scrapbook. Archivist behavior." },
+  { id: 'voice_notes', title: 'Voice Notes', emoji: '🎙️', category: 'media', isTear: false,
+    howToUnlock: "Add a voice note to 5 cries.", unlockMessage: "Sometimes you just need to hear yourself cry." },
+  { id: 'storyteller', title: 'Storyteller', emoji: '📖', category: 'media', isTear: false,
+    howToUnlock: "Add a photo, voice note, and text note to the same cry.", unlockMessage: "You really committed to this one." },
 
   // ── Social ──
-  {
-    id: 'first_like', title: 'First Like', emoji: '💙', category: 'social', isTear: false,
-    unlockMessage: "You are seen.",
-  },
-  {
-    id: 'appreciated', title: 'Appreciated', emoji: '🌟', category: 'social', isTear: false,
-    unlockMessage: "Fifty people felt that. Felt you.",
-  },
-  {
-    id: 'popular_cry', title: 'Popular Cry', emoji: '🏆', category: 'social', isTear: false,
-    unlockMessage: "This one resonated. Must've been a good cry.",
-  },
-  {
-    id: 'listener', title: 'Listener', emoji: '👂', category: 'social', isTear: false,
-    unlockMessage: "You showed up for people. That matters.",
-  },
-  {
-    id: 'supportive', title: 'Supportive', emoji: '🤝', category: 'social', isTear: false,
-    unlockMessage: "You're the friend everyone needs.",
-  },
+  { id: 'first_like', title: 'First Like', emoji: '💙', category: 'social', isTear: false,
+    howToUnlock: "Receive your first like on a cry.", unlockMessage: "You are seen." },
+  { id: 'appreciated', title: 'Appreciated', emoji: '🌟', category: 'social', isTear: false,
+    howToUnlock: "Receive 50 likes across all your cries.", unlockMessage: "Fifty people felt that. Felt you." },
+  { id: 'popular_cry', title: 'Popular Cry', emoji: '🏆', category: 'social', isTear: false,
+    howToUnlock: "Get 10 or more likes on a single cry.", unlockMessage: "This one resonated. Must've been a good cry." },
+  { id: 'listener', title: 'Listener', emoji: '👂', category: 'social', isTear: false,
+    howToUnlock: "Leave 50 comments on others' cries.", unlockMessage: "You showed up for people. That matters." },
+  { id: 'supportive', title: 'Supportive', emoji: '🤝', category: 'social', isTear: false,
+    howToUnlock: "Like 100 cries from others.", unlockMessage: "You're the friend everyone needs." },
 
   // ── Profile ──
-  {
-    id: 'profile_complete', title: 'Profile Complete', emoji: '✅', category: 'profile', isTear: false,
-    unlockMessage: "Now they know who you are. Do you?",
-  },
-  {
-    id: 'veteran', title: 'Veteran', emoji: '🎗️', category: 'profile', isTear: false,
-    unlockMessage: "One year of tears. You've grown.",
-  },
-  {
-    id: 'old_timer', title: 'Old Timer', emoji: '🏅', category: 'profile', isTear: false,
-    unlockMessage: "Two years. You're basically furniture here. We love you.",
-  },
+  { id: 'profile_complete', title: 'Profile Complete', emoji: '✅', category: 'profile', isTear: false,
+    howToUnlock: "Set your display name, bio, and profile photo.", unlockMessage: "Now they know who you are. Do you?" },
+  { id: 'veteran', title: 'Veteran', emoji: '🎗️', category: 'profile', isTear: false,
+    howToUnlock: "Be a member for 1 year.", unlockMessage: "One year of tears. You've grown." },
+  { id: 'old_timer', title: 'Old Timer', emoji: '🏅', category: 'profile', isTear: false,
+    howToUnlock: "Be a member for 2 years.", unlockMessage: "Two years. You're basically furniture here. We love you." },
 
-  // ── Special (Founder / First Wave) ──
-  {
-    id: 'founder', title: 'Founder', emoji: '👑', category: 'profile', isTear: true, tearEmoji: '👑',
-    unlockMessage: "You were here before anyone else knew this place existed.",
-  },
-  {
-    id: 'first_wave', title: 'First Wave', emoji: '🌊', category: 'profile', isTear: true, tearEmoji: '🌊',
-    unlockMessage: "You caught the wave before it was cool.",
-  },
+  // ── Special ──
+  { id: 'founder', title: 'Founder', emoji: '👑', category: 'profile', isTear: true, tearEmoji: '👑',
+    howToUnlock: "Be among the first 100 users to join.", unlockMessage: "You were here before anyone else knew this place existed." },
+  { id: 'first_wave', title: 'First Wave', emoji: '🌊', category: 'profile', isTear: true, tearEmoji: '🌊',
+    howToUnlock: "Be among the first 1000 users to join.", unlockMessage: "You caught the wave before it was cool." },
 
   // ── Quirky ──
-  {
-    id: 'marathon', title: 'Marathon', emoji: '🏃', category: 'quirky', isTear: false,
-    unlockMessage: "Three times in one day. Hope tomorrow is better.",
-  },
-  {
-    id: 'dramatic', title: 'Dramatic', emoji: '🎬', category: 'quirky', isTear: false,
-    unlockMessage: "Max intensity plus voice note. A performance.",
-  },
-  {
-    id: 'commuter_cry', title: 'Commuter Cry', emoji: '🚂', category: 'quirky', isTear: false,
-    unlockMessage: "Rush hour feelings. No one even noticed.",
-  },
+  { id: 'marathon', title: 'Marathon', emoji: '🏃', category: 'quirky', isTear: false,
+    howToUnlock: "Log 3 or more cries in a single day.", unlockMessage: "Three times in one day. Hope tomorrow is better." },
+  { id: 'dramatic', title: 'Dramatic', emoji: '🎬', category: 'quirky', isTear: false,
+    howToUnlock: "Log a cry with max intensity and a voice note.", unlockMessage: "Max intensity plus voice note. A performance." },
+  { id: 'commuter_cry', title: 'Commuter Cry', emoji: '🚂', category: 'quirky', isTear: false,
+    howToUnlock: "Log a cry during rush hour on a weekday (7–9 AM or 5–7 PM).", unlockMessage: "Rush hour feelings. No one even noticed." },
 ];
 
 export function getAchievement(id: string): Achievement | undefined {

@@ -8,9 +8,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
 import {
-  getNotifications, markNotificationsRead, followUser, unfollowUser,
+  getNotifications, markNotificationsRead, followUser,
   Notification,
 } from '../../lib/social';
+import { supabase } from '../../lib/supabase';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,9 +126,26 @@ export default function NotificationsScreen() {
   useFocusEffect(useCallback(() => {
     if (!session) return;
     setLoading(true);
-    getNotifications().then(data => {
+    getNotifications().then(async data => {
       setNotifications(data);
       setLoading(false);
+
+      // Pre-populate followedBack: check who we already follow among notif actors
+      const actorIds = [...new Set(
+        data.filter(n => n.type === 'follow' || n.type === 'friend_request').map(n => n.actor_id)
+      )];
+      if (actorIds.length > 0) {
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', session.user.id)
+          .in('following_id', actorIds);
+        setFollowedBack(new Set((follows ?? []).map(f => f.following_id)));
+      } else {
+        setFollowedBack(new Set());
+      }
+
+      // Mark unread as read
       const unread = data.filter(n => !n.read).map(n => n.id);
       if (unread.length) {
         markNotificationsRead(unread);

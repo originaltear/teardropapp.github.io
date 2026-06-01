@@ -34,6 +34,8 @@ yarn-error.*
 .env
 .env*.local
 
+# google-services.json is intentionally tracked (API key is public in APKs)
+
 # typescript
 *.tsbuildinfo
 

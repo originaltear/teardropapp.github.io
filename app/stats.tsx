@@ -514,6 +514,7 @@ export default function StatsScreen() {
 // ─── Small sub-components used only in this file ──────────────────────────────
 
 function Header({ onBack }: { onBack: () => void }) {
+  const { theme: { accent } } = useTheme();
   return (
     <View style={s.header}>
       <TouchableOpacity onPress={onBack} style={s.backBtn}>

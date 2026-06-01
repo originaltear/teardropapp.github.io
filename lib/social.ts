@@ -37,10 +37,39 @@ export interface SocialCry {
   photo_uri: string | null;
   audio_uri: string | null;
   country: string | null;
+  visibility: 'everyone' | 'followers' | 'close_friends' | 'only_me';
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
   profile: { username: string; display_name: string; avatar_uri: string | null; selected_tears?: string[] };
+}
+
+export interface BlockedUser {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_uri: string | null;
+  blocked_at: string;
+}
+
+export interface CloseFriend {
+  id: string;        // close_friends row id
+  friend_id: string;
+  username: string;
+  display_name: string;
+  avatar_uri: string | null;
+}
+
+export interface ProfileSettings {
+  profile_visibility: 'everyone' | 'followers' | 'only_me';
+  allow_comments: boolean;
+  notification_preferences: {
+    new_cries_from_following: boolean;
+    new_likes: boolean;
+    new_comments: boolean;
+    new_followers: boolean;
+    friend_requests: boolean;
+  };
 }
 
 export interface Comment {
@@ -209,7 +238,7 @@ async function enrichCries(
 
 const CRY_SELECT = `
   id, user_id, created_at, latitude, longitude, emotion,
-  intensity, note, photo_uri, audio_uri, country,
+  intensity, note, photo_uri, audio_uri, country, visibility,
   profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public, selected_tears)
 `;
 
@@ -480,6 +509,99 @@ export async function getNotifications(): Promise<Notification[]> {
 export async function markNotificationsRead(ids: string[]): Promise<void> {
   if (!ids.length) return;
   await supabase.from('notifications').update({ read: true }).in('id', ids);
+}
+
+// ─── Profile settings ─────────────────────────────────────────────────────────
+
+export async function getProfileSettings(): Promise<ProfileSettings | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('profile_visibility, allow_comments, notification_preferences')
+    .eq('id', session.user.id)
+    .single();
+  if (error || !data) return null;
+  return {
+    profile_visibility: (data.profile_visibility as ProfileSettings['profile_visibility']) ?? 'everyone',
+    allow_comments: data.allow_comments ?? true,
+    notification_preferences: {
+      new_cries_from_following: true,
+      new_likes: true,
+      new_comments: true,
+      new_followers: true,
+      friend_requests: true,
+      ...(data.notification_preferences ?? {}),
+    },
+  };
+}
+
+export async function updateProfileSettings(settings: Partial<ProfileSettings>): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const update: Record<string, any> = {};
+  if (settings.profile_visibility !== undefined) update.profile_visibility = settings.profile_visibility;
+  if (settings.allow_comments !== undefined) update.allow_comments = settings.allow_comments;
+  if (settings.notification_preferences !== undefined) update.notification_preferences = settings.notification_preferences;
+  await supabase.from('profiles').update(update).eq('id', session.user.id);
+}
+
+// ─── Blocked users ────────────────────────────────────────────────────────────
+
+export async function getBlockedUsers(): Promise<BlockedUser[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+  const { data } = await supabase
+    .from('blocks')
+    .select('blocked_id, created_at, profile:profiles!blocks_blocked_id_fkey(id, username, display_name, avatar_uri)')
+    .eq('blocker_id', session.user.id)
+    .order('created_at', { ascending: false });
+  if (!data) return [];
+  return data.map((b: any) => ({
+    id: b.profile?.id ?? b.blocked_id,
+    username: b.profile?.username ?? '',
+    display_name: b.profile?.display_name ?? '',
+    avatar_uri: b.profile?.avatar_uri ?? null,
+    blocked_at: b.created_at,
+  }));
+}
+
+// ─── Close friends ────────────────────────────────────────────────────────────
+
+export async function getCloseFriends(): Promise<CloseFriend[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+  const { data } = await supabase
+    .from('close_friends')
+    .select('id, friend_id, profile:profiles!close_friends_friend_id_fkey(username, display_name, avatar_uri)')
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false });
+  if (!data) return [];
+  return data.map((r: any) => ({
+    id: r.id,
+    friend_id: r.friend_id,
+    username: r.profile?.username ?? '',
+    display_name: r.profile?.display_name ?? '',
+    avatar_uri: r.profile?.avatar_uri ?? null,
+  }));
+}
+
+export async function addCloseFriend(friendId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await supabase.from('close_friends').upsert(
+    { user_id: session.user.id, friend_id: friendId },
+    { onConflict: 'user_id,friend_id', ignoreDuplicates: true }
+  );
+}
+
+export async function removeCloseFriend(friendId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await supabase.from('close_friends')
+    .delete()
+    .eq('user_id', session.user.id)
+    .eq('friend_id', friendId);
 }
 
 export async function getUnreadCount(): Promise<number> {

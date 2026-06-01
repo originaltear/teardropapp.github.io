@@ -11,6 +11,16 @@ import { Audio } from 'expo-av';
 import { EMOTIONS } from '../lib/emotions';
 import { saveCry } from '../lib/storage';
 import * as Location from 'expo-location';
+import { getProfileSettings } from '../lib/social';
+
+type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
+
+const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] = [
+  { value: 'everyone',      icon: '🌍', label: 'Everyone' },
+  { value: 'followers',     icon: '👥', label: 'Followers' },
+  { value: 'close_friends', icon: '🔒', label: 'Close friends' },
+  { value: 'only_me',       icon: '🫥', label: 'Only me' },
+];
 
 function generateId(): string {
   // RFC 4122 v4 UUID — required by Supabase uuid column type
@@ -31,6 +41,22 @@ export default function LogCryScreen() {
   const [intensity, setIntensity] = useState(3);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility>('everyone');
+
+  // Load user's default visibility from profile
+  useEffect(() => {
+    getProfileSettings().then(s => {
+      if (s?.profile_visibility) {
+        // Map profile visibility → cry visibility (close_friends not available at profile level)
+        const map: Record<string, Visibility> = {
+          everyone: 'everyone',
+          followers: 'followers',
+          only_me: 'only_me',
+        };
+        setVisibility(map[s.profile_visibility] ?? 'everyone');
+      }
+    });
+  }, []);
 
   // ── Photo state ──
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -195,6 +221,7 @@ export default function LogCryScreen() {
       photoUri: photoUri ?? undefined,
       audioUri: audioUri ?? undefined,
       country,
+      visibility,
     });
 
     setSaving(false);
@@ -339,6 +366,27 @@ export default function LogCryScreen() {
             </View>
           )}
 
+          {/* ── Visibility ── */}
+          <Text style={styles.sectionLabel}>Who can see this?</Text>
+          <View style={styles.visibilityRow}>
+            {VISIBILITY_OPTIONS.map(opt => {
+              const selected = visibility === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.visibilityBtn, selected && styles.visibilityBtnActive]}
+                  onPress={() => setVisibility(opt.value)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.visibilityIcon}>{opt.icon}</Text>
+                  <Text style={[styles.visibilityLabel, selected && styles.visibilityLabelActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
         </ScrollView>
 
         {/* Save button */}
@@ -469,6 +517,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   deleteAudioTxt: { fontSize: 18 },
+
+  // Visibility
+  visibilityRow: { flexDirection: 'row', gap: 8 },
+  visibilityBtn: {
+    flex: 1, alignItems: 'center', gap: 4,
+    paddingVertical: 10,
+    backgroundColor: '#111827', borderRadius: 12,
+    borderWidth: 1, borderColor: '#1f2937',
+  },
+  visibilityBtnActive: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e610' },
+  visibilityIcon: { fontSize: 20 },
+  visibilityLabel: { color: '#4a5568', fontSize: 10, fontFamily: 'monospace', textAlign: 'center' },
+  visibilityLabelActive: { color: '#6fe0e6' },
 
   footer: { padding: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#1f2937' },
   saveBtn: {

@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
 import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
+import { useTheme } from '../../lib/themes';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -16,6 +17,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -69,10 +71,10 @@ export default function SignupScreen() {
           <Text style={styles.confirmedTitle}>Check your email</Text>
           <Text style={styles.confirmedSub}>
             We sent a confirmation link to{'\n'}
-            <Text style={styles.confirmedEmail}>{email.trim()}</Text>
+            <Text style={[styles.confirmedEmail, { color: accent }]}>{email.trim()}</Text>
           </Text>
           <TouchableOpacity
-            style={styles.backBtn}
+            style={[styles.backBtn, { backgroundColor: accent }]}
             onPress={() => router.replace('/(auth)/login')}
             activeOpacity={0.8}
           >
@@ -102,8 +104,8 @@ export default function SignupScreen() {
             onPress={() => router.back()}
             activeOpacity={0.7}
           >
-            <Text style={styles.backArrow}>← </Text>
-            <Text style={styles.backTxt}>Log in</Text>
+            <Text style={[styles.backArrow, { color: accent }]}>← </Text>
+            <Text style={[styles.backTxt, { color: accent }]}>Log in</Text>
           </TouchableOpacity>
 
           {/* Header */}
@@ -117,7 +119,7 @@ export default function SignupScreen() {
             <OAuthButton
               label="Sign up with Google"
               icon="G"
-              iconColor="#6fe0e6"
+              iconColor={accent}
               loading={oauthLoading === 'google'}
               disabled={anyLoading}
               onPress={() => handleOAuth('google')}
@@ -171,7 +173,7 @@ export default function SignupScreen() {
             {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
 
             <TouchableOpacity
-              style={[styles.btn, anyLoading && styles.btnDisabled]}
+              style={[styles.btn, { backgroundColor: accent }, anyLoading && styles.btnDisabled]}
               onPress={handleSignup}
               disabled={anyLoading}
               activeOpacity={0.85}
@@ -188,7 +190,7 @@ export default function SignupScreen() {
             activeOpacity={0.7}
           >
             <Text style={styles.switchTxt}>Already have an account? </Text>
-            <Text style={styles.switchLink}>Log in</Text>
+            <Text style={[styles.switchLink, { color: accent }]}>Log in</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

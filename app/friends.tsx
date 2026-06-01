@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/themes';
 import {
   searchUsers, followUser, unfollowUser, sendFriendRequest,
   respondToFriendRequest, getPendingRequests,
@@ -91,6 +92,7 @@ function RequestRow({ req, onRespond }: {
 
 export default function FriendsScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -184,7 +186,7 @@ export default function FriendsScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            {searching && <ActivityIndicator size="small" color="#6fe0e6" />}
+            {searching && <ActivityIndicator size="small" color={accent} />}
           </View>
 
           <FlatList

@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import { useTheme } from '../lib/themes';
 import { emotionById } from '../lib/emotions';
 import {
   getProfileStats, followUser, unfollowUser,
@@ -29,11 +30,12 @@ interface PublicProfile {
 }
 
 function Avatar({ uri, size = 80 }: { uri?: string | null; size?: number }) {
+  const { theme: { accent } } = useTheme();
   if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
   return (
     <View style={{
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
+      backgroundColor: accent, alignItems: 'center', justifyContent: 'center',
     }}>
       <Text style={{ fontSize: size * 0.45 }}>💧</Text>
     </View>
@@ -54,6 +56,7 @@ export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session } = useAuth();
+  const { theme: { accent } } = useTheme();
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
@@ -161,7 +164,7 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
-        <ActivityIndicator size="large" color="#6fe0e6" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
       </SafeAreaView>
     );
   }
@@ -171,7 +174,7 @@ export default function UserProfileScreen() {
       <SafeAreaView style={s.container} edges={['top']}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backTxt}>←</Text>
+            <Text style={[s.backTxt, { color: accent }]}>←</Text>
           </TouchableOpacity>
         </View>
         <View style={s.empty}>
@@ -223,7 +226,7 @@ export default function UserProfileScreen() {
         {!isOwnProfile && session && (
           <View style={s.actionRow}>
             <TouchableOpacity
-              style={[isFollowing ? s.btnFollowing : s.btnFollow, { flex: 1 }]}
+              style={[isFollowing ? s.btnFollowing : [s.btnFollow, { backgroundColor: accent }], { flex: 1 }]}
               onPress={handleFollowToggle}
               activeOpacity={0.85}
             >

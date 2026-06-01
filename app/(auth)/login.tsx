@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
 import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
+import { useTheme } from '../../lib/themes';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -16,6 +17,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -75,7 +77,7 @@ export default function LoginScreen() {
         >
           {/* Logo */}
           <View style={styles.logoArea}>
-            <View style={styles.logoCircle}>
+            <View style={[styles.logoCircle, { backgroundColor: accent, shadowColor: accent }]}>
               <Text style={styles.logoEmoji}>💧</Text>
             </View>
             <Text style={styles.appName}>Teardrop</Text>
@@ -113,7 +115,7 @@ export default function LoginScreen() {
             {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
 
             <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.btnDisabled]}
+              style={[styles.primaryBtn, { backgroundColor: accent }, loading && styles.btnDisabled]}
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.85}
@@ -134,7 +136,7 @@ export default function LoginScreen() {
             <OAuthButton
               label="Continue with Google"
               icon="G"
-              iconColor="#6fe0e6"
+              iconColor={accent}
               loading={oauthLoading === 'google'}
               disabled={anyOAuthLoading || loading}
               onPress={() => handleOAuth('google')}
@@ -160,7 +162,7 @@ export default function LoginScreen() {
             activeOpacity={0.7}
           >
             <Text style={styles.switchTxt}>Don't have an account? </Text>
-            <Text style={styles.switchLink}>Sign up</Text>
+            <Text style={[styles.switchLink, { color: accent }]}>Sign up</Text>
           </TouchableOpacity>
 
           {/* Guest */}

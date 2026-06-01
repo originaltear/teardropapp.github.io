@@ -15,6 +15,7 @@ import { getProfileSettings } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAuth } from '../lib/auth';
 import { showPostCryAd } from '../lib/ads';
+import { useTheme } from '../lib/themes';
 
 type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 
@@ -40,6 +41,7 @@ function generateId(): string {
 export default function LogCryScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const { theme: { accent } } = useTheme();
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
@@ -262,7 +264,7 @@ export default function LogCryScreen() {
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
             style={styles.closeBtn}
           >
-            <Text style={styles.closeTxt}>✕</Text>
+            <Text style={[styles.closeTxt, { color: accent }]}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.title}>Log a Cry</Text>
           <View style={{ width: 36 }} />
@@ -366,12 +368,12 @@ export default function LogCryScreen() {
           {audioUri && !isRecording && (
             <View style={styles.audioRow}>
               <TouchableOpacity
-                style={styles.playBtn}
+                style={[styles.playBtn, { borderColor: accent }]}
                 onPress={isPlaying ? stopAudio : playAudio}
                 activeOpacity={0.8}
               >
-                <Text style={styles.playIcon}>{isPlaying ? '⏹' : '▶'}</Text>
-                <Text style={styles.playTxt}>{isPlaying ? 'Stop' : 'Play'} · {fmt(recordSecs)}</Text>
+                <Text style={[styles.playIcon, { color: accent }]}>{isPlaying ? '⏹' : '▶'}</Text>
+                <Text style={[styles.playTxt, { color: accent }]}>{isPlaying ? 'Stop' : 'Play'} · {fmt(recordSecs)}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteAudioBtn} onPress={deleteAudio}>
                 <Text style={styles.deleteAudioTxt}>🗑</Text>
@@ -387,12 +389,12 @@ export default function LogCryScreen() {
               return (
                 <TouchableOpacity
                   key={opt.value}
-                  style={[styles.visibilityBtn, selected && styles.visibilityBtnActive]}
+                  style={[styles.visibilityBtn, selected && { borderColor: accent, backgroundColor: accent + '10' }]}
                   onPress={() => setVisibility(opt.value)}
                   activeOpacity={0.75}
                 >
                   <Text style={styles.visibilityIcon}>{opt.icon}</Text>
-                  <Text style={[styles.visibilityLabel, selected && styles.visibilityLabelActive]}>
+                  <Text style={[styles.visibilityLabel, selected && { color: accent }]}>
                     {opt.label}
                   </Text>
                 </TouchableOpacity>
@@ -405,7 +407,7 @@ export default function LogCryScreen() {
         {/* Save button */}
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.saveBtn, (!emotion || saving) && styles.saveBtnDisabled]}
+            style={[styles.saveBtn, { backgroundColor: accent }, (!emotion || saving) && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={!emotion || saving}
             activeOpacity={0.85}

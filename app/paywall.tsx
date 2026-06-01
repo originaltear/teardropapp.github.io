@@ -14,6 +14,7 @@ import {
   getPlans, purchasePlan, restorePurchases,
   type PlanOption,
 } from '../lib/purchases';
+import { useTheme } from '../lib/themes';
 
 const PERKS = [
   { icon: '🚫', label: 'Ad-free experience' },
@@ -24,6 +25,7 @@ const PERKS = [
 
 export default function PaywallScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [plans, setPlans]         = useState<PlanOption[]>([]);
   const [selected, setSelected]   = useState<string>('teardrop_premium_yearly');
   const [loading, setLoading]     = useState(true);
@@ -93,7 +95,7 @@ export default function PaywallScreen() {
 
         {/* Plans */}
         {loading ? (
-          <ActivityIndicator color="#6fe0e6" style={{ marginVertical: 32 }} />
+          <ActivityIndicator color={accent} style={{ marginVertical: 32 }} />
         ) : (
           <View style={s.plans}>
             {plans.map(plan => {
@@ -101,7 +103,7 @@ export default function PaywallScreen() {
               return (
                 <TouchableOpacity
                   key={plan.identifier}
-                  style={[s.planCard, sel && s.planCardActive]}
+                  style={[s.planCard, sel && { borderColor: accent, backgroundColor: accent + '08' }]}
                   onPress={() => setSelected(plan.identifier)}
                   activeOpacity={0.8}
                 >
@@ -111,13 +113,13 @@ export default function PaywallScreen() {
                     </View>
                   )}
                   <View style={s.planLeft}>
-                    <View style={[s.radio, sel && s.radioActive]}>
-                      {sel && <View style={s.radioDot} />}
+                    <View style={[s.radio, sel && { borderColor: accent }]}>
+                      {sel && <View style={[s.radioDot, { backgroundColor: accent }]} />}
                     </View>
                     <Text style={[s.planTitle, sel && s.planTitleActive]}>{plan.title}</Text>
                   </View>
                   <View style={s.planRight}>
-                    <Text style={[s.planPrice, sel && s.planPriceActive]}>{plan.price}</Text>
+                    <Text style={[s.planPrice, sel && { color: accent }]}>{plan.price}</Text>
                     <Text style={s.planPeriod}>{plan.period}</Text>
                   </View>
                 </TouchableOpacity>
@@ -128,7 +130,7 @@ export default function PaywallScreen() {
 
         {/* CTA */}
         <TouchableOpacity
-          style={[s.cta, purchasing && { opacity: 0.6 }]}
+          style={[s.cta, { backgroundColor: accent }, purchasing && { opacity: 0.6 }]}
           onPress={handlePurchase}
           disabled={purchasing || loading}
           activeOpacity={0.85}

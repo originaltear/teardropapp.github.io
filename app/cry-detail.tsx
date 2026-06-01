@@ -20,6 +20,7 @@ import {
   reportContent,
 } from '../lib/social';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../lib/themes';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ function Drops({ intensity, size = 16 }: { intensity: number; size?: number }) {
 }
 
 function AudioPlayer({ uri }: { uri: string }) {
+  const { theme: { accent } } = useTheme();
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
   async function toggle() {
@@ -68,9 +70,9 @@ function AudioPlayer({ uri }: { uri: string }) {
     } catch { Alert.alert('Error', 'Could not play audio.'); }
   }
   return (
-    <TouchableOpacity style={s.audioBtn} onPress={toggle} activeOpacity={0.8}>
-      <Text style={s.audioIcon}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={s.audioTxt}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
+    <TouchableOpacity style={[s.audioBtn, { borderColor: accent }]} onPress={toggle} activeOpacity={0.8}>
+      <Text style={[s.audioIcon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
+      <Text style={[s.audioTxt, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
     </TouchableOpacity>
   );
 }
@@ -79,6 +81,7 @@ function AudioPlayer({ uri }: { uri: string }) {
 
 export default function CryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { theme: { accent } } = useTheme();
   const router = useRouter();
   const { session } = useAuth();
 
@@ -182,10 +185,10 @@ export default function CryDetailScreen() {
       <SafeAreaView style={s.container} edges={['top']}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backTxt}>←</Text>
+            <Text style={[s.backTxt, { color: accent }]}>←</Text>
           </TouchableOpacity>
         </View>
-        <ActivityIndicator size="large" color="#6fe0e6" style={{ flex: 1 }} />
+        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
       </SafeAreaView>
     );
   }
@@ -195,7 +198,7 @@ export default function CryDetailScreen() {
       <SafeAreaView style={s.container} edges={['top']}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backTxt}>←</Text>
+            <Text style={[s.backTxt, { color: accent }]}>←</Text>
           </TouchableOpacity>
         </View>
         <View style={s.empty}>
@@ -210,7 +213,7 @@ export default function CryDetailScreen() {
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Text style={s.backTxt}>←</Text>
+          <Text style={[s.backTxt, { color: accent }]}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>Cry</Text>
         {!isOwn && session && cry ? (
@@ -266,7 +269,7 @@ export default function CryDetailScreen() {
             {!isOwn && session && (
               <TouchableOpacity style={s.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
                 <Text style={{ fontSize: 16 }}>{liked ? '💧' : '🤍'}</Text>
-                <Text style={[s.likeTxt, liked && s.likeTxtActive]}>
+                <Text style={[s.likeTxt, liked && { color: accent }]}>
                   {liked ? 'Liked' : 'Like'}
                 </Text>
               </TouchableOpacity>
@@ -287,7 +290,7 @@ export default function CryDetailScreen() {
               <View key={c.id} style={s.commentRow}>
                 <Avatar uri={c.profile.avatar_uri} size={30} />
                 <View style={s.commentBubble}>
-                  <Text style={s.commentUser}>{c.profile.display_name}</Text>
+                  <Text style={[s.commentUser, { color: accent }]}>{c.profile.display_name}</Text>
                   <Text style={s.commentText}>{c.content}</Text>
                 </View>
               </View>
@@ -309,7 +312,7 @@ export default function CryDetailScreen() {
               maxLength={500}
             />
             <TouchableOpacity
-              style={[s.sendBtn, (!commentText.trim() || posting) && { opacity: 0.4 }]}
+              style={[s.sendBtn, { backgroundColor: accent }, (!commentText.trim() || posting) && { opacity: 0.4 }]}
               onPress={submitComment}
               disabled={!commentText.trim() || posting}
             >

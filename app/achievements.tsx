@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Full achievements list — all in one flat list.
  * Route: /achievements
  */
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../lib/auth';
 import { ACHIEVEMENTS, getUnlockedAchievements } from '../lib/achievements';
@@ -18,6 +19,7 @@ function formatDate(iso: string) {
 
 export default function AchievementsScreen() {
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const { session } = useAuth();
   const [unlockedMap, setUnlockedMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ export default function AchievementsScreen() {
 
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator size="large" color="#6fe0e6" />
+          <ActivityIndicator size="large" color={accent} />
         </View>
       ) : (
         <FlatList

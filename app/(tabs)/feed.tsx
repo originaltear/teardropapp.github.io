@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
   Modal, Image, Alert, TextInput, KeyboardAvoidingView,
@@ -59,6 +60,7 @@ function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
 // ─── Audio player ─────────────────────────────────────────────────────────────
 
 function AudioPlayer({ uri }: { uri: string }) {
+  const { theme: { accent } } = useTheme();
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
   async function toggle() {
@@ -73,9 +75,9 @@ function AudioPlayer({ uri }: { uri: string }) {
     } catch { Alert.alert('Error', 'Could not play audio.'); }
   }
   return (
-    <TouchableOpacity style={styles.audioPlayer} onPress={toggle} activeOpacity={0.8}>
-      <Text style={styles.audioIcon}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={styles.audioLabel}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
+    <TouchableOpacity style={[styles.audioPlayer, { borderColor: accent }]} onPress={toggle} activeOpacity={0.8}>
+      <Text style={[styles.audioIcon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
+      <Text style={[styles.audioLabel, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
     </TouchableOpacity>
   );
 }
@@ -88,6 +90,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
   onClose: () => void;
   onLikeToggle: (cryId: string, liked: boolean) => void;
 }) {
+  const { theme: { accent } } = useTheme();
   const emotion = emotionById(cry.emotion);
   const [liked, setLiked] = useState(cry.liked_by_me);
   const [likeCount, setLikeCount] = useState(cry.like_count);
@@ -178,7 +181,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
               {!isOwn && myId && (
                 <TouchableOpacity style={styles.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
                   <Text style={styles.likeIcon}>{liked ? '💧' : '🤍'}</Text>
-                  <Text style={[styles.likeTxt, liked && styles.likeTxtActive]}>
+                  <Text style={[styles.likeTxt, liked && { color: accent }]}>
                     {liked ? 'Liked' : 'Like'}
                   </Text>
                 </TouchableOpacity>
@@ -193,7 +196,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
             {commentsDisabled ? (
               <Text style={styles.noComments}>💬  Comments have been turned off</Text>
             ) : loadingComments ? (
-              <ActivityIndicator color="#6fe0e6" style={{ marginVertical: 12 }} />
+              <ActivityIndicator color={accent} style={{ marginVertical: 12 }} />
             ) : comments.length === 0 ? (
               <Text style={styles.noComments}>No comments yet</Text>
             ) : (
@@ -201,7 +204,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
                 <View key={c.id} style={styles.commentRow}>
                   <Avatar uri={c.profile.avatar_uri} size={28} />
                   <View style={styles.commentBubble}>
-                    <Text style={styles.commentUser}>{c.profile.display_name}</Text>
+                    <Text style={[styles.commentUser, { color: accent }]}>{c.profile.display_name}</Text>
                     <Text style={styles.commentText}>{c.content}</Text>
                   </View>
                 </View>
@@ -223,7 +226,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
                 maxLength={500}
               />
               <TouchableOpacity
-                style={[styles.sendBtn, (!commentText.trim() || posting) && { opacity: 0.4 }]}
+                style={[styles.sendBtn, { backgroundColor: accent }, (!commentText.trim() || posting) && { opacity: 0.4 }]}
                 onPress={submitComment}
                 disabled={!commentText.trim() || posting}
               >
@@ -285,6 +288,7 @@ type FeedTab = 'mine' | 'following';
 export default function FeedScreen() {
   const { session } = useAuth();
   const router = useRouter();
+  const { theme: { accent } } = useTheme();
   const [allCries, setAllCries] = useState<SocialCry[]>([]);
   const [selected, setSelected] = useState<SocialCry | null>(null);
   const [authGate, setAuthGate] = useState(false);
@@ -335,7 +339,7 @@ export default function FeedScreen() {
           activeOpacity={0.7}
           onPress={() => session ? router.push('/friends') : setAuthGate(true)}
         >
-          <Text style={styles.addFriendsTxt}>👥 Friends</Text>
+          <Text style={[styles.addFriendsTxt, { color: accent }]}>👥 Friends</Text>
         </TouchableOpacity>
       </View>
 
@@ -345,7 +349,7 @@ export default function FeedScreen() {
           {(['mine', 'following'] as FeedTab[]).map(t => (
             <TouchableOpacity
               key={t}
-              style={[styles.tabChip, tab === t && styles.tabChipActive]}
+              style={[styles.tabChip, tab === t && { backgroundColor: accent, borderColor: accent }]}
               onPress={() => setTab(t)}
             >
               <Text style={[styles.tabChipTxt, tab === t && styles.tabChipTxtActive]}>
@@ -375,18 +379,18 @@ export default function FeedScreen() {
           {filterOpen && (
             <View style={styles.dropdown}>
               <TouchableOpacity
-                style={[styles.dropdownItem, !mineEmotion && styles.dropdownItemActive]}
+                style={[styles.dropdownItem, !mineEmotion && { backgroundColor: accent + '10' }]}
                 onPress={() => { setMineEmotion(null); setFilterOpen(false); }}
               >
-                <Text style={[styles.dropdownTxt, !mineEmotion && styles.dropdownTxtActive]}>
+                <Text style={[styles.dropdownTxt, !mineEmotion && { color: accent }]}>
                   💧  All emotions
                 </Text>
-                {!mineEmotion && <Text style={styles.dropdownCheck}>✓</Text>}
+                {!mineEmotion && <Text style={[styles.dropdownCheck, { color: accent }]}>✓</Text>}
               </TouchableOpacity>
               {EMOTIONS.map(e => (
                 <TouchableOpacity
                   key={e.id}
-                  style={[styles.dropdownItem, mineEmotion === e.id && styles.dropdownItemActive]}
+                  style={[styles.dropdownItem, mineEmotion === e.id && { backgroundColor: accent + '10' }]}
                   onPress={() => { setMineEmotion(e.id); setFilterOpen(false); }}
                 >
                   <Text style={[styles.dropdownTxt, mineEmotion === e.id && { color: e.color }]}>
@@ -404,7 +408,7 @@ export default function FeedScreen() {
 
       {loading ? (
         <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color="#6fe0e6" />
+          <ActivityIndicator size="large" color={accent} />
         </View>
       ) : (
         <FlatList
@@ -420,8 +424,8 @@ export default function FeedScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadFeed(true)}
-              tintColor="#6fe0e6"
-              colors={['#6fe0e6']}
+              tintColor={accent}
+              colors={[accent]}
             />
           }
           ListEmptyComponent={
@@ -443,7 +447,7 @@ export default function FeedScreen() {
               </Text>
               {session && tab === 'following' && (
                 <TouchableOpacity
-                  style={styles.emptyBtn}
+                  style={[styles.emptyBtn, { backgroundColor: accent }]}
                   onPress={() => router.push('/friends')}
                   activeOpacity={0.8}
                 >

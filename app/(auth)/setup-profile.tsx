@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
+import { useTheme } from '../../lib/themes';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ const VISIBILITY_OPTS: { value: Visibility; icon: string; label: string; sub: st
 export default function SetupProfileScreen() {
   const router = useRouter();
   const { refreshUsername } = useAuth();
+  const { theme: { accent } } = useTheme();
 
   const [username, setUsername]       = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -116,7 +118,7 @@ export default function SetupProfileScreen() {
   function UsernameStatus() {
     if (!username) return null;
     if (validationErr) return <Text style={s.statusErr}>✕  {validationErr}</Text>;
-    if (checking) return <ActivityIndicator size="small" color="#6fe0e6" style={{ marginTop: 6 }} />;
+    if (checking) return <ActivityIndicator size="small" color={accent} style={{ marginTop: 6 }} />;
     if (available === true) return <Text style={s.statusOk}>✓  @{username} is available</Text>;
     if (available === false) return <Text style={s.statusErr}>✕  @{username} is taken</Text>;
     return null;
@@ -139,7 +141,7 @@ export default function SetupProfileScreen() {
         >
           {/* Logo */}
           <View style={s.logoArea}>
-            <View style={s.logoCircle}>
+            <View style={[s.logoCircle, { backgroundColor: accent, shadowColor: accent }]}>
               <Text style={s.logoEmoji}>💧</Text>
             </View>
             <Text style={s.title}>Set up your profile</Text>
@@ -150,7 +152,7 @@ export default function SetupProfileScreen() {
           <View style={s.fieldGroup}>
             <Text style={s.label}>USERNAME</Text>
             <View style={s.inputRow}>
-              <Text style={s.atSign}>@</Text>
+              <Text style={[s.atSign, { color: accent }]}>@</Text>
               <TextInput
                 style={s.inputInline}
                 value={username}
@@ -190,17 +192,17 @@ export default function SetupProfileScreen() {
                 return (
                   <TouchableOpacity
                     key={opt.value}
-                    style={[s.visRow, sel && s.visRowActive]}
+                    style={[s.visRow, sel && { borderColor: accent, backgroundColor: accent + '10' }]}
                     onPress={() => setVisibility(opt.value)}
                     activeOpacity={0.75}
                   >
                     <Text style={s.visIcon}>{opt.icon}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={[s.visLabel, sel && s.visLabelActive]}>{opt.label}</Text>
+                      <Text style={[s.visLabel, sel && { color: accent }]}>{opt.label}</Text>
                       <Text style={s.visSub}>{opt.sub}</Text>
                     </View>
-                    <View style={[s.visRadio, sel && s.visRadioActive]}>
-                      {sel && <View style={s.visRadioDot} />}
+                    <View style={[s.visRadio, sel && { borderColor: accent }]}>
+                      {sel && <View style={[s.visRadioDot, { backgroundColor: accent }]} />}
                     </View>
                   </TouchableOpacity>
                 );
@@ -212,7 +214,7 @@ export default function SetupProfileScreen() {
 
           {/* Save */}
           <TouchableOpacity
-            style={[s.btn, !canSave && s.btnDisabled]}
+            style={[s.btn, { backgroundColor: accent }, !canSave && s.btnDisabled]}
             onPress={handleSave}
             disabled={!canSave}
             activeOpacity={0.85}

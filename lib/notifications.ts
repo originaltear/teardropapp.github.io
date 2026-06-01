@@ -71,14 +71,13 @@ export async function registerPushToken(): Promise<void> {
       return;
     }
 
-    // Get Expo push token (requires EAS project ID once in production)
-    const projectId =
-      Constants.expoConfig?.extra?.eas?.projectId ??
-      Constants.easConfig?.projectId;
+    // Project ID injected by eas init into app.json → expo.extra.eas.projectId
+    const projectId: string | undefined =
+      (Constants.expoConfig?.extra as any)?.eas?.projectId ??
+      Constants.easConfig?.projectId ??
+      '6983c0e9-26de-4056-b0f5-5cef62d50bc3'; // fallback: hardcoded from eas init
 
-    const tokenData = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined,
-    );
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
 
     const token = tokenData.data;
 

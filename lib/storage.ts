@@ -14,6 +14,7 @@ export interface Cry {
   photoUri?: string;
   audioUri?: string;
   country?: string;
+  visibility?: 'everyone' | 'followers' | 'close_friends' | 'only_me';
 }
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ export async function saveCry(cry: Cry): Promise<void> {
     photo_uri:  cry.photoUri   ?? null,
     audio_uri:  cry.audioUri   ?? null,
     country:    cry.country    ?? null,
+    visibility: cry.visibility ?? 'everyone',
   });
 
   if (error) {
@@ -156,10 +158,11 @@ export async function syncLocalToSupabase(userId: string, userEmail?: string): P
     longitude:  cry.longitude,
     emotion:    cry.emotion,
     intensity:  cry.intensity,
-    note:       cry.note      ?? null,
-    photo_uri:  cry.photoUri  ?? null,
-    audio_uri:  cry.audioUri  ?? null,
-    country:    cry.country   ?? null,
+    note:       cry.note       ?? null,
+    photo_uri:  cry.photoUri   ?? null,
+    audio_uri:  cry.audioUri   ?? null,
+    country:    cry.country    ?? null,
+    visibility: cry.visibility ?? 'everyone',
   }));
 
   const { error } = await supabase

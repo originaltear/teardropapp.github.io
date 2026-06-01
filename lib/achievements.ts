@@ -393,16 +393,13 @@ export async function checkAndSaveAchievements(
     if (ageMs >= 365 * 86400000) toUnlock.add('veteran');
     if (ageMs >= 730 * 86400000) toUnlock.add('old_timer');
 
-    // Founder / First Wave — use auth user's position by checking profiles
-    // We use the user's own created_at from auth metadata (more reliable than profiles.created_at)
-    try {
-      const { count: before } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .lt('created_at', session.user.created_at);
-      if (before !== null && before < 100) toUnlock.add('founder');
-      if (before !== null && before < 1000) toUnlock.add('first_wave');
-    } catch { /* profiles may not expose created_at — skip */ }
+    // Founder / First Wave — use SECURITY DEFINER RPC to bypass RLS
+    const { data: rankData } = await supabase.rpc('get_registration_rank', {
+      user_created_at: session.user.created_at,
+    });
+    const rank = typeof rankData === 'number' ? rankData : 9999;
+    if (rank < 100) toUnlock.add('founder');
+    if (rank < 1000) toUnlock.add('first_wave');
 
     // Likes received on own cries
     const { data: ownCries } = await supabase.from('cries').select('id').eq('user_id', userId);
@@ -434,10 +431,11 @@ export async function checkAndSaveAchievements(
   const newIds = [...toUnlock].filter(id => !already.has(id));
   if (newIds.length === 0) return [];
 
-  // Save to Supabase
-  await supabase.from('achievements_unlocked').insert(
+  // Save to Supabase — proper error handling (no .throwOnError which doesn't exist in this SDK version)
+  const { error: insertErr } = await supabase.from('achievements_unlocked').insert(
     newIds.map(achievement_id => ({ user_id: userId, achievement_id }))
-  ).throwOnError().catch(() => {});
+  );
+  if (insertErr) console.warn('[achievements] insert error:', insertErr.message);
 
   // Update earned_tears on profiles for tear-bearing achievements
   const newTears = newIds

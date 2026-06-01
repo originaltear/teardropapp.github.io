@@ -16,7 +16,7 @@ import { useAuth } from '../lib/auth';
 import { emotionById } from '../lib/emotions';
 import {
   getProfileStats, followUser, unfollowUser,
-  getUserCries, blockUser, unblockUser, isUserBlocked, SocialCry,
+  getUserCries, blockUser, unblockUser, isUserBlocked, reportContent, SocialCry,
 } from '../lib/social';
 
 interface PublicProfile {
@@ -99,6 +99,33 @@ export default function UserProfileScreen() {
       await followUser(id!);
       setIsFollowing(true);
       setStats(s => ({ ...s, follower_count: s.follower_count + 1 }));
+    }
+  }
+
+  function handleReport() {
+    if (!profile) return;
+    Alert.alert(
+      `Report @${profile.username}`,
+      'Why are you reporting this account?',
+      [
+        { text: 'Inappropriate content', onPress: () => submitUserReport('Inappropriate content') },
+        { text: 'Harassment', onPress: () => submitUserReport('Harassment') },
+        { text: 'Spam', onPress: () => submitUserReport('Spam') },
+        { text: 'Other', onPress: () => submitUserReport('Other') },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }
+
+  async function submitUserReport(reason: string) {
+    if (!id) return;
+    const result = await reportContent('user', id, reason);
+    if (result === 'ok') {
+      Alert.alert('Reported', "Thanks for your report. We'll review it shortly.");
+    } else if (result === 'duplicate') {
+      Alert.alert('Already reported', "You've already reported this account.");
+    } else {
+      Alert.alert('Error', 'Could not submit report. Please try again.');
     }
   }
 
@@ -210,6 +237,13 @@ export default function UserProfileScreen() {
               activeOpacity={0.85}
             >
               <Text style={s.btnBlockTxt}>{isBlocked ? '🔓' : '🚫'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.btnBlock}
+              onPress={handleReport}
+              activeOpacity={0.85}
+            >
+              <Text style={[s.btnBlockTxt, { color: '#ef4444' }]}>⚑</Text>
             </TouchableOpacity>
           </View>
         )}

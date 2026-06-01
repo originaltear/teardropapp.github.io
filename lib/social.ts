@@ -354,6 +354,35 @@ export async function unblockUser(targetId: string): Promise<void> {
     .eq('blocked_id', targetId);
 }
 
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+/**
+ * Report a cry or a user profile.
+ * Returns 'ok' on success, 'duplicate' if already reported, 'error' otherwise.
+ */
+export async function reportContent(
+  type: 'cry' | 'user',
+  reportedId: string,
+  reason: string,
+): Promise<'ok' | 'duplicate' | 'error'> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return 'error';
+
+  const { error } = await supabase.from('reports').insert({
+    reporter_id: session.user.id,
+    reported_type: type,
+    reported_id: reportedId,
+    reason,
+  });
+
+  if (error?.code === '23505') return 'duplicate'; // unique constraint violation
+  if (error) {
+    console.warn('[reportContent] error:', error.message);
+    return 'error';
+  }
+  return 'ok';
+}
+
 export async function isUserBlocked(targetId: string): Promise<boolean> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return false;

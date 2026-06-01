@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function SettingsRow({ label, value, soon, danger, onPress }: {
   label: string; value?: string; soon?: boolean; danger?: boolean; onPress?: () => void;
@@ -31,6 +32,7 @@ function SettingsRow({ label, value, soon, danger, onPress }: {
 export default function SettingsScreen() {
   const { session } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleLogout() {
     Alert.alert(
@@ -45,7 +47,103 @@ export default function SettingsScreen() {
             setLoggingOut(true);
             await supabase.auth.signOut();
             setLoggingOut(false);
-            // RootNav listener handles redirect to login
+          },
+        },
+      ],
+    );
+  }
+
+  async function performDelete() {
+    if (!session) return;
+    setDeleting(true);
+
+    try {
+      // 1. Delete avatar from storage
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_uri')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.avatar_uri) {
+        try {
+          // Extract path from URL: .../avatars/<userId>/avatar-xxx.jpg
+          const url = new URL(profile.avatar_uri.split('?')[0]);
+          const parts = url.pathname.split('/avatars/');
+          if (parts.length > 1) {
+            await supabase.storage.from('avatars').remove([parts[1]]);
+          }
+        } catch {
+          // Storage cleanup failure is non-fatal
+        }
+      }
+
+      // 2. Delete cry photos + audio from storage
+      const { data: cries } = await supabase
+        .from('cries')
+        .select('photo_uri, audio_uri')
+        .eq('user_id', session.user.id);
+
+      if (cries && cries.length > 0) {
+        for (const cry of cries) {
+          for (const uriField of [cry.photo_uri, cry.audio_uri]) {
+            if (!uriField) continue;
+            try {
+              const url = new URL(uriField.split('?')[0]);
+              const path = url.pathname;
+              // Try both 'cry-media' and any bucket prefix patterns
+              const buckets = ['cry-media', 'photos', 'audio'];
+              for (const bucket of buckets) {
+                if (path.includes(`/${bucket}/`)) {
+                  const filePath = path.split(`/${bucket}/`)[1];
+                  await supabase.storage.from(bucket).remove([filePath]);
+                  break;
+                }
+              }
+            } catch {
+              // Non-fatal
+            }
+          }
+        }
+      }
+
+      // 3. Call RPC to delete all DB data (including auth.users)
+      const { error: rpcError } = await supabase.rpc('delete_user_account');
+      if (rpcError) throw rpcError;
+
+      // 4. Clear local storage
+      await AsyncStorage.multiRemove(['teardrop_cries', 'teardrop_profile']);
+
+      // 5. Sign out (auth user is already deleted, this clears the local session)
+      await supabase.auth.signOut();
+    } catch (err: any) {
+      setDeleting(false);
+      Alert.alert(
+        'Deletion failed',
+        err?.message ?? 'Something went wrong. Please try again.',
+      );
+    }
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account, all your cries, photos, audio and profile data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation to prevent accidental taps
+            Alert.alert(
+              'Last chance',
+              'Are you absolutely sure? All your data will be permanently erased.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete everything', style: 'destructive', onPress: performDelete },
+              ],
+            );
           },
         },
       ],
@@ -86,7 +184,7 @@ export default function SettingsScreen() {
         {/* About */}
         <Text style={styles.section}>About</Text>
         <View style={styles.group}>
-          <SettingsRow label="Version" value="0.3.0" />
+          <SettingsRow label="Version" value="1.0.0" />
           <SettingsRow label="Report a problem" soon />
         </View>
 
@@ -111,10 +209,33 @@ export default function SettingsScreen() {
         ) : null}
 
         {/* Danger zone */}
-        <Text style={styles.section}>Danger Zone</Text>
-        <View style={styles.group}>
-          <SettingsRow label="Request account deletion" soon danger />
-        </View>
+        {session ? (
+          <>
+            <Text style={styles.section}>Danger Zone</Text>
+            <View style={styles.group}>
+              <TouchableOpacity
+                style={styles.row}
+                onPress={handleDeleteAccount}
+                disabled={deleting}
+                activeOpacity={0.7}
+              >
+                {deleting
+                  ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <ActivityIndicator size="small" color="#ef4444" />
+                      <Text style={[styles.rowLabel, { color: '#ef4444' }]}>Deleting account…</Text>
+                    </View>
+                  )
+                  : <Text style={[styles.rowLabel, { color: '#ef4444' }]}>Delete Account</Text>
+                }
+                {!deleting && <Text style={[styles.rowChevron, { color: '#ef4444' }]}>›</Text>}
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.dangerNote}>
+              Permanently deletes your account, all cries, photos, audio and profile data.
+            </Text>
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -143,4 +264,8 @@ const styles = StyleSheet.create({
   rowValue: { color: '#4a5568', fontSize: 14, maxWidth: '55%', textAlign: 'right' },
   rowChevron: { color: '#4a5568', fontSize: 20 },
   soon: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
+  dangerNote: {
+    color: '#374151', fontSize: 11, paddingHorizontal: 20, paddingTop: 8,
+    lineHeight: 16,
+  },
 });

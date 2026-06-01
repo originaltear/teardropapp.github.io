@@ -331,6 +331,28 @@ export default function StatsScreen() {
     );
   }
 
+  if (!session) {
+    return (
+      <SafeAreaView style={s.container} edges={['top']}>
+        <Header onBack={() => router.back()} />
+        <View style={s.empty}>
+          <Text style={{ fontSize: 52 }}>📊</Text>
+          <Text style={s.emptyTitle}>Statistics</Text>
+          <Text style={s.emptyMsg}>
+            Create an account to track your cry history, streaks, and emotions over time.
+          </Text>
+          <TouchableOpacity
+            style={[s.emptyBtn, { backgroundColor: accent }]}
+            onPress={() => router.push('/(auth)/login')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.emptyBtnTxt}>Create account</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (n === 0) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
@@ -594,6 +616,13 @@ const s = StyleSheet.create({
   emotionChipLabel: { fontSize: 12, fontWeight: '600' },
   emotionChipCount: { color: '#4a5568', fontSize: 11 },
 
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 40 },
   emptyTxt: { color: '#4a5568', fontSize: 15 },
+  emptyTitle: { color: '#e2e8f0', fontSize: 22, fontWeight: '700', marginTop: 4 },
+  emptyMsg: { color: '#4a5568', fontSize: 15, textAlign: 'center', lineHeight: 22, marginTop: 4 },
+  emptyBtn: {
+    marginTop: 16, paddingHorizontal: 28, paddingVertical: 14,
+    borderRadius: 14, alignItems: 'center',
+  },
+  emptyBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
 });

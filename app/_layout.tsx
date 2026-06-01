@@ -14,8 +14,9 @@ function RootNav() {
   // ── Auth routing ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (loading) return;
-    const inAuth = segments[0] === '(auth)';
-    const onSetup = inAuth && segments[1] === 'setup-profile';
+    const segs = segments as string[];
+    const inAuth = segs[0] === '(auth)';
+    const onSetup = inAuth && segs[1] === 'setup-profile';
 
     if (!session) return; // Guest — free to roam
 

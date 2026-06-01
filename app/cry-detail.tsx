@@ -19,6 +19,7 @@ import {
   getCry, likeCry, unlikeCry, getComments, addComment, SocialCry, Comment,
   reportContent,
 } from '../lib/social';
+import { supabase } from '../lib/supabase';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ export default function CryDetailScreen() {
 
   useFocusEffect(useCallback(() => {
     if (!id) return;
+    setCommentsDisabled(false);
     (async () => {
       const [cryData, commentData] = await Promise.all([
         getCry(id),
@@ -101,10 +103,18 @@ export default function CryDetailScreen() {
         setCry(cryData);
         setLiked(cryData.liked_by_me);
         setLikeCount(cryData.like_count);
-        // Disable comments if owner has turned them off (and viewer isn't the owner)
+
+        // Direct profile query — does not rely on the join in CRY_SELECT
         const isOwner = cryData.user_id === session?.user.id;
-        if (!isOwner && cryData.profile?.allow_comments === false) {
-          setCommentsDisabled(true);
+        if (!isOwner) {
+          const { data: ownerProfile } = await supabase
+            .from('profiles')
+            .select('allow_comments')
+            .eq('id', cryData.user_id)
+            .single();
+          if (ownerProfile?.allow_comments === false) {
+            setCommentsDisabled(true);
+          }
         }
       }
       setComments(commentData);
@@ -268,9 +278,12 @@ export default function CryDetailScreen() {
 
           {/* Comments */}
           <Text style={s.sectionLabel}>COMMENTS</Text>
-          {comments.length === 0
-            ? <Text style={s.noComments}>No comments yet</Text>
-            : comments.map(c => (
+          {commentsDisabled ? (
+            <Text style={s.commentsOffTxt}>💬  Comments have been turned off</Text>
+          ) : comments.length === 0 ? (
+            <Text style={s.noComments}>No comments yet</Text>
+          ) : (
+            comments.map(c => (
               <View key={c.id} style={s.commentRow}>
                 <Avatar uri={c.profile.avatar_uri} size={30} />
                 <View style={s.commentBubble}>
@@ -279,16 +292,12 @@ export default function CryDetailScreen() {
                 </View>
               </View>
             ))
-          }
+          )}
           <View style={{ height: 100 }} />
         </ScrollView>
 
-        {/* Comment input — replaced with notice if owner has disabled comments */}
-        {session && commentsDisabled ? (
-          <View style={s.commentsOffRow}>
-            <Text style={s.commentsOffTxt}>💬  Comments have been turned off</Text>
-          </View>
-        ) : session && (
+        {/* Comment input — hidden entirely when comments are disabled */}
+        {session && !commentsDisabled && (
           <View style={s.inputRow}>
             <TextInput
               style={s.inputField}
@@ -387,12 +396,7 @@ const s = StyleSheet.create({
   commentUser: { color: '#6fe0e6', fontSize: 12, fontWeight: '600', marginBottom: 3 },
   commentText: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
 
-  commentsOffRow: {
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderTopWidth: 1, borderTopColor: '#1f2937',
-    backgroundColor: '#0d1117', alignItems: 'center',
-  },
-  commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,

@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
-import { emotionById, EMOTIONS, Emotion } from '../../lib/emotions';
+import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { TearsBadge } from '../../components/TearsBadge';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';

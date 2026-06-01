@@ -1,16 +1,12 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
-  Modal, TextInput, KeyboardAvoidingView, Platform, FlatList,
-  Image, Alert,
+  TextInput, KeyboardAvoidingView, Platform, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
-import { emotionById } from '../../lib/emotions';
-import { computeBadges, computeStreak } from '../../lib/badges';
 import { loadProfile, saveProfile, uploadAvatar, Profile, DEFAULT_PROFILE } from '../../lib/profile';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth';
@@ -23,33 +19,7 @@ import { TearsBadge } from '../../components/TearsBadge';
 import { AchievementToast } from '../../components/AchievementToast';
 import { supabase } from '../../lib/supabase';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const now = Date.now();
-  const diff = now - d.getTime();
-  const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function Drops({ intensity }: { intensity: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <Text key={n} style={{ fontSize: 13, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
-      ))}
-    </View>
-  );
-}
-
-// ─── Avatar component (shared) ────────────────────────────────────────────────
+// ─── Avatar ───────────────────────────────────────────────────────────────────
 
 function Avatar({ uri, size = 88 }: { uri?: string; size?: number }) {
   if (uri) {
@@ -71,143 +41,7 @@ function Avatar({ uri, size = 88 }: { uri?: string; size?: number }) {
   );
 }
 
-// ─── Audio player ─────────────────────────────────────────────────────────────
-
-function AudioPlayer({ uri }: { uri: string }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-
-  async function toggle() {
-    if (playing) {
-      await soundRef.current?.stopAsync();
-      setPlaying(false);
-      return;
-    }
-    try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate(s => {
-        if (s.isLoaded && s.didJustFinish) {
-          setPlaying(false);
-          sound.unloadAsync();
-        }
-      });
-      await sound.playAsync();
-    } catch {
-      Alert.alert('Error', 'Could not play audio.');
-    }
-  }
-
-  return (
-    <TouchableOpacity style={ls.audioPlayer} onPress={toggle} activeOpacity={0.8}>
-      <Text style={ls.audioIcon}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={ls.audioLabel}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Cry detail card (inside modal) ──────────────────────────────────────────
-
-function CryDetailSheet({ cry, onBack }: { cry: Cry; onBack: () => void }) {
-  const emotion = emotionById(cry.emotion);
-  return (
-    <>
-      <TouchableOpacity onPress={onBack} style={ls.backBtn}>
-        <Text style={ls.backTxt}>← Back</Text>
-      </TouchableOpacity>
-      <View style={[ls.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
-        <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
-        <Text style={[ls.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>
-          {emotion?.label ?? cry.emotion}
-        </Text>
-      </View>
-      <Text style={ls.dateText}>
-        {new Date(cry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-        {' · '}
-        {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-      </Text>
-      <Drops intensity={cry.intensity} />
-      {cry.photoUri ? (
-        <Image source={{ uri: cry.photoUri }} style={ls.photo} resizeMode="cover" />
-      ) : null}
-      {cry.note
-        ? <View style={ls.noteBox}><Text style={ls.noteText}>{cry.note}</Text></View>
-        : <Text style={ls.noNote}>No note</Text>}
-      {cry.audioUri ? <AudioPlayer uri={cry.audioUri} /> : null}
-    </>
-  );
-}
-
-// ─── Cries list modal ─────────────────────────────────────────────────────────
-
-function CriesModal({ cries, onClose }: { cries: Cry[]; onClose: () => void }) {
-  const [selected, setSelected] = useState<Cry | null>(null);
-
-  return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
-      <SafeAreaView edges={['bottom']} style={ls.sheet}>
-        <View style={ls.handle} />
-        <View style={ls.sheetHeader}>
-          <Text style={ls.sheetTitle}>My Cries</Text>
-          <TouchableOpacity onPress={onClose} style={ls.closeBtn}>
-            <Text style={ls.closeTxt}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        {selected ? (
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
-            <CryDetailSheet cry={selected} onBack={() => setSelected(null)} />
-          </ScrollView>
-        ) : (
-          <FlatList
-            data={cries}
-            keyExtractor={c => c.id}
-            style={{ flex: 1 }}
-            contentContainerStyle={cries.length === 0 ? ls.emptyContainer : undefined}
-            ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: '#1f2937', marginLeft: 68 }} />}
-            renderItem={({ item: cry }) => {
-              const emotion = emotionById(cry.emotion);
-              return (
-                <TouchableOpacity style={ls.cryRow} onPress={() => setSelected(cry)} activeOpacity={0.7}>
-                  <View style={[ls.dot, { backgroundColor: emotion?.color ?? '#6fe0e6' }]}>
-                    <Text style={{ fontSize: 18 }}>{emotion?.emoji ?? '💧'}</Text>
-                  </View>
-                  <View style={{ flex: 1, gap: 3 }}>
-                    <Text style={[ls.emotionName, { color: emotion?.color ?? '#6fe0e6' }]}>
-                      {emotion?.label ?? cry.emotion}
-                    </Text>
-                    <Text style={ls.cryDate}>{formatDate(cry.createdAt)}</Text>
-                    {cry.note ? <Text style={ls.cryNote} numberOfLines={1}>{cry.note}</Text> : null}
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <Drops intensity={cry.intensity} />
-                    {(cry.photoUri || cry.audioUri) ? (
-                      <View style={{ flexDirection: 'row', gap: 3 }}>
-                        {cry.photoUri ? <Text style={{ fontSize: 11 }}>📷</Text> : null}
-                        {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
-                      </View>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            }}
-            ListEmptyComponent={
-              <View style={ls.empty}>
-                <Text style={{ fontSize: 40, opacity: 0.3 }}>💧</Text>
-                <Text style={ls.emptyTxt}>No cries yet</Text>
-              </View>
-            }
-          />
-        )}
-      </SafeAreaView>
-    </Modal>
-  );
-}
-
-// ─── Edit profile modal ───────────────────────────────────────────────────────
+// ─── Edit modal ───────────────────────────────────────────────────────────────
 
 function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onClose }: {
   profile: Profile;
@@ -225,29 +59,13 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
   async function pickFromSource(source: 'camera' | 'library') {
     if (source === 'camera') {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Camera access is required.');
-        return;
-      }
-      const res = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images',
-        quality: 0.8,
-        allowsEditing: true,
-        aspect: [1, 1],
-      });
+      if (status !== 'granted') { Alert.alert('Permission needed', 'Camera access is required.'); return; }
+      const res = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', quality: 0.8, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled) setAvatarUri(res.assets[0].uri);
     } else {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Photo library access is required.');
-        return;
-      }
-      const res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        quality: 0.8,
-        allowsEditing: true,
-        aspect: [1, 1],
-      });
+      if (status !== 'granted') { Alert.alert('Permission needed', 'Photo library access is required.'); return; }
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 0.8, allowsEditing: true, aspect: [1, 1] });
       if (!res.canceled) setAvatarUri(res.assets[0].uri);
     }
   }
@@ -257,15 +75,14 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
       { text: '📷  Take Photo', onPress: () => pickFromSource('camera') },
       { text: '🖼  Choose from Library', onPress: () => pickFromSource('library') },
     ];
-    if (avatarUri) {
-      options.push({ text: 'Use Default (Teardrop)', onPress: () => setAvatarUri(undefined), style: 'destructive' });
-    }
+    if (avatarUri) options.push({ text: 'Use Default (Teardrop)', onPress: () => setAvatarUri(undefined), style: 'destructive' });
     options.push({ text: 'Cancel', style: 'cancel' });
     Alert.alert('Change Profile Photo', undefined, options);
   }
 
   return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
+    // No Modal wrapper — rendered inline with parent SafeAreaView
+    <View style={StyleSheet.absoluteFillObject}>
       <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView edges={['bottom']} style={ls.sheet}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -285,16 +102,11 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                 setSaving(false);
               }}
             >
-              <Text style={[ls.saveBtn, saving && { opacity: 0.5 }]}>
-                {saving ? 'Saving…' : 'Save'}
-              </Text>
+              <Text style={[ls.saveBtn, saving && { opacity: 0.5 }]}>{saving ? 'Saving…' : 'Save'}</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView
-            contentContainerStyle={{ padding: 20, gap: 8, paddingBottom: 32 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Avatar preview + change button */}
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 8, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+            {/* Avatar */}
             <View style={{ alignItems: 'center', gap: 12, marginBottom: 8 }}>
               <Avatar uri={avatarUri} size={88} />
               <TouchableOpacity style={ls.changePhotoBtn} onPress={handleChangePhoto} activeOpacity={0.8}>
@@ -304,25 +116,17 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
 
             <Text style={ls.label}>Display name</Text>
             <TextInput
-              style={ls.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Your name"
-              placeholderTextColor="#4a5568"
-              maxLength={40}
+              style={ls.input} value={name} onChangeText={setName}
+              placeholder="Your name" placeholderTextColor="#4a5568" maxLength={40}
             />
             <Text style={ls.label}>Bio <Text style={{ color: '#4a5568' }}>(optional)</Text></Text>
             <TextInput
-              style={[ls.input, { height: 80 }]}
-              value={bio}
-              onChangeText={setBio}
-              placeholder="A few words about you…"
-              placeholderTextColor="#4a5568"
-              multiline
-              maxLength={150}
-              textAlignVertical="top"
+              style={[ls.input, { height: 80 }]} value={bio} onChangeText={setBio}
+              placeholder="A few words about you…" placeholderTextColor="#4a5568"
+              multiline maxLength={150} textAlignVertical="top"
             />
 
+            {/* Tears selector */}
             {earnedTears.length > 0 && (
               <>
                 <Text style={ls.label}>My Tears <Text style={{ color: '#4a5568' }}>(choose up to 3 to display)</Text></Text>
@@ -333,13 +137,11 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                       <TouchableOpacity
                         key={tear}
                         style={[ls.tearChip, chosen && ls.tearChipActive]}
-                        onPress={() => {
-                          if (chosen) {
-                            setChosenTears(prev => prev.filter(t => t !== tear));
-                          } else if (chosenTears.length < 3) {
-                            setChosenTears(prev => [...prev, tear]);
-                          }
-                        }}
+                        onPress={() =>
+                          setChosenTears(prev =>
+                            chosen ? prev.filter(t => t !== tear) : prev.length < 3 ? [...prev, tear] : prev
+                          )
+                        }
                       >
                         <Text style={ls.tearEmoji}>{tear}</Text>
                         {chosen && <Text style={ls.tearCheck}>✓</Text>}
@@ -348,16 +150,14 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                   })}
                 </View>
                 {chosenTears.length > 0 && (
-                  <Text style={ls.tearsPreview}>
-                    Preview: @username {chosenTears.join(' ')}
-                  </Text>
+                  <Text style={ls.tearsPreview}>Preview: @username {chosenTears.join(' ')}</Text>
                 )}
               </>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </Modal>
+    </View>
   );
 }
 
@@ -369,7 +169,7 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
   const [username, setUsername] = useState<string | null>(null);
   const [cries, setCries] = useState<Cry[]>([]);
-  const [modal, setModal] = useState<'edit' | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
   const [recentAchievements, setRecentAchievements] = useState<{ id: string; unlocked_at: string }[]>([]);
   const [earnedTears, setEarnedTears] = useState<string[]>([]);
@@ -386,30 +186,24 @@ export default function ProfileScreen() {
 
   useFocusEffect(useCallback(() => {
     loadProfile().then(setProfile);
-    const criesPromise = loadCries().then(c => { setCries(c); return c; });
+    const criesP = loadCries().then(c => { setCries(c); return c; });
 
     if (session) {
       getProfileStats(session.user.id).then(setStats);
 
-      // Fetch username + selected_tears
-      supabase.from('profiles')
-        .select('username, selected_tears')
-        .eq('id', session.user.id).single()
+      supabase.from('profiles').select('username, selected_tears').eq('id', session.user.id).single()
         .then(({ data }) => {
           setUsername(data?.username ?? null);
           setSelectedTearsState(data?.selected_tears ?? []);
         });
 
-      // Fetch earned tears
       getEarnedTears(session.user.id).then(setEarnedTears);
 
-      // Fetch recent achievements
       getUnlockedAchievements(session.user.id).then(list => {
         setRecentAchievements(list.slice(0, 4));
       });
 
-      // Check for new achievements
-      criesPromise.then(c =>
+      criesP.then(c =>
         checkAndSaveAchievements(c, session).then(newOnes => {
           if (newOnes.length > 0) {
             setRecentAchievements(prev => [
@@ -423,19 +217,17 @@ export default function ProfileScreen() {
     }
   }, [session]));
 
-  async function handleSave(updated: Profile, newSelectedTears?: string[]) {
+  async function handleSave(updated: Profile, newTears: string[]) {
     await saveProfile(updated);
     setProfile(updated);
-    if (newSelectedTears !== undefined && session) {
-      await setSelectedTears(session.user.id, newSelectedTears);
-      setSelectedTearsState(newSelectedTears);
+    if (session) {
+      await setSelectedTears(session.user.id, newTears);
+      setSelectedTearsState(newTears);
     }
-    setModal(null);
+    setEditOpen(false);
   }
 
-  // Countries from cries
   const countryCount = new Set(cries.filter(c => c.country).map(c => c.country!)).size;
-  const unlockedCount = recentAchievements.length; // approximate until full list loaded
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -448,7 +240,7 @@ export default function ProfileScreen() {
           <TouchableOpacity onPress={() => router.push('/calendar')} style={styles.editBtn}>
             <Text style={styles.editTxt}>📅</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setModal('edit')} style={styles.editBtn}>
+          <TouchableOpacity onPress={() => setEditOpen(true)} style={styles.editBtn}>
             <Text style={styles.editTxt}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -460,9 +252,9 @@ export default function ProfileScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Avatar */}
+        {/* Avatar + name */}
         <View style={styles.avatarSection}>
-          <TouchableOpacity onPress={() => setModal('edit')}>
+          <TouchableOpacity onPress={() => setEditOpen(true)}>
             <Avatar uri={profile.avatarUri} size={88} />
           </TouchableOpacity>
           <Text style={styles.displayName}>{profile.displayName}</Text>
@@ -474,20 +266,20 @@ export default function ProfileScreen() {
           )}
           {profile.bio
             ? <Text style={styles.bio}>{profile.bio}</Text>
-            : <TouchableOpacity onPress={() => setModal('edit')}>
+            : <TouchableOpacity onPress={() => setEditOpen(true)}>
                 <Text style={styles.bioPlaceholder}>Add a bio…</Text>
               </TouchableOpacity>
           }
         </View>
 
-        {/* Stats — Cries · Countries · Following · Followers */}
+        {/* Stats row — Cries · Countries · Following · Followers */}
         <View style={styles.statsRow}>
           <TouchableOpacity style={styles.statCell} onPress={() => router.push('/my-cries')}>
             <Text style={styles.statValue}>{stats.cry_count || cries.length}</Text>
             <Text style={[styles.statLabel, styles.statTappable]}>Cries</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statCell} onPress={() => router.push('/stats')}>
+          <TouchableOpacity style={styles.statCell} onPress={() => router.push('/countries')}>
             <Text style={styles.statValue}>{countryCount}</Text>
             <Text style={[styles.statLabel, styles.statTappable]}>Countries</Text>
           </TouchableOpacity>
@@ -497,7 +289,7 @@ export default function ProfileScreen() {
             onPress={() => session && router.push(`/follow-list?userId=${session.user.id}&type=following`)}
           >
             <Text style={styles.statValue}>{stats.following_count}</Text>
-            <Text style={[styles.statLabel, session ? styles.statTappable : {}]}>Following</Text>
+            <Text style={[styles.statLabel, session ? styles.statTappable : undefined]}>Following</Text>
           </TouchableOpacity>
           <View style={styles.statDivider} />
           <TouchableOpacity
@@ -505,7 +297,7 @@ export default function ProfileScreen() {
             onPress={() => session && router.push(`/follow-list?userId=${session.user.id}&type=followers`)}
           >
             <Text style={styles.statValue}>{stats.follower_count}</Text>
-            <Text style={[styles.statLabel, session ? styles.statTappable : {}]}>Followers</Text>
+            <Text style={[styles.statLabel, session ? styles.statTappable : undefined]}>Followers</Text>
           </TouchableOpacity>
         </View>
 
@@ -545,13 +337,13 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {modal === 'edit' && (
+      {editOpen && (
         <EditModal
           profile={profile}
           earnedTears={earnedTears}
           selectedTears={selectedTears}
           onSave={handleSave}
-          onClose={() => setModal(null)}
+          onClose={() => setEditOpen(false)}
         />
       )}
     </SafeAreaView>
@@ -590,28 +382,20 @@ const styles = StyleSheet.create({
   section: { marginHorizontal: 20 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },
-  sectionMeta: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
   sectionAction: { color: '#6fe0e6', fontSize: 12, fontWeight: '600' },
   emptyAch: { padding: 20, alignItems: 'center' },
   emptyAchTxt: { color: '#374151', fontSize: 13, textAlign: 'center' },
   badgeList: { backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden' },
-  badgeRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#1f2937',
-  },
-  badgeRowLocked: { opacity: 0.5 },
-  badgeEmoji: { fontSize: 28, width: 36, textAlign: 'center' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1f2937' },
+  badgeEmoji: { fontSize: 26, width: 36, textAlign: 'center' },
   badgeName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  badgeDesc: { color: '#4a5568', fontSize: 12, marginTop: 1 },
-  badgeCheck: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
+  badgeDesc: { color: '#4a5568', fontSize: 12, marginTop: 1, fontStyle: 'italic' },
 });
 
-// ─── Sheet + list styles ──────────────────────────────────────────────────────
-
 const ls = StyleSheet.create({
-  backdrop: { flex: 1 },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#111827', maxHeight: '90%',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: '#1f2937',
@@ -623,60 +407,16 @@ const ls = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   sheetTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
-  closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4a5568', fontSize: 18 },
-  cryRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
-  dot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  emotionName: { fontSize: 14, fontWeight: '600' },
-  cryDate: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
-  cryNote: { color: '#64748b', fontSize: 12 },
-  emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  emotionLabel: { fontSize: 16, fontWeight: '700' },
-  dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
-  photo: { width: '100%', height: 160, borderRadius: 12, backgroundColor: '#0d1117' },
-  noteBox: { backgroundColor: '#0d1117', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#1f2937' },
-  noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
-  noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
-  backBtn: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  backTxt: { color: '#6fe0e6', fontSize: 14 },
-  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
-  empty: { alignItems: 'center', gap: 10, paddingHorizontal: 40, paddingVertical: 48 },
-  emptyTxt: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
-  emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
   cancel: { color: '#4a5568', fontSize: 15 },
   saveBtn: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   label: { color: '#94a3b8', fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 8 },
   input: { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937', borderRadius: 12, padding: 12, color: '#e2e8f0', fontSize: 15, marginTop: 6 },
+  changePhotoBtn: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#6fe0e6' },
+  changePhotoTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
   tearsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
-  tearChip: {
-    width: 52, height: 52, borderRadius: 14, borderWidth: 1,
-    borderColor: '#1f2937', backgroundColor: '#0d1117',
-    alignItems: 'center', justifyContent: 'center',
-  },
+  tearChip: { width: 52, height: 52, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937', backgroundColor: '#0d1117', alignItems: 'center', justifyContent: 'center' },
   tearChipActive: { borderColor: '#f2cf6b', backgroundColor: '#f2cf6b15' },
   tearEmoji: { fontSize: 24 },
   tearCheck: { position: 'absolute', bottom: 2, right: 4, fontSize: 10, color: '#f2cf6b', fontWeight: '700' },
   tearsPreview: { color: '#4a5568', fontSize: 12, marginTop: 8, fontStyle: 'italic' },
-  changePhotoBtn: {
-    paddingHorizontal: 18, paddingVertical: 8,
-    borderRadius: 20, borderWidth: 1, borderColor: '#6fe0e6',
-  },
-  changePhotoTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
-  userRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
-  userAvatar: { width: 44, height: 44, borderRadius: 22 },
-  userAvatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
-  userName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  userHandle: { color: '#4a5568', fontSize: 12 },
-  btnFollow: { backgroundColor: '#6fe0e6', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  btnFollowTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
-  btnFollowing: { borderWidth: 1, borderColor: '#1f2937', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
-  btnFollowingTxt: { color: '#4a5568', fontSize: 13 },
-  audioPlayer: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#0d1117', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#6fe0e6',
-  },
-  audioIcon: { fontSize: 18, color: '#6fe0e6' },
-  audioLabel: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
 });

@@ -21,6 +21,7 @@ export default function AchievementsScreen() {
   const { session } = useAuth();
   const [unlockedMap, setUnlockedMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [accountRank, setAccountRank] = useState<number | null>(null);
 
   useFocusEffect(useCallback(() => {
     if (!session) { setLoading(false); return; }
@@ -30,6 +31,11 @@ export default function AchievementsScreen() {
       setUnlockedMap(map);
       setLoading(false);
     });
+    // Fetch account rank for Founder/First Wave display
+    import('../lib/supabase').then(({ supabase }) =>
+      supabase.rpc('get_registration_rank', { user_created_at: session.user.created_at })
+        .then(({ data }) => { if (typeof data === 'number') setAccountRank(data + 1); })
+    );
   }, [session]));
 
   // Unlocked first (sorted newest), then locked
@@ -84,10 +90,23 @@ export default function AchievementsScreen() {
                       </View>
                     )}
                   </View>
-                  {unlocked
-                    ? <Text style={s.rowDate}>Unlocked {formatDate(unlockedMap[a.id])}</Text>
-                    : <Text style={s.rowMsg} numberOfLines={2}>"{a.unlockMessage}"</Text>
-                  }
+                  {unlocked ? (
+                    <>
+                      <Text style={s.rowDate}>Unlocked {formatDate(unlockedMap[a.id])}</Text>
+                      <Text style={s.rowMsg}>"{a.unlockMessage}"</Text>
+                      {/* Show account number for rank-based achievements */}
+                      {(a.id === 'founder' || a.id === 'first_wave') && accountRank && (
+                        <Text style={s.rankBadge}>Account #{accountRank}</Text>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Text style={s.rowHow}>{a.howToUnlock}</Text>
+                      {(a.id === 'founder' || a.id === 'first_wave') && accountRank && (
+                        <Text style={s.rankBadge}>You are account #{accountRank}</Text>
+                      )}
+                    </>
+                  )}
                 </View>
 
                 {unlocked && <Text style={s.check}>✓</Text>}
@@ -140,6 +159,8 @@ const s = StyleSheet.create({
   tearTagTxt: { color: '#f2cf6b', fontSize: 11, fontWeight: '600' },
 
   rowDate: { color: '#6fe0e6', fontSize: 12, fontFamily: 'monospace' },
-  rowMsg: { color: '#374151', fontSize: 12, fontStyle: 'italic', lineHeight: 16 },
+  rowMsg: { color: '#4a5568', fontSize: 12, fontStyle: 'italic', lineHeight: 16 },
+  rowHow: { color: '#64748b', fontSize: 12, lineHeight: 16 },
+  rankBadge: { color: '#f2cf6b', fontSize: 11, fontWeight: '600', marginTop: 2 },
   check: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
 });

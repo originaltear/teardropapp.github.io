@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "353398822714",
+    "project_id": "teardrop-app-2358d",
+    "storage_bucket": "teardrop-app-2358d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:353398822714:android:5503d1d3f619677a56a203",
+        "android_client_info": {
+          "package_name": "com.anonymous.teardrop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBy0Ahwx7jw5lu0qoXFb5i-DJw2_9CIviY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

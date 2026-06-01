@@ -32,7 +32,8 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "package": "com.anonymous.teardrop"
+      "package": "com.anonymous.teardrop",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"

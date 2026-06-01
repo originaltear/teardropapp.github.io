@@ -75,9 +75,9 @@ function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
 // ─── Visibility labels ────────────────────────────────────────────────────────
 
 const VISIBILITY_LABELS: Record<ProfileSettings['profile_visibility'], string> = {
-  everyone: '🌍  Everyone',
-  followers: '👥  Followers only',
-  only_me: '🔒  Only me',
+  everyone:  '🌍  Everyone',
+  followers: '👥  Friends only (mutual follows)',
+  only_me:   '🔒  Only me',
 };
 
 // ─── Main screen ──────────────────────────────────────────────────────────────

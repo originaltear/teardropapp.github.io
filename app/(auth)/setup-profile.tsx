@@ -25,9 +25,9 @@ function validateUsername(u: string): string | null {
 type Visibility = 'everyone' | 'followers' | 'only_me';
 
 const VISIBILITY_OPTS: { value: Visibility; icon: string; label: string; sub: string }[] = [
-  { value: 'everyone',  icon: '🌍', label: 'Everyone',       sub: 'Anyone can see your cries' },
-  { value: 'followers', icon: '👥', label: 'Followers only', sub: 'Only people you approve' },
-  { value: 'only_me',   icon: '🔒', label: 'Only me',        sub: 'Completely private' },
+  { value: 'everyone',  icon: '🌍', label: 'Everyone',    sub: 'Anyone on Teardrop can see your cries' },
+  { value: 'followers', icon: '👥', label: 'Friends only', sub: 'Only mutual follows (both follow each other)' },
+  { value: 'only_me',   icon: '🔒', label: 'Only me',     sub: 'Completely private — only you can see them' },
 ];
 
 export default function SetupProfileScreen() {

@@ -393,13 +393,16 @@ export async function checkAndSaveAchievements(
     if (ageMs >= 365 * 86400000) toUnlock.add('veteran');
     if (ageMs >= 730 * 86400000) toUnlock.add('old_timer');
 
-    // Founder / First Wave — count profiles created before this user
-    const { count: before } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .lt('created_at', session.user.created_at);
-    if ((before ?? 9999) < 100) toUnlock.add('founder');
-    if ((before ?? 9999) < 1000) toUnlock.add('first_wave');
+    // Founder / First Wave — use auth user's position by checking profiles
+    // We use the user's own created_at from auth metadata (more reliable than profiles.created_at)
+    try {
+      const { count: before } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .lt('created_at', session.user.created_at);
+      if (before !== null && before < 100) toUnlock.add('founder');
+      if (before !== null && before < 1000) toUnlock.add('first_wave');
+    } catch { /* profiles may not expose created_at — skip */ }
 
     // Likes received on own cries
     const { data: ownCries } = await supabase.from('cries').select('id').eq('user_id', userId);

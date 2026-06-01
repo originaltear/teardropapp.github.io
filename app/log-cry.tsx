@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -9,10 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { EMOTIONS } from '../lib/emotions';
-import { saveCry, loadCries } from '../lib/storage';
-import { checkAndSaveAchievements, Achievement } from '../lib/achievements';
-import { AchievementToast } from '../components/AchievementToast';
-import { useAuth } from '../lib/auth';
+import { saveCry } from '../lib/storage';
 
 function generateId(): string {
   // RFC 4122 v4 UUID — required by Supabase uuid column type
@@ -29,14 +26,10 @@ function generateId(): string {
 export default function LogCryScreen() {
   const router = useRouter();
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
-  const { session } = useAuth();
-
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
-  const [currentToast, setCurrentToast] = useState<Achievement | null>(null);
 
   // ── Photo state ──
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -174,15 +167,6 @@ export default function LogCryScreen() {
     return `${m}:${s}`;
   }
 
-  // ── Toast queue ──
-
-  function showNextToast(queue: Achievement[]) {
-    if (queue.length === 0) { setCurrentToast(null); return; }
-    const [next, ...rest] = queue;
-    setCurrentToast(next);
-    setToastQueue(rest);
-  }
-
   // ── Save ──
 
   async function handleSave() {
@@ -203,15 +187,7 @@ export default function LogCryScreen() {
 
     setSaving(false);
 
-    // Check achievements (non-blocking — don't await before navigating)
-    if (session) {
-      loadCries().then(cries =>
-        checkAndSaveAchievements(cries, session).then(newOnes => {
-          if (newOnes.length > 0) showNextToast(newOnes);
-        })
-      );
-    }
-
+    // Navigate immediately — achievement toasts show on Profile tab (checked on focus)
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/');
   }
@@ -239,11 +215,6 @@ export default function LogCryScreen() {
           <Text style={styles.title}>Log a Cry</Text>
           <View style={{ width: 36 }} />
         </View>
-
-        <AchievementToast
-          achievement={currentToast}
-          onDismiss={() => showNextToast(toastQueue)}
-        />
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
 

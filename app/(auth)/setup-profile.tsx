@@ -22,17 +22,26 @@ function validateUsername(u: string): string | null {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+type Visibility = 'everyone' | 'followers' | 'only_me';
+
+const VISIBILITY_OPTS: { value: Visibility; icon: string; label: string; sub: string }[] = [
+  { value: 'everyone',  icon: '🌍', label: 'Everyone',       sub: 'Anyone can see your cries' },
+  { value: 'followers', icon: '👥', label: 'Followers only', sub: 'Only people you approve' },
+  { value: 'only_me',   icon: '🔒', label: 'Only me',        sub: 'Completely private' },
+];
+
 export default function SetupProfileScreen() {
   const router = useRouter();
   const { refreshUsername } = useAuth();
 
-  const [username, setUsername]     = useState('');
+  const [username, setUsername]       = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [checking, setChecking]     = useState(false);
-  const [available, setAvailable]   = useState<boolean | null>(null);
+  const [visibility, setVisibility]   = useState<Visibility>('everyone');
+  const [checking, setChecking]       = useState(false);
+  const [available, setAvailable]     = useState<boolean | null>(null);
   const [validationErr, setValidationErr] = useState<string | null>(null);
-  const [saving, setSaving]         = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+  const [saving, setSaving]           = useState(false);
+  const [error, setError]             = useState<string | null>(null);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -82,6 +91,7 @@ export default function SetupProfileScreen() {
       .update({
         username: username.toLowerCase().trim(),
         display_name: displayName.trim() || username,
+        profile_visibility: visibility,
       })
       .eq('id', session.user.id);
 
@@ -170,6 +180,34 @@ export default function SetupProfileScreen() {
             />
           </View>
 
+          {/* Default cry visibility */}
+          <View style={[s.fieldGroup, { marginTop: 28 }]}>
+            <Text style={s.label}>WHO CAN SEE YOUR CRIES?</Text>
+            <Text style={s.hint}>You can change this per cry or in Settings later</Text>
+            <View style={{ gap: 8, marginTop: 12 }}>
+              {VISIBILITY_OPTS.map(opt => {
+                const sel = visibility === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[s.visRow, sel && s.visRowActive]}
+                    onPress={() => setVisibility(opt.value)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={s.visIcon}>{opt.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.visLabel, sel && s.visLabelActive]}>{opt.label}</Text>
+                      <Text style={s.visSub}>{opt.sub}</Text>
+                    </View>
+                    <View style={[s.visRadio, sel && s.visRadioActive]}>
+                      {sel && <View style={s.visRadioDot} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
           {error ? <Text style={s.errorTxt}>{error}</Text> : null}
 
           {/* Save */}
@@ -230,6 +268,26 @@ const s = StyleSheet.create({
   statusOk: { color: '#4ade80', fontSize: 13, marginTop: 6 },
   statusErr: { color: '#ef6f6f', fontSize: 13, marginTop: 6 },
   hint: { color: '#374151', fontSize: 11, fontFamily: 'monospace', marginTop: 6 },
+
+  // Visibility picker
+  visRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#111827', borderRadius: 12,
+    borderWidth: 1, borderColor: '#1f2937',
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  visRowActive: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e610' },
+  visIcon: { fontSize: 22 },
+  visLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
+  visLabelActive: { color: '#6fe0e6' },
+  visSub: { color: '#374151', fontSize: 12, marginTop: 1 },
+  visRadio: {
+    width: 20, height: 20, borderRadius: 10,
+    borderWidth: 2, borderColor: '#374151',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  visRadioActive: { borderColor: '#6fe0e6' },
+  visRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6fe0e6' },
 
   errorTxt: { color: '#ef6f6f', fontSize: 13, marginTop: 16, lineHeight: 18 },
 

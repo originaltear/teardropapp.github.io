@@ -3,6 +3,7 @@
  *
  * Triggered by a Postgres pg_net webhook when a row is inserted into `notifications`.
  * Looks up the recipient's Expo push token and sends the notification via Expo Push API.
+ * Respects the recipient's notification_preferences stored in their profile.
  *
  * Environment variables (set in Supabase dashboard → Edge Functions → send-push → Secrets):
  *   WEBHOOK_SECRET  — shared secret set in the DB trigger to verify origin
@@ -21,6 +22,14 @@ interface NotificationRow {
   reference_id: string | null;
   created_at: string;
 }
+
+/** Maps notification type → notification_preferences key */
+const PREF_KEY: Record<string, string> = {
+  like:           'new_likes',
+  comment:        'new_comments',
+  follow:         'new_followers',
+  friend_request: 'friend_requests',
+};
 
 Deno.serve(async (req: Request) => {
   // ── Auth check ─────────────────────────────────────────────────────────────
@@ -49,10 +58,10 @@ Deno.serve(async (req: Request) => {
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase    = createClient(supabaseUrl, serviceKey);
 
-  // ── Fetch recipient's push token ────────────────────────────────────────────
+  // ── Fetch recipient's push token + notification preferences ────────────────
   const { data: recipient } = await supabase
     .from('profiles')
-    .select('push_token')
+    .select('push_token, notification_preferences')
     .eq('id', row.user_id)
     .single();
 
@@ -61,6 +70,18 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ sent: false, reason: 'no_token' }), {
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // ── Check notification preferences ────────────────────────────────────────
+  const prefs: Record<string, boolean> = recipient.notification_preferences ?? {};
+  const prefKey = PREF_KEY[row.type];
+  if (prefKey && prefs[prefKey] === false) {
+    // User has explicitly disabled this notification type
+    console.log(`[send-push] skipped — user ${row.user_id} disabled ${prefKey}`);
+    return new Response(
+      JSON.stringify({ sent: false, reason: 'pref_disabled', pref: prefKey }),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
   }
 
   // ── Fetch actor's display name ──────────────────────────────────────────────

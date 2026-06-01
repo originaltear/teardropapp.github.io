@@ -12,6 +12,7 @@ import {
   Notification,
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
+import { clearBadge } from '../../lib/notifications';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,8 @@ export default function NotificationsScreen() {
 
   useFocusEffect(useCallback(() => {
     if (!session) return;
+    // Clear badge when user opens notifications
+    clearBadge();
     setLoading(true);
     getNotifications().then(async data => {
       setNotifications(data);

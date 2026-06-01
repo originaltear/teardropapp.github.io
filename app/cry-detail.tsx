@@ -17,6 +17,7 @@ import { emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import {
   getCry, likeCry, unlikeCry, getComments, addComment, SocialCry, Comment,
+  reportContent,
 } from '../lib/social';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -125,6 +126,33 @@ export default function CryDetailScreen() {
   const emotion = cry ? emotionById(cry.emotion) : null;
   const isOwn = session?.user.id === cry?.user_id;
 
+  function handleReport() {
+    if (!cry) return;
+    Alert.alert(
+      'Report Cry',
+      'Why are you reporting this?',
+      [
+        { text: 'Inappropriate content', onPress: () => submitReport('Inappropriate content') },
+        { text: 'Harassment', onPress: () => submitReport('Harassment') },
+        { text: 'Spam', onPress: () => submitReport('Spam') },
+        { text: 'Other', onPress: () => submitReport('Other') },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  }
+
+  async function submitReport(reason: string) {
+    if (!cry) return;
+    const result = await reportContent('cry', cry.id, reason);
+    if (result === 'ok') {
+      Alert.alert('Reported', "Thanks for your report. We'll review it shortly.");
+    } else if (result === 'duplicate') {
+      Alert.alert('Already reported', "You've already reported this cry.");
+    } else {
+      Alert.alert('Error', 'Could not submit report. Please try again.');
+    }
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
@@ -161,7 +189,13 @@ export default function CryDetailScreen() {
           <Text style={s.backTxt}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>Cry</Text>
-        <View style={{ width: 36 }} />
+        {!isOwn && session && cry ? (
+          <TouchableOpacity style={s.backBtn} onPress={handleReport} activeOpacity={0.7}>
+            <Text style={s.menuTxt}>⋯</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -274,6 +308,7 @@ const s = StyleSheet.create({
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   backTxt: { color: '#6fe0e6', fontSize: 22 },
+  menuTxt: { color: '#4a5568', fontSize: 22, fontWeight: '700' },
   headerTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '600' },
 
   content: { padding: 20, gap: 14 },

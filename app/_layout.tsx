@@ -1,13 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { registerPushToken, clearBadge } from '../lib/notifications';
 
 function RootNav() {
   const { session, loading, hasUsername } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const notifListenerRef = useRef<Notifications.EventSubscription | null>(null);
 
+  // ── Auth routing ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (loading) return;
     const inAuth = segments[0] === '(auth)';
@@ -15,17 +19,51 @@ function RootNav() {
 
     if (!session) return; // Guest — free to roam
 
-    // Logged in but username check still loading — wait
     if (hasUsername === null) return;
 
     if (!hasUsername && !onSetup) {
-      // New user — needs to pick a username
       router.replace('/(auth)/setup-profile');
     } else if (hasUsername && inAuth) {
-      // Profile complete — go to app
       router.replace('/(tabs)/');
     }
   }, [session, loading, hasUsername, segments]);
+
+  // ── Push token registration ───────────────────────────────────────────────
+  useEffect(() => {
+    if (session && hasUsername) {
+      registerPushToken();
+    }
+  }, [session?.user.id, hasUsername]);
+
+  // ── Handle notification taps (background / quit state) ───────────────────
+  useEffect(() => {
+    // Handle notification that launched the app from quit/background
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) handleNotificationResponse(response);
+    });
+
+    // Listen for taps while app is running in background
+    notifListenerRef.current = Notifications.addNotificationResponseReceivedListener(
+      handleNotificationResponse,
+    );
+
+    return () => {
+      notifListenerRef.current?.remove();
+    };
+  }, []);
+
+  function handleNotificationResponse(response: Notifications.NotificationResponse) {
+    const data = response.notification.request.content.data as Record<string, string> | undefined;
+    if (!data) return;
+    clearBadge();
+
+    const { type, cry_id } = data;
+    if ((type === 'like' || type === 'comment') && cry_id) {
+      router.push(`/cry-detail?id=${cry_id}`);
+    } else if (type === 'follow' || type === 'friend_request') {
+      router.push('/(tabs)/notifications');
+    }
+  }
 
   if (loading) {
     return (

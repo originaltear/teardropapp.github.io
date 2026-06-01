@@ -59,19 +59,27 @@ export const DEFAULT_THEME = THEMES[0];
 
 const THEME_KEY = 'teardrop_theme';
 
+function userThemeKey(userId: string) {
+  return `teardrop_theme_${userId}`;
+}
+
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
-export async function loadSavedTheme(): Promise<ThemeDef> {
+export async function loadSavedTheme(userId?: string): Promise<ThemeDef> {
   try {
-    const id = await AsyncStorage.getItem(THEME_KEY);
-    return THEMES.find(t => t.id === id) ?? DEFAULT_THEME;
+    // Per-user key takes priority; fall back to legacy global key for migration
+    const key = userId ? userThemeKey(userId) : THEME_KEY;
+    const id = await AsyncStorage.getItem(key);
+    const resolvedId = id ?? (userId ? await AsyncStorage.getItem(THEME_KEY) : null);
+    return THEMES.find(t => t.id === resolvedId) ?? DEFAULT_THEME;
   } catch {
     return DEFAULT_THEME;
   }
 }
 
-export async function saveTheme(theme: ThemeDef): Promise<void> {
-  await AsyncStorage.setItem(THEME_KEY, theme.id);
+export async function saveTheme(theme: ThemeDef, userId?: string): Promise<void> {
+  const key = userId ? userThemeKey(userId) : THEME_KEY;
+  await AsyncStorage.setItem(key, theme.id);
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────

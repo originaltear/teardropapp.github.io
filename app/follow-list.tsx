@@ -13,7 +13,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getFollowList, followUser, unfollowUser, UserResult } from '../lib/social';
 import { useTheme } from '../lib/themes';
 import { useAuth } from '../lib/auth';
-import { useTheme } from '../lib/themes';
 
 function Avatar({ uri, size = 46 }: { uri?: string | null; size?: number }) {
   if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
@@ -48,14 +48,20 @@ function Drops({ intensity, size = 14 }: { intensity: number; size?: number }) {
   );
 }
 
-function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+const Avatar = memo(function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
+  if (uri) return (
+    <Image
+      source={{ uri }}
+      style={{ width: size, height: size, borderRadius: size / 2 }}
+      fadeDuration={150}
+    />
+  );
   return (
     <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
       <Text style={{ fontSize: size * 0.45 }}>💧</Text>
     </View>
   );
-}
+});
 
 // ─── Audio player ─────────────────────────────────────────────────────────────
 
@@ -242,7 +248,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
 
 // ─── Feed item ────────────────────────────────────────────────────────────────
 
-function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
+const FeedItem = memo(function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
   return (
@@ -279,7 +285,7 @@ function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 // ─── Feed screen ──────────────────────────────────────────────────────────────
 

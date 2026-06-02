@@ -40,18 +40,22 @@ export default function CloseFriendsScreen() {
   const [toggling, setToggling] = useState<Set<string>>(new Set());
 
   useFocusEffect(useCallback(() => {
-    if (!session) return;
+    if (!session) { setLoading(false); return; }
     (async () => {
       setLoading(true);
-      const [cf, fl] = await Promise.all([
-        getCloseFriends(),
-        getFollowList(session.user.id, 'followers'),
-      ]);
-      setCloseFriends(cf);
-      setCloseFriendIds(new Set(cf.map(c => c.friend_id)));
-      // Filter out self
-      setFollowers(fl.filter(f => f.id !== session.user.id));
-      setLoading(false);
+      try {
+        const [cf, fl] = await Promise.all([
+          getCloseFriends(),
+          getFollowList(session.user.id, 'followers'),
+        ]);
+        setCloseFriends(cf);
+        setCloseFriendIds(new Set(cf.map(c => c.friend_id)));
+        setFollowers(fl.filter(f => f.id !== session.user.id));
+      } catch (e) {
+        console.warn('[close-friends] load failed:', e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [session]));
 

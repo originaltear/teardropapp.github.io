@@ -145,8 +145,12 @@ export type PurchaseResult = 'success' | 'cancelled' | 'error';
 
 export async function purchasePlan(plan: PlanOption): Promise<PurchaseResult> {
   if (!plan.pkg) {
-    // Sandbox / no live product yet — grant premium via DB flag
-    console.log('[purchases] No live package — granting premium via DB flag');
+    // Dev-only sandbox: grant premium via DB flag — blocked in production builds
+    if (!__DEV__) {
+      console.warn('[purchases] No live RevenueCat products configured');
+      return 'error';
+    }
+    console.log('[purchases] DEV: No live package — granting premium via DB flag');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -154,7 +158,6 @@ export async function purchasePlan(plan: PlanOption): Promise<PurchaseResult> {
           .from('profiles')
           .update({ is_premium: true })
           .eq('id', session.user.id);
-        // Immediately sync Crystal Tear
         await syncCrystalTear(session.user.id);
       }
     } catch (e) {

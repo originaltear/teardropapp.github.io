@@ -31,7 +31,7 @@ function notifIcon(type: Notification['type']) {
 }
 
 function notifText(n: Notification): string {
-  const name = n.actor.display_name;
+  const name = n.actor?.display_name ?? 'Someone';
   switch (n.type) {
     case 'like':           return `${name} liked your cry`;
     case 'comment':        return `${name} commented on your cry`;
@@ -71,7 +71,7 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
       {/* Avatar — tappable to go to profile */}
       <TouchableOpacity onPress={() => router.push(`/user-profile?id=${notif.actor_id}`)} activeOpacity={0.8}>
         <View style={styles.iconBadge}>
-          <Avatar uri={notif.actor.avatar_uri} size={42} />
+          <Avatar uri={notif.actor?.avatar_uri} size={42} />
           <View style={styles.typeIcon}>
             <Text style={{ fontSize: 12 }}>{notifIcon(notif.type)}</Text>
           </View>
@@ -129,35 +129,38 @@ export default function NotificationsScreen() {
 
   useFocusEffect(useCallback(() => {
     if (!session) return;
-    // Clear badge when user opens notifications
     clearBadge();
     setLoading(true);
-    getNotifications().then(async data => {
-      setNotifications(data);
-      setLoading(false);
+    (async () => {
+      try {
+        const data = await getNotifications();
+        setNotifications(data);
 
-      // Pre-populate followedBack: check who we already follow among notif actors
-      const actorIds = [...new Set(
-        data.filter(n => n.type === 'follow' || n.type === 'friend_request').map(n => n.actor_id)
-      )];
-      if (actorIds.length > 0) {
-        const { data: follows } = await supabase
-          .from('follows')
-          .select('following_id')
-          .eq('follower_id', session.user.id)
-          .in('following_id', actorIds);
-        setFollowedBack(new Set((follows ?? []).map(f => f.following_id)));
-      } else {
-        setFollowedBack(new Set());
-      }
+        const actorIds = [...new Set(
+          data.filter(n => n.type === 'follow' || n.type === 'friend_request').map(n => n.actor_id)
+        )];
+        if (actorIds.length > 0) {
+          const { data: follows } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', session.user.id)
+            .in('following_id', actorIds);
+          setFollowedBack(new Set((follows ?? []).map(f => f.following_id)));
+        } else {
+          setFollowedBack(new Set());
+        }
 
-      // Mark unread as read
-      const unread = data.filter(n => !n.read).map(n => n.id);
-      if (unread.length) {
-        markNotificationsRead(unread);
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        const unread = data.filter(n => !n.read).map(n => n.id);
+        if (unread.length) {
+          markNotificationsRead(unread);
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        }
+      } catch (e) {
+        console.warn('[notifications] load failed:', e);
+      } finally {
+        setLoading(false);
       }
-    });
+    })();
   }, [session]));
 
   async function handleFollowBack(actorId: string) {

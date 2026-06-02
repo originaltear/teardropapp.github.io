@@ -68,27 +68,32 @@ export default function UserProfileScreen() {
   useFocusEffect(useCallback(() => {
     if (!id) return;
     (async () => {
-      const [profileRes, statsRes, criesRes] = await Promise.all([
-        supabase.from('profiles')
-          .select('id, username, display_name, avatar_uri, bio, is_public')
-          .eq('id', id).single(),
-        getProfileStats(id),
-        getUserCries(id),
-      ]);
-      setProfile(profileRes.data as PublicProfile);
-      setStats(statsRes);
-      setCries(criesRes);
-
-      if (session) {
-        const [followRes, blockRes] = await Promise.all([
-          supabase.from('follows')
-            .select('id').eq('follower_id', session.user.id).eq('following_id', id).maybeSingle(),
-          isUserBlocked(id),
+      try {
+        const [profileRes, statsRes, criesRes] = await Promise.all([
+          supabase.from('profiles')
+            .select('id, username, display_name, avatar_uri, bio, is_public')
+            .eq('id', id).single(),
+          getProfileStats(id),
+          getUserCries(id),
         ]);
-        setIsFollowing(!!followRes.data);
-        setIsBlocked(blockRes);
+        setProfile(profileRes.data as PublicProfile);
+        setStats(statsRes);
+        setCries(criesRes);
+
+        if (session) {
+          const [followRes, blockRes] = await Promise.all([
+            supabase.from('follows')
+              .select('id').eq('follower_id', session.user.id).eq('following_id', id).maybeSingle(),
+            isUserBlocked(id),
+          ]);
+          setIsFollowing(!!followRes.data);
+          setIsBlocked(blockRes);
+        }
+      } catch (e) {
+        console.warn('[user-profile] load failed:', e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [id, session]));
 

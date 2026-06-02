@@ -20,8 +20,14 @@ export interface Cry {
 // ─── Local helpers ────────────────────────────────────────────────────────────
 
 async function localLoad(): Promise<Cry[]> {
-  const raw = await AsyncStorage.getItem(LOCAL_KEY);
-  return raw ? (JSON.parse(raw) as Cry[]) : [];
+  try {
+    const raw = await AsyncStorage.getItem(LOCAL_KEY);
+    return raw ? (JSON.parse(raw) as Cry[]) : [];
+  } catch {
+    console.warn('[localLoad] corrupt storage — resetting');
+    await AsyncStorage.removeItem(LOCAL_KEY);
+    return [];
+  }
 }
 
 async function localSave(cries: Cry[]): Promise<void> {

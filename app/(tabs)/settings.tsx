@@ -131,19 +131,24 @@ export default function SettingsScreen() {
     if (!session) { setLoading(false); return; }
     (async () => {
       setLoading(true);
-      const [settings, blocked, premium] = await Promise.all([
-        getProfileSettings(),
-        getBlockedUsers(),
-        checkPremium(),
-      ]);
-      if (settings) {
-        setProfileVisibility(settings.profile_visibility);
-        setAllowComments(settings.allow_comments);
-        setNotifPrefs({ ...DEFAULT_NOTIF_PREFS, ...settings.notification_preferences });
+      try {
+        const [settings, blocked, premium] = await Promise.all([
+          getProfileSettings(),
+          getBlockedUsers(),
+          checkPremium(),
+        ]);
+        if (settings) {
+          setProfileVisibility(settings.profile_visibility);
+          setAllowComments(settings.allow_comments);
+          setNotifPrefs({ ...DEFAULT_NOTIF_PREFS, ...settings.notification_preferences });
+        }
+        setBlockedUsers(blocked);
+        setIsPremium(premium);
+      } catch (e) {
+        console.warn('[settings] load failed:', e);
+      } finally {
+        setLoading(false);
       }
-      setBlockedUsers(blocked);
-      setIsPremium(premium);
-      setLoading(false);
     })();
   }, [session]));
 

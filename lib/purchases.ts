@@ -54,13 +54,18 @@ export function initPurchases(userId?: string) {
  * Checks RevenueCat first; falls back to DB `is_premium` flag
  * (used in development before products are live in Play Store).
  */
+const RC_TIMEOUT_MS = 4000;
+
 export async function checkPremium(): Promise<boolean> {
-  // 1. Try RevenueCat (the real source of truth in production)
+  // 1. Try RevenueCat with a timeout so a slow/dead network doesn't block the UI
   try {
-    const info: CustomerInfo = await Purchases.getCustomerInfo();
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('RC timeout')), RC_TIMEOUT_MS)
+    );
+    const info = await Promise.race([Purchases.getCustomerInfo(), timeout]) as CustomerInfo;
     if (ENTITLEMENT_ID in info.entitlements.active) return true;
   } catch {
-    // RC not configured or unavailable — fall through to DB check
+    // RC not configured, unavailable, or timed out — fall through to DB check
   }
 
   // 2. Fallback: check DB is_premium flag (dev / sandbox mode)

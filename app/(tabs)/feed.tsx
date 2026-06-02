@@ -248,11 +248,11 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
 
 // ─── Feed item ────────────────────────────────────────────────────────────────
 
-const FeedItem = memo(function FeedItem({ cry, onPress }: { cry: SocialCry; onPress: () => void }) {
+const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onSelect: (cry: SocialCry) => void }) {
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
   return (
-    <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity style={styles.item} onPress={() => onSelect(cry)} activeOpacity={0.75}>
       <Avatar uri={cry.profile.avatar_uri} size={44} />
       <View style={styles.itemContent}>
         <View style={styles.itemTop}>
@@ -329,6 +329,9 @@ export default function FeedScreen() {
     : allCries;
 
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
+
+  // Stable handler so memoized FeedItem rows don't re-render on every parent render
+  const handleSelect = useCallback((c: SocialCry) => setSelected(c), []);
 
   function handleLikeToggle(cryId: string, liked: boolean) {
     setAllCries(prev => prev.map(c => c.id === cryId
@@ -427,7 +430,7 @@ export default function FeedScreen() {
           keyExtractor={c => c.id}
           style={{ flex: 1 }}
           renderItem={({ item }) => (
-            <FeedItem cry={item} onPress={() => setSelected(item)} />
+            <FeedItem cry={item} onSelect={handleSelect} />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={displayCries.length === 0 ? styles.emptyContainer : styles.listContent}

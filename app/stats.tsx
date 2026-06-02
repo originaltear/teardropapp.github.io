@@ -4,7 +4,7 @@
  * Premium: emotion breakdown, day of week, countries, top likers, active hour, emotion trends
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Image,
@@ -226,103 +226,119 @@ export default function StatsScreen() {
   const goPaywall = () => router.push('/paywall');
   const n = cries.length;
 
-  // ── Compute all stats ─────────────────────────────────────────────────────
+  // ── Compute all stats (memoized — these are ~15 O(n) passes over `cries`
+  //    that would otherwise re-run on every render, e.g. loading/premium state) ──
+  const stats = useMemo(() => {
+    const now = new Date();
 
-  const now = new Date();
+    // Periods
+    const todayStr = now.toLocaleDateString('en-CA');
+    const wkStart = (() => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Mon-start
+      return d.toLocaleDateString('en-CA');
+    })();
+    const moKey = getMonthKey(now);
+    const yr = now.getFullYear();
 
-  // Periods
-  const todayStr = now.toLocaleDateString('en-CA');
-  const wkStart = (() => {
-    const d = new Date(now);
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Mon-start
-    return d.toLocaleDateString('en-CA');
-  })();
-  const moKey = getMonthKey(now);
-  const yr = now.getFullYear();
+    const thisWeek  = cries.filter(c => c.createdAt.slice(0, 10) >= wkStart).length;
+    const thisMonth = cries.filter(c => getMonthKey(new Date(c.createdAt)) === moKey).length;
+    const thisYear  = cries.filter(c => new Date(c.createdAt).getFullYear() === yr).length;
 
-  const thisWeek  = cries.filter(c => c.createdAt.slice(0, 10) >= wkStart).length;
-  const thisMonth = cries.filter(c => getMonthKey(new Date(c.createdAt)) === moKey).length;
-  const thisYear  = cries.filter(c => new Date(c.createdAt).getFullYear() === yr).length;
-
-  // Streaks
-  const days = [...new Set(cries.map(c => new Date(c.createdAt).toLocaleDateString('en-CA')))].sort().reverse();
-  let currentStreak = 0, maxStreak = 0;
-  if (days.length > 0) {
-    const yestStr = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-    if (days[0] === todayStr || days[0] === yestStr) {
-      currentStreak = 1;
+    // Streaks
+    const days = [...new Set(cries.map(c => new Date(c.createdAt).toLocaleDateString('en-CA')))].sort().reverse();
+    let currentStreak = 0, maxStreak = 0;
+    if (days.length > 0) {
+      const yestStr = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+      if (days[0] === todayStr || days[0] === yestStr) {
+        currentStreak = 1;
+        for (let i = 0; i < days.length - 1; i++) {
+          const diff = Math.round((new Date(days[i]).getTime() - new Date(days[i + 1]).getTime()) / 86400000);
+          if (diff === 1) currentStreak++; else break;
+        }
+      }
+      let streak = 1;
       for (let i = 0; i < days.length - 1; i++) {
         const diff = Math.round((new Date(days[i]).getTime() - new Date(days[i + 1]).getTime()) / 86400000);
-        if (diff === 1) currentStreak++; else break;
+        if (diff === 1) { streak++; maxStreak = Math.max(maxStreak, streak); } else { streak = 1; }
       }
+      maxStreak = Math.max(maxStreak, currentStreak);
     }
-    let streak = 1;
-    for (let i = 0; i < days.length - 1; i++) {
-      const diff = Math.round((new Date(days[i]).getTime() - new Date(days[i + 1]).getTime()) / 86400000);
-      if (diff === 1) { streak++; maxStreak = Math.max(maxStreak, streak); } else { streak = 1; }
+
+    // Basics
+    const avgIntensity = n > 0 ? (cries.reduce((s, c) => s + c.intensity, 0) / n).toFixed(1) : '—';
+    const withPhoto = cries.filter(c => c.photoUri).length;
+
+    // Country counts
+    const countryMap: Record<string, number> = {};
+    for (const c of cries) {
+      if (c.country) countryMap[c.country] = (countryMap[c.country] ?? 0) + 1;
     }
-    maxStreak = Math.max(maxStreak, currentStreak);
-  }
-
-  // Basics
-  const avgIntensity = n > 0 ? (cries.reduce((s, c) => s + c.intensity, 0) / n).toFixed(1) : '—';
-  const withPhoto = cries.filter(c => c.photoUri).length;
-
-  // Country counts
-  const countryMap: Record<string, number> = {};
-  for (const c of cries) {
-    if (c.country) countryMap[c.country] = (countryMap[c.country] ?? 0) + 1;
-  }
-  const countryList = Object.entries(countryMap)
-    .sort(([, a], [, b]) => b - a)
-    .map(([name, count]) => ({ name, count }));
-  const countryCount = countryList.length;
-
-  // All 12 months (bar chart)
-  const monthData = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
-    const key = getMonthKey(d);
-    const count = cries.filter(c => getMonthKey(new Date(c.createdAt)) === key).length;
-    return { label: MONTHS[d.getMonth()], value: count };
-  });
-  const maxMonth = Math.max(...monthData.map(d => d.value), 1);
-
-  // Emotion counts
-  const emotionCounts: Record<string, number> = {};
-  for (const c of cries) emotionCounts[c.emotion] = (emotionCounts[c.emotion] ?? 0) + 1;
-  const emotionList = EMOTIONS
-    .filter(e => emotionCounts[e.id])
-    .sort((a, b) => (emotionCounts[b.id] ?? 0) - (emotionCounts[a.id] ?? 0));
-  const topEmotion = emotionList[0] ?? null;
-
-  // Weekday (Mon-first)
-  const byDay = Array(7).fill(0);
-  for (const c of cries) byDay[new Date(c.createdAt).getDay()]++;
-  const weekdayData = DAY_ORDER.map((jsDay, i) => ({ label: DAY_LABELS[i], value: byDay[jsDay] }));
-  const maxDay = Math.max(...weekdayData.map(d => d.value), 1);
-
-  // Hourly
-  const byHour = Array(24).fill(0);
-  for (const c of cries) byHour[new Date(c.createdAt).getHours()]++;
-  const hourBuckets = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: byHour[h] }));
-
-  // Emotion trends — last 6 months, top 2 per month
-  const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-  const recentCries = cries.filter(c => new Date(c.createdAt) >= sixAgo);
-  const trendMap: Record<string, Record<string, number>> = {};
-  for (const c of recentCries) {
-    const ym = getMonthKey(new Date(c.createdAt));
-    if (!trendMap[ym]) trendMap[ym] = {};
-    trendMap[ym][c.emotion] = (trendMap[ym][c.emotion] ?? 0) + 1;
-  }
-  const trendMonths = Object.keys(trendMap).sort();
-  const trendData = trendMonths.map(ym => ({
-    ym,
-    top: Object.entries(trendMap[ym])
+    const countryList = Object.entries(countryMap)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 2)
-      .map(([id, count]) => ({ emotion: emotionById(id), count })),
-  }));
+      .map(([name, count]) => ({ name, count }));
+    const countryCount = countryList.length;
+
+    // All 12 months (bar chart)
+    const monthData = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+      const key = getMonthKey(d);
+      const count = cries.filter(c => getMonthKey(new Date(c.createdAt)) === key).length;
+      return { label: MONTHS[d.getMonth()], value: count };
+    });
+    const maxMonth = Math.max(...monthData.map(d => d.value), 1);
+
+    // Emotion counts
+    const emotionCounts: Record<string, number> = {};
+    for (const c of cries) emotionCounts[c.emotion] = (emotionCounts[c.emotion] ?? 0) + 1;
+    const emotionList = EMOTIONS
+      .filter(e => emotionCounts[e.id])
+      .sort((a, b) => (emotionCounts[b.id] ?? 0) - (emotionCounts[a.id] ?? 0));
+    const topEmotion = emotionList[0] ?? null;
+
+    // Weekday (Mon-first)
+    const byDay = Array(7).fill(0);
+    for (const c of cries) byDay[new Date(c.createdAt).getDay()]++;
+    const weekdayData = DAY_ORDER.map((jsDay, i) => ({ label: DAY_LABELS[i], value: byDay[jsDay] }));
+    const maxDay = Math.max(...weekdayData.map(d => d.value), 1);
+
+    // Hourly
+    const byHour = Array(24).fill(0);
+    for (const c of cries) byHour[new Date(c.createdAt).getHours()]++;
+    const hourBuckets = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: byHour[h] }));
+
+    // Emotion trends — last 6 months, top 2 per month
+    const sixAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const recentCries = cries.filter(c => new Date(c.createdAt) >= sixAgo);
+    const trendMap: Record<string, Record<string, number>> = {};
+    for (const c of recentCries) {
+      const ym = getMonthKey(new Date(c.createdAt));
+      if (!trendMap[ym]) trendMap[ym] = {};
+      trendMap[ym][c.emotion] = (trendMap[ym][c.emotion] ?? 0) + 1;
+    }
+    const trendMonths = Object.keys(trendMap).sort();
+    const trendData = trendMonths.map(ym => ({
+      ym,
+      top: Object.entries(trendMap[ym])
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 2)
+        .map(([id, count]) => ({ emotion: emotionById(id), count })),
+    }));
+
+    return {
+      thisWeek, thisMonth, thisYear, currentStreak, maxStreak,
+      avgIntensity, withPhoto, countryList, countryCount,
+      monthData, maxMonth, emotionCounts, emotionList, topEmotion,
+      weekdayData, maxDay, hourBuckets, trendData,
+    };
+  }, [cries, n]);
+
+  const {
+    thisWeek, thisMonth, thisYear, currentStreak, maxStreak,
+    avgIntensity, withPhoto, countryList, countryCount,
+    monthData, maxMonth, emotionCounts, emotionList, topEmotion,
+    weekdayData, maxDay, hourBuckets, trendData,
+  } = stats;
 
   // ── Render ────────────────────────────────────────────────────────────────
 

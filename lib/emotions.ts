@@ -17,6 +17,12 @@ export const EMOTIONS: Emotion[] = [
   { id: 'mixed',      label: 'Mixed',        color: '#6fe0e6', emoji: '💧' },
 ];
 
+// Pre-built index for O(1) lookups — emotionById is called in hot render paths
+// (every feed item, every map marker, every stats chip).
+const EMOTION_INDEX: Record<string, Emotion> = Object.fromEntries(
+  EMOTIONS.map(e => [e.id, e]),
+);
+
 export function emotionById(id: string): Emotion | undefined {
-  return EMOTIONS.find(e => e.id === id);
+  return EMOTION_INDEX[id];
 }

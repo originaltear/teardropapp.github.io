@@ -187,36 +187,40 @@ export default function StatsScreen() {
 
   async function loadAll() {
     setLoading(true);
-    const [c, premium] = await Promise.all([loadCries(), checkPremium()]);
-    setCries(c);
-    setIsPremium(premium);
+    try {
+      const [c, premium] = await Promise.all([loadCries(), checkPremium()]);
+      setCries(c);
+      setIsPremium(premium);
 
-    // Top likers from notifications (needed for premium section)
-    if (session) {
-      const { data } = await supabase
-        .from('notifications')
-        .select('actor_id, profile:profiles!notifications_actor_id_fkey(username, display_name, avatar_uri)')
-        .eq('user_id', session.user.id)
-        .eq('type', 'like');
+      if (session) {
+        const { data } = await supabase
+          .from('notifications')
+          .select('actor_id, profile:profiles!notifications_actor_id_fkey(username, display_name, avatar_uri)')
+          .eq('user_id', session.user.id)
+          .eq('type', 'like');
 
-      if (data) {
-        const counts: Record<string, { count: number; username: string; display_name: string; avatar_uri: string | null }> = {};
-        for (const row of data) {
-          const p = row.profile as any;
-          if (!p) continue;
-          if (!counts[row.actor_id]) {
-            counts[row.actor_id] = { count: 0, username: p.username ?? '', display_name: p.display_name ?? '', avatar_uri: p.avatar_uri ?? null };
+        if (data) {
+          const counts: Record<string, { count: number; username: string; display_name: string; avatar_uri: string | null }> = {};
+          for (const row of data) {
+            const p = row.profile as any;
+            if (!p) continue;
+            if (!counts[row.actor_id]) {
+              counts[row.actor_id] = { count: 0, username: p.username ?? '', display_name: p.display_name ?? '', avatar_uri: p.avatar_uri ?? null };
+            }
+            counts[row.actor_id].count++;
           }
-          counts[row.actor_id].count++;
+          const sorted: TopLiker[] = Object.entries(counts)
+            .map(([actor_id, v]) => ({ actor_id, ...v }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+          setTopLikers(sorted);
         }
-        const sorted: TopLiker[] = Object.entries(counts)
-          .map(([actor_id, v]) => ({ actor_id, ...v }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
-        setTopLikers(sorted);
       }
+    } catch (e) {
+      console.warn('[stats] loadAll failed:', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   const goPaywall = () => router.push('/paywall');

@@ -33,10 +33,10 @@ export default function PaywallScreen() {
   const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
-    getPlans().then(p => {
-      setPlans(p);
-      setLoading(false);
-    });
+    getPlans()
+      .then(p => { setPlans(p); })
+      .catch(() => { setPlans([]); })
+      .finally(() => { setLoading(false); });
   }, []);
 
   async function handlePurchase() {

@@ -192,17 +192,22 @@ export default function SettingsScreen() {
   async function submitReport() {
     if (!reportText.trim()) return;
     setSendingReport(true);
-    const { data: { session: s } } = await supabase.auth.getSession();
-    await supabase.from('reports').insert({
-      reporter_id: s?.user.id,
-      reported_type: 'app',
-      reported_id: s?.user.id ?? 'unknown',
-      reason: reportText.trim(),
-    });
-    setSendingReport(false);
-    setReportText('');
-    setShowReport(false);
-    Alert.alert('Thanks!', 'Your report has been submitted.');
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      await supabase.from('reports').insert({
+        reporter_id: s?.user.id,
+        reported_type: 'app',
+        reported_id: s?.user.id ?? 'unknown',
+        reason: reportText.trim(),
+      });
+      setReportText('');
+      setShowReport(false);
+      Alert.alert('Thanks!', 'Your report has been submitted.');
+    } catch {
+      Alert.alert('Error', 'Could not send report. Please try again.');
+    } finally {
+      setSendingReport(false);
+    }
   }
 
   // ── Unblock user ──
@@ -273,8 +278,9 @@ export default function SettingsScreen() {
       await AsyncStorage.multiRemove(['teardrop_cries', 'teardrop_profile']);
       await supabase.auth.signOut();
     } catch (err: any) {
-      setDeleting(false);
       Alert.alert('Deletion failed', err?.message ?? 'Something went wrong.');
+    } finally {
+      setDeleting(false);
     }
   }
 

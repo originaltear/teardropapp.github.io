@@ -232,7 +232,7 @@ async function enrichCries(
     like_count: likeMap[c.id] ?? 0,
     comment_count: commentMap[c.id] ?? 0,
     liked_by_me: myLikedSet.has(c.id),
-    profile: c.profile ?? { username: 'unknown', display_name: 'Unknown', avatar_uri: null },
+    profile: c.profile || { username: 'unknown', display_name: 'Unknown', avatar_uri: null },
   })) as SocialCry[];
 }
 

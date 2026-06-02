@@ -98,30 +98,34 @@ export default function CryDetailScreen() {
     if (!id) return;
     setCommentsDisabled(false);
     (async () => {
-      const [cryData, commentData] = await Promise.all([
-        getCry(id),
-        getComments(id),
-      ]);
-      if (cryData) {
-        setCry(cryData);
-        setLiked(cryData.liked_by_me);
-        setLikeCount(cryData.like_count);
+      try {
+        const [cryData, commentData] = await Promise.all([
+          getCry(id),
+          getComments(id),
+        ]);
+        if (cryData) {
+          setCry(cryData);
+          setLiked(cryData.liked_by_me);
+          setLikeCount(cryData.like_count);
 
-        // Direct profile query — does not rely on the join in CRY_SELECT
-        const isOwner = cryData.user_id === session?.user.id;
-        if (!isOwner) {
-          const { data: ownerProfile } = await supabase
-            .from('profiles')
-            .select('allow_comments')
-            .eq('id', cryData.user_id)
-            .single();
-          if (ownerProfile?.allow_comments === false) {
-            setCommentsDisabled(true);
+          const isOwner = cryData.user_id === session?.user.id;
+          if (!isOwner) {
+            const { data: ownerProfile } = await supabase
+              .from('profiles')
+              .select('allow_comments')
+              .eq('id', cryData.user_id)
+              .single();
+            if (ownerProfile?.allow_comments === false) {
+              setCommentsDisabled(true);
+            }
           }
         }
+        setComments(commentData);
+      } catch (e) {
+        console.warn('[cry-detail] load failed:', e);
+      } finally {
+        setLoading(false);
       }
-      setComments(commentData);
-      setLoading(false);
     })();
   }, [id]));
 

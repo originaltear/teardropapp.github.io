@@ -12,6 +12,7 @@ import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../lib/auth';
 import { ACHIEVEMENTS, getUnlockedAchievements } from '../lib/achievements';
+import { supabase } from '../lib/supabase';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -27,17 +28,18 @@ export default function AchievementsScreen() {
 
   useFocusEffect(useCallback(() => {
     if (!session) { setLoading(false); return; }
-    getUnlockedAchievements(session.user.id).then(list => {
-      const map: Record<string, string> = {};
-      for (const a of list) map[a.id] = a.unlocked_at;
-      setUnlockedMap(map);
-      setLoading(false);
-    });
+    getUnlockedAchievements(session.user.id)
+      .then(list => {
+        const map: Record<string, string> = {};
+        for (const a of list) map[a.id] = a.unlocked_at;
+        setUnlockedMap(map);
+      })
+      .catch(e => console.warn('[achievements] load failed:', e))
+      .finally(() => setLoading(false));
     // Fetch account rank for Founder/First Wave display
-    import('../lib/supabase').then(({ supabase }) =>
-      supabase.rpc('get_registration_rank', { user_created_at: session.user.created_at })
-        .then(({ data }) => { if (typeof data === 'number') setAccountRank(data + 1); })
-    );
+    supabase.rpc('get_registration_rank', { user_created_at: session.user.created_at })
+      .then(({ data }) => { if (typeof data === 'number') setAccountRank(data + 1); })
+      .catch(() => {});
   }, [session]));
 
   // Unlocked first (sorted newest), then locked

@@ -32,8 +32,11 @@ export default function FollowListScreen() {
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(useCallback(() => {
-    if (!userId || !type) return;
-    getFollowList(userId, type).then(u => { setUsers(u); setLoading(false); });
+    if (!userId || !type) { setLoading(false); return; }
+    getFollowList(userId, type as 'followers' | 'following')
+      .then(u => setUsers(u))
+      .catch(e => console.warn('[follow-list] load failed:', e))
+      .finally(() => setLoading(false));
   }, [userId, type]));
 
   async function handleToggle(u: UserResult) {

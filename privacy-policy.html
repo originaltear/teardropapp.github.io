@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Teardrop</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #070a14;
+      --bg-card:   #0d1117;
+      --bg-raised: #111827;
+      --border:    #1f2937;
+      --accent:    #6fe0e6;
+      --accent-dim:#6fe0e630;
+      --text:      #e8eef7;
+      --text-muted:#94a3b8;
+      --text-dim:  #64748b;
+      --gold:      #f2cf6b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 24px 24px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-drop {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent) 0%, #4ab8be 100%);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 0 18px var(--accent-dim);
+      flex-shrink: 0;
+    }
+
+    .logo-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Page title ── */
+    .page-title {
+      margin-bottom: 8px;
+      font-size: clamp(26px, 5vw, 36px);
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    /* ── Sections ── */
+    section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+    }
+
+    section:hover {
+      border-color: #2d3748;
+      transition: border-color 0.2s;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2 .num {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid var(--accent)33;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 20px 0 10px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol {
+      color: var(--text-muted);
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+    li { margin-bottom: 6px; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    strong { color: var(--text); font-weight: 600; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead th {
+      background: var(--bg-raised);
+      color: var(--text);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td {
+      color: var(--text-muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border)88;
+      vertical-align: top;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg-raised); }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+
+    .contact-card p { margin: 0; }
+
+    .email-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent)44;
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 6px 14px;
+      margin-top: 10px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      section { padding: 20px 18px; }
+      h2 { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">
+    <div class="logo-drop"></div>
+    <span class="logo-name">Teardrop</span>
+  </a>
+</header>
+
+<main>
+  <h1 class="page-title">Privacy Policy</h1>
+  <p class="page-subtitle">Last updated: June 2, 2026</p>
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="num">1</span> Introduction</h2>
+    <p>Welcome to Teardrop ("we", "our", or "us"). We are committed to protecting your personal information and your right to privacy.</p>
+    <p>This Privacy Policy explains how we collect, use, and share information when you use our mobile application Teardrop ("the App").</p>
+    <p>By using the App, you agree to the collection and use of information in accordance with this policy.</p>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="num">2</span> Who We Are</h2>
+    <p>Teardrop is developed and operated by <strong>Ishaq Ahmed</strong> ("the Developer").</p>
+    <div class="contact-card">
+      <p>Contact</p>
+      <a class="email-badge" href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="num">3</span> Information We Collect</h2>
+
+    <h3>Information you provide directly</h3>
+    <ul>
+      <li><strong>Account information</strong> — your display name, username (@handle), email address, and password when you create an account</li>
+      <li><strong>Profile information</strong> — profile photo and bio that you choose to add</li>
+      <li><strong>Cry logs</strong> — emotion type, intensity (1–5), written notes, photos, and voice recordings you attach to a cry</li>
+      <li><strong>Communications</strong> — comments and messages you send within the app</li>
+    </ul>
+
+    <h3>Information collected automatically</h3>
+    <ul>
+      <li><strong>Location data</strong> — GPS coordinates at the time you log a cry (only collected when you actively log a cry, not continuously tracked)</li>
+      <li><strong>Device information</strong> — device model, operating system version, and unique device identifiers</li>
+      <li><strong>Usage data</strong> — how you interact with the app, features you use, and time spent in the app</li>
+      <li><strong>Push notification token</strong> — to deliver notifications to your device</li>
+    </ul>
+
+    <h3>Information from third parties</h3>
+    <ul>
+      <li><strong>Google</strong> — if you sign in with Google, we receive your name, email address, and profile photo from Google</li>
+      <li><strong>RevenueCat</strong> — if you purchase a premium subscription, RevenueCat processes your payment and shares subscription status with us</li>
+    </ul>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="num">4</span> How We Use Your Information</h2>
+    <p>We use the information we collect to:</p>
+    <ul>
+      <li>Create and manage your account</li>
+      <li>Display your cries on the map and in your feed</li>
+      <li>Enable social features — following, friend requests, likes, comments, and notifications</li>
+      <li>Send push notifications about activity on your account</li>
+      <li>Calculate statistics, achievements, and your emotional map</li>
+      <li>Improve and develop the app</li>
+      <li>Respond to your support requests</li>
+      <li>Ensure safety — enforce our Terms of Service and handle reports of abuse</li>
+    </ul>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="num">5</span> How We Share Your Information</h2>
+    <p>We do not sell your personal data. We share information only in the following circumstances:</p>
+
+    <h3>With other users</h3>
+    <ul>
+      <li>Your username, display name, profile photo, and bio are visible to other users</li>
+      <li>Cries you mark as <strong>"Everyone"</strong> are visible to all users on the map and global feed</li>
+      <li>Cries you mark as <strong>"Friends"</strong> are visible only to mutual followers</li>
+      <li>Cries you mark as <strong>"Close Friends"</strong> are visible only to users on your Close Friends list</li>
+      <li>Cries you mark as <strong>"Only Me"</strong> are visible only to you</li>
+    </ul>
+
+    <h3>With service providers</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Purpose</th>
+            <th>Privacy Policy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Supabase</strong></td>
+            <td>Database, authentication, and file storage</td>
+            <td><a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a></td>
+          </tr>
+          <tr>
+            <td><strong>Google Maps</strong></td>
+            <td>Displaying the map</td>
+            <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td>
+          </tr>
+          <tr>
+            <td><strong>Google (OAuth)</strong></td>
+            <td>Sign in with Google</td>
+            <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></td>
+          </tr>
+          <tr>
+            <td><strong>RevenueCat</strong></td>
+            <td>Subscription management</td>
+            <td><a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">revenuecat.com/privacy</a></td>
+          </tr>
+          <tr>
+            <td><strong>Expo / EAS</strong></td>
+            <td>App delivery and push notifications</td>
+            <td><a href="https://expo.dev/privacy" target="_blank" rel="noopener">expo.dev/privacy</a></td>
+          </tr>
+          <tr>
+            <td><strong>Firebase (FCM)</strong></td>
+            <td>Push notification delivery</td>
+            <td><a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">firebase.google.com/support/privacy</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>For legal reasons</h3>
+    <p>We may disclose your information if required by law or to protect the rights, property, or safety of our users or others.</p>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="num">6</span> Data Retention</h2>
+    <p>We retain your data for as long as your account is active. If you delete your account, we permanently delete all your data including:</p>
+    <ul>
+      <li>Your profile and account information</li>
+      <li>All your cries, photos, and voice recordings</li>
+      <li>Your likes, comments, follows, and friend connections</li>
+      <li>Your achievements and statistics</li>
+    </ul>
+    <p>Some data may remain in backups for up to 30 days after deletion before being permanently removed.</p>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="num">7</span> Your Rights</h2>
+    <p>Depending on your location, you may have the right to:</p>
+    <ul>
+      <li><strong>Access</strong> the personal data we hold about you</li>
+      <li><strong>Correct</strong> inaccurate data</li>
+      <li><strong>Delete</strong> your account and all associated data (available directly in the app under <strong>Settings → Danger Zone → Delete Account</strong>)</li>
+      <li><strong>Export</strong> your data (available in the app under <strong>Settings → Export my data</strong>)</li>
+      <li><strong>Object</strong> to certain processing of your data</li>
+    </ul>
+    <p>To exercise any of these rights, contact us at <a href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a></p>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span class="num">8</span> Children's Privacy</h2>
+    <p>The App is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe a child under 13 has provided us with personal information, please contact us and we will delete it immediately.</p>
+    <p>Users between 13 and 17 should use the app with parental consent.</p>
+  </section>
+
+  <!-- 9 -->
+  <section>
+    <h2><span class="num">9</span> Location Data</h2>
+    <p>We collect your GPS location <strong>only when you actively log a cry</strong>. We do not track your location continuously in the background. You can deny location permissions in your phone settings, but some features of the app will not work without location access.</p>
+    <p>Your location data is stored as coordinates and used to:</p>
+    <ul>
+      <li>Place your cry on the map</li>
+      <li>Calculate which country/city the cry occurred in</li>
+      <li>Show your cry to other users based on the visibility setting you chose</li>
+    </ul>
+  </section>
+
+  <!-- 10 -->
+  <section>
+    <h2><span class="num">10</span> Photos and Voice Recordings</h2>
+    <p>Photos and voice recordings you attach to a cry are stored securely in our cloud storage (Supabase Storage). They are only accessible according to the visibility settings you choose for that cry. We do not analyze the content of your photos or voice recordings.</p>
+  </section>
+
+  <!-- 11 -->
+  <section>
+    <h2><span class="num">11</span> Push Notifications</h2>
+    <p>We send push notifications for activity related to your account (likes, comments, follows, friend requests). You can manage which notifications you receive in the app under <strong>Settings → Notifications</strong>. You can also disable all notifications in your phone's system settings.</p>
+  </section>
+
+  <!-- 12 -->
+  <section>
+    <h2><span class="num">12</span> Security</h2>
+    <p>We take reasonable measures to protect your information against unauthorized access, alteration, or destruction. Your data is stored on secure servers provided by Supabase (hosted in the EU). However, no method of transmission over the internet is 100% secure.</p>
+  </section>
+
+  <!-- 13 -->
+  <section>
+    <h2><span class="num">13</span> International Transfers</h2>
+    <p>Our services are hosted in the European Union (Supabase — Ireland). If you are located outside the EU, your data will be transferred to and stored in the EU. By using the app, you consent to this transfer.</p>
+  </section>
+
+  <!-- 14 -->
+  <section>
+    <h2><span class="num">14</span> Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. We will notify you of significant changes by updating the "Last updated" date at the top of this page and, where appropriate, by sending a notification through the app.</p>
+  </section>
+
+  <!-- 15 -->
+  <section>
+    <h2><span class="num">15</span> Contact Us</h2>
+    <p>If you have any questions about this Privacy Policy, please contact us:</p>
+    <div class="contact-card">
+      <p><strong>Email</strong></p>
+      <a class="email-badge" href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a>
+      <p style="margin-top:14px;"><strong>App:</strong> Teardrop — Map Your Emotional Journey</p>
+      <p><strong>Platform:</strong> iOS and Android</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>© 2026 Teardrop · <a href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a></p>
+  <p style="margin-top:6px;">This Privacy Policy was last updated on June 2, 2026.</p>
+</footer>
+
+</body>
+</html>

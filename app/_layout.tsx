@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { registerPushToken, clearBadge } from '../lib/notifications';
-import { initPurchases, syncCrystalTear } from '../lib/purchases';
+import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
 import { ONBOARDING_KEY } from './onboarding';
 
@@ -44,9 +44,10 @@ function RootNav() {
   useEffect(() => {
     if (session?.user.id) {
       initPurchases(session.user.id);
-      syncCrystalTear(session.user.id);
+      // Defer Crystal Tear sync — not critical for startup, runs in background
+      const t = setTimeout(() => syncCrystalTear(session!.user.id), 3000);
+      return () => clearTimeout(t);
     } else {
-      // Init without user ID for guest state
       initPurchases();
     }
   }, [session?.user.id]);
@@ -113,31 +114,17 @@ function RootNav() {
 function OnboardingGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const segments = useSegments();
-  const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      const done = await AsyncStorage.getItem(ONBOARDING_KEY);
-      if (!done) {
-        // Haven't seen onboarding yet — redirect once app is mounted
-        const segs = segments as string[];
-        const alreadyOnOnboarding = segs[0] === 'onboarding';
-        if (!alreadyOnOnboarding) {
-          router.replace('/onboarding');
-        }
+    // Check AsyncStorage in background — don't block initial render with a spinner
+    AsyncStorage.getItem(ONBOARDING_KEY).then(done => {
+      if (!done && (segments as string[])[0] !== 'onboarding') {
+        router.replace('/onboarding');
       }
-      setChecked(true);
-    })();
+    });
   }, []);
 
-  if (!checked) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#0d1117', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#6fe0e6" />
-      </View>
-    );
-  }
-
+  // Render children immediately — no waiting spinner
   return <>{children}</>;
 }
 
@@ -148,8 +135,11 @@ function ThemedApp() {
   const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Load theme for the initial session (if any)
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Parallelise session + default theme load — both are fast local/cached reads
+    Promise.all([
+      supabase.auth.getSession(),
+      loadSavedTheme(), // load global key first for instant default
+    ]).then(async ([{ data: { session } }, globalTheme]) => {
       const uid = session?.user.id ?? null;
       currentUserIdRef.current = uid;
       if (uid) {
@@ -162,7 +152,7 @@ function ThemedApp() {
           setThemeState(saved);
         }
       } else {
-        loadSavedTheme().then(setThemeState);
+        setThemeState(globalTheme);
       }
     });
 
@@ -173,8 +163,10 @@ function ThemedApp() {
         currentUserIdRef.current = uid;
 
         if (event === 'SIGNED_OUT') {
+          invalidatePremiumCache();
           setThemeState(DEFAULT_THEME);
         } else if (event === 'SIGNED_IN' && uid) {
+          invalidatePremiumCache();
           const saved = await loadSavedTheme(uid);
           if (saved.premium) {
             const { data } = await supabase.from('profiles').select('is_premium').eq('id', uid).single();

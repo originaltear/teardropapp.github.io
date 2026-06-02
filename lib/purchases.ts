@@ -50,20 +50,42 @@ export function initPurchases(userId?: string) {
 // ─── Entitlement check ────────────────────────────────────────────────────────
 
 /**
- * Returns true if user has active premium.
- * Checks RevenueCat first; falls back to DB `is_premium` flag
- * (used in development before products are live in Play Store).
+ * Module-level cache so checkPremium() only hits the network once per session.
+ * Invalidated on sign-in / sign-out via invalidatePremiumCache().
  */
+let _premiumCache: boolean | null = null;
+
+/** Immediate cached value — safe to call synchronously, defaults to false. */
+export function getPremiumCache(): boolean {
+  return _premiumCache ?? false;
+}
+
+/** Call on SIGNED_IN / SIGNED_OUT to force a fresh check next time. */
+export function invalidatePremiumCache(): void {
+  _premiumCache = null;
+}
+
 const RC_TIMEOUT_MS = 4000;
 
+/**
+ * Returns true if user has active premium.
+ * Returns cached result immediately on subsequent calls (no network).
+ * Checks RevenueCat first (with 4s timeout); falls back to DB is_premium flag.
+ */
 export async function checkPremium(): Promise<boolean> {
+  // Return cached value instantly — avoids blocking UI on repeated calls
+  if (_premiumCache !== null) return _premiumCache;
+
   // 1. Try RevenueCat with a timeout so a slow/dead network doesn't block the UI
   try {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('RC timeout')), RC_TIMEOUT_MS)
     );
     const info = await Promise.race([Purchases.getCustomerInfo(), timeout]) as CustomerInfo;
-    if (ENTITLEMENT_ID in info.entitlements.active) return true;
+    if (ENTITLEMENT_ID in info.entitlements.active) {
+      _premiumCache = true;
+      return true;
+    }
   } catch {
     // RC not configured, unavailable, or timed out — fall through to DB check
   }
@@ -71,14 +93,16 @@ export async function checkPremium(): Promise<boolean> {
   // 2. Fallback: check DB is_premium flag (dev / sandbox mode)
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
+    if (!session) { _premiumCache = false; return false; }
     const { data } = await supabase
       .from('profiles')
       .select('is_premium')
       .eq('id', session.user.id)
       .single();
-    return data?.is_premium === true;
+    _premiumCache = data?.is_premium === true;
+    return _premiumCache;
   } catch {
+    _premiumCache = false;
     return false;
   }
 }

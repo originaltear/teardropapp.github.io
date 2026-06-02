@@ -302,10 +302,15 @@ export default function FeedScreen() {
   async function loadFeed(isRefresh = false) {
     if (!session) return;
     isRefresh ? setRefreshing(true) : setLoading(true);
-    const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
-    const feed = await loader;
-    setAllCries(feed);
-    isRefresh ? setRefreshing(false) : setLoading(false);
+    try {
+      const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
+      const feed = await loader;
+      setAllCries(feed);
+    } catch (e) {
+      console.warn('[feed] loadFeed failed:', e);
+    } finally {
+      isRefresh ? setRefreshing(false) : setLoading(false);
+    }
   }
 
   useFocusEffect(useCallback(() => {

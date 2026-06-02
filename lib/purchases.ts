@@ -24,12 +24,27 @@ const RC_API_KEY_ANDROID = 'test_TOoVoNDzemlfNlJfiJxFoLpuGPB';
 export const ENTITLEMENT_ID = 'teardrop_pro';
 const CRYSTAL_TEAR = '💎';
 
+/**
+ * RevenueCat's SDK *deliberately crashes the app* if a `test_` (Test Store) API key
+ * is used in a release / non-debuggable build — it posts a dialog and then calls
+ * SimulatedStoreErrorDialogActivity.crashApp(). This happens asynchronously on the
+ * main looper, so a try/catch around configure() can't stop it. Until a real Play
+ * Store key is configured on the RevenueCat dashboard, we must skip configuration
+ * entirely in release builds. Premium then falls back to the DB is_premium flag.
+ */
+const IS_TEST_KEY = RC_API_KEY_ANDROID.startsWith('test_');
+const RC_DISABLED = IS_TEST_KEY && !__DEV__;
+
 // ─── Initialise (call once at app start, after auth resolves) ─────────────────
 
 let _rcConfigured = false;
 
 export function initPurchases(userId?: string) {
   try {
+    if (RC_DISABLED) {
+      console.warn('[purchases] RevenueCat disabled in release build (test key). Premium falls back to DB flag.');
+      return;
+    }
     Purchases.setLogLevel(LOG_LEVEL.WARN);
     if (Platform.OS === 'android') {
       if (!_rcConfigured) {
@@ -76,18 +91,21 @@ export async function checkPremium(): Promise<boolean> {
   // Return cached value instantly — avoids blocking UI on repeated calls
   if (_premiumCache !== null) return _premiumCache;
 
-  // 1. Try RevenueCat with a timeout so a slow/dead network doesn't block the UI
-  try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('RC timeout')), RC_TIMEOUT_MS)
-    );
-    const info = await Promise.race([Purchases.getCustomerInfo(), timeout]) as CustomerInfo;
-    if (ENTITLEMENT_ID in info.entitlements.active) {
-      _premiumCache = true;
-      return true;
+  // 1. Try RevenueCat with a timeout so a slow/dead network doesn't block the UI.
+  //    Skipped entirely when RC is disabled (test key in release) — go straight to DB.
+  if (!RC_DISABLED) {
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('RC timeout')), RC_TIMEOUT_MS)
+      );
+      const info = await Promise.race([Purchases.getCustomerInfo(), timeout]) as CustomerInfo;
+      if (ENTITLEMENT_ID in info.entitlements.active) {
+        _premiumCache = true;
+        return true;
+      }
+    } catch {
+      // RC not configured, unavailable, or timed out — fall through to DB check
     }
-  } catch {
-    // RC not configured, unavailable, or timed out — fall through to DB check
   }
 
   // 2. Fallback: check DB is_premium flag (dev / sandbox mode)

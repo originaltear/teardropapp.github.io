@@ -278,17 +278,14 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
     paddingHorizontal: 16, paddingVertical: 14,
   },
-  visRowActive: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e610' },
   visIcon: { fontSize: 22 },
   visLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-  visLabelActive: { color: '#6fe0e6' },
   visSub: { color: '#374151', fontSize: 12, marginTop: 1 },
   visRadio: {
     width: 20, height: 20, borderRadius: 10,
     borderWidth: 2, borderColor: '#374151',
     alignItems: 'center', justifyContent: 'center',
   },
-  visRadioActive: { borderColor: '#6fe0e6' },
   visRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6fe0e6' },
 
   errorTxt: { color: '#ef6f6f', fontSize: 13, marginTop: 16, lineHeight: 18 },

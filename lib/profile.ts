@@ -19,10 +19,6 @@ export const DEFAULT_PROFILE: Profile = {
   avatarEmoji: '💧',
 };
 
-// Not used in UI anymore — kept so existing imports don't break
-export const AVATAR_COLORS: string[] = [];
-export const AVATAR_EMOJIS: string[] = [];
-
 // ─── Load ─────────────────────────────────────────────────────────────────────
 
 export async function loadProfile(): Promise<Profile> {

@@ -36,10 +36,14 @@ export default function AchievementsScreen() {
       })
       .catch(e => console.warn('[achievements] load failed:', e))
       .finally(() => setLoading(false));
-    // Fetch account rank for Founder/First Wave display
+    // Fetch account rank for Founder/First Wave display.
+    // Note: supabase.rpc() returns a PromiseLike (no .catch), so the rejection
+    // handler is passed as the second arg to .then().
     supabase.rpc('get_registration_rank', { user_created_at: session.user.created_at })
-      .then(({ data }) => { if (typeof data === 'number') setAccountRank(data + 1); })
-      .catch(() => {});
+      .then(
+        ({ data }) => { if (typeof data === 'number') setAccountRank(data + 1); },
+        () => {},
+      );
   }, [session]));
 
   // Unlocked first (sorted newest), then locked

@@ -384,7 +384,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
-  segmentActive: { backgroundColor: '#6fe0e6' },
   segmentEmoji: { fontSize: 22 },
   center: {
     flex: 1, backgroundColor: '#0d1117',

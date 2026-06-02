@@ -241,7 +241,6 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#e2e8f0', fontSize: 26, fontWeight: '700', letterSpacing: 0.5 },
 
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  rowUnread: { backgroundColor: '#6fe0e610' },
   iconBadge: { position: 'relative' },
   typeIcon: {
     position: 'absolute', bottom: -2, right: -2,

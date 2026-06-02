@@ -13,10 +13,10 @@ import { useAuth } from '../../lib/auth';
 import { getProfileStats } from '../../lib/social';
 import {
   checkAndSaveAchievements, getUnlockedAchievements,
-  getEarnedTears, setSelectedTears, ACHIEVEMENTS, Achievement, getTearInfo,
+  getEarnedTears, setSelectedTears, ACHIEVEMENTS, getTearInfo,
 } from '../../lib/achievements';
 import { TearsBadge } from '../../components/TearsBadge';
-import { AchievementToast } from '../../components/AchievementToast';
+import { useAchievementToast } from '../../components/AchievementToastProvider';
 import { supabase } from '../../lib/supabase';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -180,15 +180,7 @@ export default function ProfileScreen() {
   const [recentAchievements, setRecentAchievements] = useState<{ id: string; unlocked_at: string }[]>([]);
   const [earnedTears, setEarnedTears] = useState<string[]>([]);
   const [selectedTears, setSelectedTearsState] = useState<string[]>([]);
-  const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
-  const [currentToast, setCurrentToast] = useState<Achievement | null>(null);
-
-  function showNextToast(queue: Achievement[]) {
-    if (queue.length === 0) { setCurrentToast(null); return; }
-    const [next, ...rest] = queue;
-    setCurrentToast(next);
-    setToastQueue(rest);
-  }
+  const { queueAchievements } = useAchievementToast();
 
   useFocusEffect(useCallback(() => {
     const criesP = loadCries().then(c => { setCries(c); return c; });
@@ -228,7 +220,7 @@ export default function ProfileScreen() {
               ...newOnes.map(a => ({ id: a.id, unlocked_at: new Date().toISOString() })),
               ...prev,
             ].slice(0, 4));
-            showNextToast(newOnes);
+            queueAchievements(newOnes);
           }
         })
       );
@@ -263,11 +255,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
-      <AchievementToast
-        achievement={currentToast}
-        onDismiss={() => showNextToast(toastQueue)}
-      />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Avatar + name */}

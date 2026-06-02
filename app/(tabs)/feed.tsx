@@ -528,15 +528,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 13,
     borderTopWidth: 1, borderTopColor: '#1f2937',
   },
-  dropdownItemActive: { backgroundColor: '#6fe0e610' },
   dropdownTxt: { color: '#94a3b8', fontSize: 14 },
-  dropdownTxtActive: { color: '#6fe0e6' },
   dropdownCheck: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
   tabChip: {
     flex: 1, paddingVertical: 9, borderRadius: 20,
     borderWidth: 1, borderColor: '#1f2937', alignItems: 'center',
   },
-  tabChipActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
   tabChipTxt: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
   tabChipTxtActive: { color: '#0d1117' },
 
@@ -598,7 +595,6 @@ const styles = StyleSheet.create({
   likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#1f2937' },
   likeIcon: { fontSize: 16 },
   likeTxt: { color: '#4a5568', fontSize: 14, fontWeight: '600' },
-  likeTxtActive: { color: '#6fe0e6' },
   likeCount: { color: '#4a5568', fontSize: 13 },
 
   commentsHeader: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 },

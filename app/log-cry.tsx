@@ -13,6 +13,7 @@ import { saveCry, loadCries } from '../lib/storage';
 import * as Location from 'expo-location';
 import { getProfileSettings } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
+import { useAchievementToast } from '../components/AchievementToastProvider';
 import { useAuth } from '../lib/auth';
 import { showPostCryAd } from '../lib/ads';
 import { useTheme } from '../lib/themes';
@@ -42,6 +43,7 @@ export default function LogCryScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
+  const { queueAchievements } = useAchievementToast();
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
@@ -230,10 +232,13 @@ export default function LogCryScreen() {
       visibility,
     });
 
-    // Trigger achievement check in background (fire-and-forget)
+    // Trigger achievement check in background. Runs after we navigate back, but
+    // the toast provider lives at the app root, so the unlock popup still appears
+    // over whatever screen the user lands on.
     if (session) {
       loadCries()
         .then(cries => checkAndSaveAchievements(cries, session))
+        .then(newOnes => { if (newOnes?.length) queueAchievements(newOnes); })
         .catch(() => { /* best-effort */ });
     }
 
@@ -541,10 +546,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderRadius: 12,
     borderWidth: 1, borderColor: '#1f2937',
   },
-  visibilityBtnActive: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e610' },
   visibilityIcon: { fontSize: 20 },
   visibilityLabel: { color: '#4a5568', fontSize: 10, fontFamily: 'monospace', textAlign: 'center' },
-  visibilityLabelActive: { color: '#6fe0e6' },
 
   footer: { padding: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#1f2937' },
   saveBtn: {

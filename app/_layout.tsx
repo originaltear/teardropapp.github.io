@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { registerPushToken, clearBadge } from '../lib/notifications';
 import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
+import { AchievementToastProvider } from '../components/AchievementToastProvider';
 import { ONBOARDING_KEY } from './onboarding';
 
 // ─── Root navigation + providers ──────────────────────────────────────────────
@@ -189,9 +190,11 @@ function ThemedApp() {
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
       <AuthProvider>
-        <OnboardingGate>
-          <RootNav />
-        </OnboardingGate>
+        <AchievementToastProvider>
+          <OnboardingGate>
+            <RootNav />
+          </OnboardingGate>
+        </AchievementToastProvider>
       </AuthProvider>
     </ThemeContext.Provider>
   );

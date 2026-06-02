@@ -283,7 +283,12 @@ export default function SettingsScreen() {
       await AsyncStorage.multiRemove(['teardrop_cries', 'teardrop_profile']);
       await supabase.auth.signOut();
     } catch (err: any) {
-      Alert.alert('Deletion failed', err?.message ?? 'Something went wrong.');
+      // Don't surface raw Postgres/network errors to the user.
+      console.warn('[settings] account deletion failed:', err?.message);
+      Alert.alert(
+        'Deletion failed',
+        "We couldn't delete your account right now. Please check your connection and try again, or email hello.teardropapp@gmail.com if it keeps happening.",
+      );
     } finally {
       setDeleting(false);
     }

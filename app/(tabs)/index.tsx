@@ -240,10 +240,11 @@ export default function MapScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => {
+    const onErr = (e: unknown) => console.warn('[map] load cries failed:', e);
     if (session && mapFilter !== 'mine') {
-      getMapCries(mapFilter).then(setCries);
+      getMapCries(mapFilter).then(setCries).catch(onErr);
     } else {
-      loadCries().then(setCries);
+      loadCries().then(setCries).catch(onErr);
     }
   }, [session, mapFilter]));
 

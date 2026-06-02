@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { loadCries, Cry } from '../lib/storage';
-import { emotionById, EMOTIONS } from '../lib/emotions';
+import { emotionById } from '../lib/emotions';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,10 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => {
-    loadCries().then(c => { setCries(c); setLoading(false); });
+    loadCries()
+      .then(c => setCries(c))
+      .catch(e => console.warn('[calendar] load failed:', e))
+      .finally(() => setLoading(false));
   }, []));
 
   // Build cry map: date → cries

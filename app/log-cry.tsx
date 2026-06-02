@@ -218,19 +218,28 @@ export default function LogCryScreen() {
       country = geo[0]?.country ?? undefined;
     } catch { /* ignore geocoding failure */ }
 
-    await saveCry({
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-      latitude: parseFloat(lat),
-      longitude: parseFloat(lng),
-      emotion,
-      intensity,
-      note: note.trim() || undefined,
-      photoUri: photoUri ?? undefined,
-      audioUri: audioUri ?? undefined,
-      country,
-      visibility,
-    });
+    try {
+      await saveCry({
+        id: generateId(),
+        createdAt: new Date().toISOString(),
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lng),
+        emotion,
+        intensity,
+        note: note.trim() || undefined,
+        photoUri: photoUri ?? undefined,
+        audioUri: audioUri ?? undefined,
+        country,
+        visibility,
+      });
+    } catch (e) {
+      // Without this guard a thrown save (e.g. device storage full) left the
+      // button spinning forever and silently dropped the cry.
+      console.warn('[log-cry] save failed:', e);
+      setSaving(false);
+      Alert.alert('Could not save', 'Something went wrong saving your cry. Please try again.');
+      return;
+    }
 
     // Trigger achievement check in background. Runs after we navigate back, but
     // the toast provider lives at the app root, so the unlock popup still appears

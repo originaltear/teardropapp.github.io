@@ -101,13 +101,18 @@ export async function searchUsers(query: string): Promise<UserResult[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return [];
 
-  const q = query.toLowerCase().trim().replace(/^@/, '');
+  // Cap length (usernames are ≤20 chars) so we never send a pathological pattern.
+  const q = query.toLowerCase().trim().replace(/^@/, '').slice(0, 30);
   if (!q) return [];
+
+  // Escape LIKE wildcards so the input is matched literally. Without this a bare
+  // "%" matches every user, and "_" (a valid username char) acts as a wildcard.
+  const pattern = `%${q.replace(/[\\%_]/g, c => `\\${c}`)}%`;
 
   const { data, error } = await supabase
     .from('profiles')
     .select('id, username, display_name, avatar_uri, is_public')
-    .ilike('username', `%${q}%`)
+    .ilike('username', pattern)
     .neq('id', session.user.id)
     .limit(20);
 
@@ -393,11 +398,15 @@ export async function reportContent(
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return 'error';
 
+  // Bound the free-text reason regardless of what the caller passes in.
+  const safeReason = reason.trim().slice(0, 1000);
+  if (!safeReason) return 'error';
+
   const { error } = await supabase.from('reports').insert({
     reporter_id: session.user.id,
     reported_type: type,
     reported_id: reportedId,
-    reason,
+    reason: safeReason,
   });
 
   if (error?.code === '23505') return 'duplicate'; // unique constraint violation
@@ -450,9 +459,15 @@ export async function getComments(cryId: string): Promise<Comment[]> {
   return (data ?? []) as Comment[];
 }
 
+export const MAX_COMMENT_LEN = 500;
+
 export async function addComment(cryId: string, content: string): Promise<Comment | null> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
+
+  // Defense-in-depth: don't rely on the UI's maxLength — trim and bound here too.
+  const safe = content.trim().slice(0, MAX_COMMENT_LEN);
+  if (!safe) return null;
 
   // Check if the cry owner has comments enabled before inserting
   const { data: cryRow } = await supabase
@@ -472,7 +487,7 @@ export async function addComment(cryId: string, content: string): Promise<Commen
 
   const { data } = await supabase
     .from('comments')
-    .insert({ user_id: session.user.id, cry_id: cryId, content })
+    .insert({ user_id: session.user.id, cry_id: cryId, content: safe })
     .select('*, profile:profiles!comments_user_id_fkey(username, display_name, avatar_uri)')
     .single();
   return data as Comment | null;

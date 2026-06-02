@@ -203,7 +203,7 @@ export default function SettingsScreen() {
         reporter_id: s?.user.id,
         reported_type: 'app',
         reported_id: s?.user.id ?? 'unknown',
-        reason: reportText.trim(),
+        reason: reportText.trim().slice(0, 1000),
       });
       setReportText('');
       setShowReport(false);

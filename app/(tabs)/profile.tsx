@@ -94,7 +94,20 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
               disabled={saving}
               onPress={async () => {
                 setSaving(true);
-                const finalUri = avatarUri ? await uploadAvatar(avatarUri) : undefined;
+                let finalUri: string | undefined = undefined;
+                if (avatarUri) {
+                  const uploaded = await uploadAvatar(avatarUri);
+                  if (!uploaded) {
+                    // Don't persist a local file:// path — it breaks on reinstall.
+                    setSaving(false);
+                    Alert.alert(
+                      'Photo upload failed',
+                      "We couldn't upload your photo. Please check your connection and try again.",
+                    );
+                    return;
+                  }
+                  finalUri = uploaded;
+                }
                 await onSave(
                   { ...profile, displayName: name.trim() || 'You', bio: bio.trim(), avatarUri: finalUri },
                   chosenTears

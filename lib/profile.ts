@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from './supabase';
 
 export interface Profile {
@@ -70,26 +71,49 @@ export async function saveProfile(profile: Profile): Promise<void> {
 
 // ─── Avatar upload ────────────────────────────────────────────────────────────
 
-/**
- * Uploads a local image URI to Supabase Storage (avatars bucket).
- * Returns the public URL, or the original local URI on failure.
- */
-export async function uploadAvatar(localUri: string): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return localUri; // Not logged in — keep local
+/** Decode a base64 string into raw bytes without any extra dependency. */
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = global.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
 
-  // Skip if it's already a remote URL
+/**
+ * Uploads a local image URI to Supabase Storage (avatars bucket) and returns the
+ * public URL.
+ *
+ * - If `localUri` is already a remote URL, it is returned unchanged.
+ * - On failure, returns `null` — it must NEVER persist a local `file://` path to
+ *   the database. A local path works on the current install but points at the
+ *   app's private cache, which is wiped on reinstall, leaving a broken image
+ *   (the "grey circle after reinstall" bug).
+ *
+ * Note: we read the file via expo-file-system rather than `fetch(uri).blob()` —
+ * the Fetch/Blob path is unreliable for file:// URIs on React Native and was
+ * silently producing empty uploads, which is why every avatar fell back to a
+ * local path.
+ */
+export async function uploadAvatar(localUri: string): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null; // Not logged in — can't upload
+
+  // Already a remote URL — nothing to do
   if (localUri.startsWith('http://') || localUri.startsWith('https://')) return localUri;
 
   try {
-    // Read the image as a Blob via the Fetch API (works for file:// and content:// URIs)
-    const response = await fetch(localUri);
-    const blob = await response.blob();
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    if (!base64) throw new Error('read returned empty contents');
+
+    const bytes = base64ToBytes(base64);
+    if (bytes.length === 0) throw new Error('decoded file is empty');
 
     const fileName = `${session.user.id}/avatar-${Date.now()}.jpg`;
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
+      .upload(fileName, bytes, { contentType: 'image/jpeg', upsert: true });
 
     if (uploadError) throw uploadError;
 
@@ -100,7 +124,7 @@ export async function uploadAvatar(localUri: string): Promise<string> {
     // Add cache-buster so React Native Image doesn't serve the old cached version
     return `${publicUrl}?t=${Date.now()}`;
   } catch (err) {
-    console.warn('[uploadAvatar] Upload failed — keeping local URI:', err);
-    return localUri;
+    console.warn('[uploadAvatar] Upload failed:', err);
+    return null;
   }
 }

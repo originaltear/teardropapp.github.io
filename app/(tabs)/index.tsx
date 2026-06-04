@@ -263,20 +263,12 @@ export default function MapScreen() {
 
   // ─── Clustering (supercluster — pure JS, no native marker wrapping) ─────────
   type PointProps = { cry: Cry | SocialCry };
-  type ClusterProps = { emotionCounts: Record<string, number> };
 
   const superIndex = useMemo(() => {
-    const index = new Supercluster<PointProps, ClusterProps>({
+    const index = new Supercluster<PointProps>({
       radius: 48,      // px distance at which points merge
       maxZoom: 18,     // stop clustering past this zoom
       minPoints: 2,    // need ≥2 points to form a cluster
-      // Aggregate the dominant emotion across a cluster so it can be coloured.
-      map: props => ({ emotionCounts: { [props.cry.emotion]: 1 } }),
-      reduce: (acc, props) => {
-        for (const k in props.emotionCounts) {
-          acc.emotionCounts[k] = (acc.emotionCounts[k] ?? 0) + props.emotionCounts[k];
-        }
-      },
     });
     index.load(
       cries
@@ -371,7 +363,6 @@ export default function MapScreen() {
                 latitude={lat}
                 longitude={lng}
                 count={props.point_count}
-                emotionCounts={props.emotionCounts}
                 onPress={() => handleClusterPress(props.cluster_id, lng, lat)}
               />
             );

@@ -341,8 +341,13 @@ export default function MapScreen() {
         style={styles.map}
         initialRegion={initialRegionRef.current!}
         customMapStyle={DARK_MAP_STYLE}
-        showsUserLocation
+        // Google's default location UI (blue dot + large accuracy circle) sits on
+        // top of the markers and covers a cluster's count when you're standing at
+        // your own cries. Hidden for a clean, branded map — the map still centres
+        // on the user via initialRegion and the FAB uses live GPS.
+        showsUserLocation={false}
         showsMyLocationButton={false}
+        toolbarEnabled={false}
         onRegionChangeComplete={setRegion}
       >
         {/* Clusters + individual pins. RLS + getGlobalFeed() already filter

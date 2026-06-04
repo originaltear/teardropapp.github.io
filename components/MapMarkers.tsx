@@ -58,6 +58,7 @@ export function EmotionPin({
       anchor={{ x: 0.5, y: 1 }}
       onPress={onPress}
       tracksViewChanges={tracks}
+      zIndex={5}
     >
       <View style={[styles.transparentWrap, { width: PIN_W, height: PIN_H }]}>
         <Svg width={PIN_W} height={PIN_H} viewBox="0 0 40 50">
@@ -124,21 +125,49 @@ export function ClusterPin({
       anchor={{ x: 0.5, y: 0.5 }}
       onPress={onPress}
       tracksViewChanges={tracks}
+      zIndex={6}
     >
       <View style={[styles.transparentWrap, { width: box, height: box }]}>
         <Svg width={box} height={box}>
           {/* dark backing ring — crisp outline against the map (opaque) */}
           <Circle cx={c} cy={c} r={r} fill="#0d1117" />
-          {/* main coloured disc (opaque) */}
+          {/* main coloured disc — flat & fully opaque, no translucent layers */}
           <Circle cx={c} cy={c} r={r - 2.5} fill={color} />
-          {/* glossy top highlight (small, over an opaque disc — safe) */}
-          <Circle cx={c} cy={c - r * 0.32} r={r * 0.42} fill="#ffffff" opacity={0.16} />
-          {/* thin inner rim for depth (solid dark stroke) */}
-          <Circle cx={c} cy={c} r={r - 5} fill="none" stroke="#0d1117" strokeWidth={1.5} />
         </Svg>
         <View style={styles.clusterLabelBox} pointerEvents="none">
           <Text style={[styles.clusterCount, { fontSize: size * 0.36 }]}>{label}</Text>
         </View>
+      </View>
+    </Marker>
+  );
+}
+
+// ─── "You are here" dot (custom, lightweight — no big accuracy circle) ────────
+
+export function LocationDot({
+  latitude, longitude, color = '#6fe0e6',
+}: {
+  latitude: number;
+  longitude: number;
+  color?: string;
+}) {
+  const tracks = useTracksOnce();
+  const S = 24;
+  const c = S / 2;
+  return (
+    <Marker
+      coordinate={{ latitude, longitude }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracks}
+      zIndex={1}            // sits under cry pins / clusters
+    >
+      <View style={[styles.transparentWrap, { width: S, height: S }]}>
+        <Svg width={S} height={S}>
+          {/* dark halo ring + white ring + coloured core — all opaque */}
+          <Circle cx={c} cy={c} r={9} fill="#0d1117" />
+          <Circle cx={c} cy={c} r={7.5} fill="#ffffff" />
+          <Circle cx={c} cy={c} r={5} fill={color} />
+        </Svg>
       </View>
     </Marker>
   );

@@ -110,8 +110,11 @@ export function ClusterPin({
 }) {
   const color = dominantColor(emotionCounts);
   const size = clusterSize(count);
-  const box = size + 14; // room for the halo
+  // No transparent halo: semi-transparent areas in a marker view rasterise as a
+  // muddy grey square on Android. Everything here is fully opaque.
+  const box = size + 6; // just a little breathing room around the disc
   const c = box / 2;
+  const r = size / 2;
   const tracks = useTracksOnce();
   const label = count > 999 ? `${Math.floor(count / 1000)}k` : String(count);
 
@@ -124,14 +127,16 @@ export function ClusterPin({
     >
       <View style={[styles.transparentWrap, { width: box, height: box }]}>
         <Svg width={box} height={box}>
-          {/* soft halo */}
-          <Circle cx={c} cy={c} r={size / 2 + 4} fill={color} opacity={0.22} />
-          {/* main bubble */}
-          <Circle cx={c} cy={c} r={size / 2} fill={color} stroke="#0d1117" strokeWidth={2} />
-          {/* inner ring */}
-          <Circle cx={c} cy={c} r={size / 2 - 4} fill="none" stroke="#0d1117" strokeWidth={1} opacity={0.25} />
+          {/* dark backing ring — crisp outline against the map (opaque) */}
+          <Circle cx={c} cy={c} r={r} fill="#0d1117" />
+          {/* main coloured disc (opaque) */}
+          <Circle cx={c} cy={c} r={r - 2.5} fill={color} />
+          {/* glossy top highlight (small, over an opaque disc — safe) */}
+          <Circle cx={c} cy={c - r * 0.32} r={r * 0.42} fill="#ffffff" opacity={0.16} />
+          {/* thin inner rim for depth (solid dark stroke) */}
+          <Circle cx={c} cy={c} r={r - 5} fill="none" stroke="#0d1117" strokeWidth={1.5} />
         </Svg>
-        <View style={[styles.emojiBox, { height: box }]} pointerEvents="none">
+        <View style={styles.clusterLabelBox} pointerEvents="none">
           <Text style={[styles.clusterCount, { fontSize: size * 0.36 }]}>{label}</Text>
         </View>
       </View>
@@ -156,6 +161,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pinEmoji: { fontSize: 15, textAlign: 'center' },
+  // Full-box centring so the count sits exactly in the middle of the disc.
+  clusterLabelBox: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clusterCount: {
     color: '#0d1117',
     fontWeight: '800',

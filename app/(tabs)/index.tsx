@@ -304,7 +304,9 @@ export default function MapScreen() {
 
   const handleClusterPress = useCallback((clusterId: number, lng: number, lat: number) => {
     try {
-      const zoom = Math.min(superIndex.getClusterExpansionZoom(clusterId), 18);
+      // Cap zoom so a cluster of points at (nearly) the same spot doesn't shoot
+      // the camera to an extreme street-level zoom showing nothing.
+      const zoom = Math.min(superIndex.getClusterExpansionZoom(clusterId), 16);
       const delta = 360 / Math.pow(2, zoom);
       mapRef.current?.animateToRegion(
         { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta },

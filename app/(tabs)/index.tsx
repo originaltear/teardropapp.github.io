@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
   ActivityIndicator, Modal, Image, Alert,
 } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, { Region } from 'react-native-maps';
+import Supercluster from 'supercluster';
 import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,6 +15,7 @@ import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { useAuth } from '../../lib/auth';
 import { TearsBadge } from '../../components/TearsBadge';
+import { EmotionPin, ClusterPin } from '../../components/MapMarkers';
 import { useTheme } from '../../lib/themes';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
@@ -221,6 +223,8 @@ export default function MapScreen() {
   const [selectedCry, setSelectedCry] = useState<Cry | SocialCry | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mapFilter, setMapFilter] = useState<MapFilter>('mine');
+  // Current visible region — drives which clusters are computed
+  const [region, setRegion] = useState<Region | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -234,6 +238,7 @@ export default function MapScreen() {
         longitudeDelta: 0.05,
       };
       initialRegionRef.current = r;
+      setRegion(r);
       setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
       setGpsReady(true);
     })();
@@ -255,6 +260,58 @@ export default function MapScreen() {
       params: { lat: String(gpsCoords.latitude), lng: String(gpsCoords.longitude) },
     });
   }
+
+  // ─── Clustering (supercluster — pure JS, no native marker wrapping) ─────────
+  type PointProps = { cry: Cry | SocialCry };
+  type ClusterProps = { emotionCounts: Record<string, number> };
+
+  const superIndex = useMemo(() => {
+    const index = new Supercluster<PointProps, ClusterProps>({
+      radius: 48,      // px distance at which points merge
+      maxZoom: 18,     // stop clustering past this zoom
+      minPoints: 2,    // need ≥2 points to form a cluster
+      // Aggregate the dominant emotion across a cluster so it can be coloured.
+      map: props => ({ emotionCounts: { [props.cry.emotion]: 1 } }),
+      reduce: (acc, props) => {
+        for (const k in props.emotionCounts) {
+          acc.emotionCounts[k] = (acc.emotionCounts[k] ?? 0) + props.emotionCounts[k];
+        }
+      },
+    });
+    index.load(
+      cries
+        .filter(c => c.latitude && c.longitude)
+        .map(c => ({
+          type: 'Feature' as const,
+          properties: { cry: c },
+          geometry: { type: 'Point' as const, coordinates: [c.longitude, c.latitude] },
+        })),
+    );
+    return index;
+  }, [cries]);
+
+  const clusters = useMemo(() => {
+    if (!region) return [];
+    const bbox: [number, number, number, number] = [
+      region.longitude - region.longitudeDelta / 2,
+      region.latitude - region.latitudeDelta / 2,
+      region.longitude + region.longitudeDelta / 2,
+      region.latitude + region.latitudeDelta / 2,
+    ];
+    const zoom = Math.round(Math.log2(360 / Math.max(region.longitudeDelta, 0.0001)));
+    return superIndex.getClusters(bbox, Math.min(Math.max(zoom, 0), 20));
+  }, [superIndex, region]);
+
+  const handleClusterPress = useCallback((clusterId: number, lng: number, lat: number) => {
+    try {
+      const zoom = Math.min(superIndex.getClusterExpansionZoom(clusterId), 18);
+      const delta = 360 / Math.pow(2, zoom);
+      mapRef.current?.animateToRegion(
+        { latitude: lat, longitude: lng, latitudeDelta: delta, longitudeDelta: delta },
+        350,
+      );
+    } catch { /* ignore */ }
+  }, [superIndex]);
 
   if (permissionDenied) {
     return (
@@ -284,27 +341,36 @@ export default function MapScreen() {
         customMapStyle={DARK_MAP_STYLE}
         showsUserLocation
         showsMyLocationButton={false}
+        onRegionChangeComplete={setRegion}
       >
-        {cries
-          // Guard: skip pins with invalid coords
-          // RLS + getGlobalFeed() already filter is_public and blocks — no client filter needed
-          .filter(cry => cry.latitude && cry.longitude)
-          .map(cry => {
-            const emotion = emotionById(cry.emotion);
-            const color = emotion?.color ?? '#6fe0e6';
+        {/* Clusters + individual pins. RLS + getGlobalFeed() already filter
+            is_public and blocks, so no client-side filtering needed here. */}
+        {clusters.map(feature => {
+          const [lng, lat] = feature.geometry.coordinates;
+          const props = feature.properties as any;
+          if (props.cluster) {
             return (
-              <Marker
-                key={cry.id}
-                coordinate={{ latitude: cry.latitude, longitude: cry.longitude }}
-                anchor={{ x: 0.5, y: 0.5 }}
-                onPress={() => setSelectedCry(cry)}
-              >
-                <View style={[styles.pin, { backgroundColor: color }]}>
-                  <Text style={styles.pinEmoji}>{emotion?.emoji ?? '💧'}</Text>
-                </View>
-              </Marker>
+              <ClusterPin
+                key={`cluster-${props.cluster_id}`}
+                latitude={lat}
+                longitude={lng}
+                count={props.point_count}
+                emotionCounts={props.emotionCounts}
+                onPress={() => handleClusterPress(props.cluster_id, lng, lat)}
+              />
             );
-          })}
+          }
+          const cry = props.cry as Cry | SocialCry;
+          return (
+            <EmotionPin
+              key={`cry-${cry.id}`}
+              latitude={lat}
+              longitude={lng}
+              emotion={cry.emotion}
+              onPress={() => setSelectedCry(cry)}
+            />
+          );
+        })}
       </MapView>
 
       {/* Header title */}
@@ -410,12 +476,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
   fabIcon: { fontSize: 32, color: '#0d1117', lineHeight: 36, fontWeight: '300' },
-
-  pin: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  pinEmoji: { fontSize: 18 },
 
   backdrop: { flex: 1 },
   card: {

@@ -1,28 +1,27 @@
 /**
- * Map markers — bulletproof on Android.
+ * Map markers.
  *
- * Two Android pitfalls are handled here:
+ * Rendered as react-native-svg vectors inside a transparent marker view. The
+ * app runs on the OLD React Native architecture (newArchEnabled=false) because
+ * react-native-maps custom markers render broken (clipped squares / default
+ * Google pins) under the New Architecture on Expo SDK 54.
  *
- * 1. Clipped-square markers. Custom marker views drawn with `borderRadius` get
- *    rasterised as squares. We avoid that entirely: the container View is fully
- *    transparent with NO borderRadius / background, and the visible shape is
- *    drawn as react-native-svg vectors.
+ * Design:
+ *  - Individual pin: dark teardrop body with an emotion-coloured outline + emoji.
+ *  - Cluster: dark circle with the count and a Tear Blue (#6fe0e6) outline.
  *
- * 2. Content clipped at the view edge. react-native-maps rasterises the marker
- *    to a bitmap the size of the view; anything touching the edge (e.g. the
- *    teardrop tip at the very bottom) gets cut off. So every shape is drawn with
- *    a generous transparent margin and never reaches the view bounds. The pin's
- *    anchor is offset to match the tip's padded position so it still points at
- *    the exact coordinate.
- *
- * `tracksViewChanges` flips to false shortly after mount so each marker is
- * rasterised once (crisp) and then left static.
+ * Shapes are padded well inside the view bounds so nothing is clipped, and
+ * tracksViewChanges flips to false after first paint so each marker is
+ * rasterised once and then left static.
  */
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import Svg, { Path, Circle, Ellipse } from 'react-native-svg';
 import { emotionById } from '../lib/emotions';
+
+const DARK = '#0d1117';
+const TEAR_BLUE = '#6fe0e6';
 
 // ─── tracksViewChanges: true until first paint, then false ────────────────────
 
@@ -35,14 +34,12 @@ function useTracksOnce(delay = 900): boolean {
   return tracks;
 }
 
-// ─── Individual emotion pin (teardrop shape) ──────────────────────────────────
+// ─── Individual emotion pin (dark teardrop + coloured outline) ────────────────
 
-// viewBox 42×56 with the teardrop padded well inside every edge.
-// Bulb centre (21,21) r16; tip at (21,52). 4–5px clear margin all round.
 const PIN_W = 42;
 const PIN_H = 56;
+// Teardrop padded inside the 42×56 box: bulb centre (21,21) r16, tip at (21,52).
 const PIN_PATH = 'M21 52 C12 40 5 32 5 21 A16 16 0 1 1 37 21 C37 32 30 40 21 52 Z';
-// Tip sits at y=52 of 56 → anchor y so the tip points at the exact coordinate.
 const PIN_ANCHOR = { x: 0.5, y: 52 / PIN_H };
 
 export function EmotionPin({
@@ -54,7 +51,7 @@ export function EmotionPin({
   onPress: () => void;
 }) {
   const e = emotionById(emotion);
-  const color = e?.color ?? '#6fe0e6';
+  const color = e?.color ?? TEAR_BLUE;
   const tracks = useTracksOnce();
 
   return (
@@ -68,14 +65,9 @@ export function EmotionPin({
       <View style={{ width: PIN_W, height: PIN_H }}>
         <Svg width={PIN_W} height={PIN_H} viewBox="0 0 42 56">
           {/* ground shadow */}
-          <Ellipse cx={21} cy={51} rx={5.5} ry={1.8} fill="rgba(0,0,0,0.28)" />
-          {/* pin body */}
-          <Path d={PIN_PATH} fill={color} stroke="#0d1117" strokeWidth={1.5} strokeLinejoin="round" />
-          {/* glossy highlight */}
-          <Circle cx={16} cy={15} r={3.5} fill="#ffffff" opacity={0.18} />
-          {/* dark inner disc for emoji contrast */}
-          <Circle cx={21} cy={21} r={11} fill="#0d1117" opacity={0.92} />
-          <Circle cx={21} cy={21} r={11} fill="none" stroke={color} strokeWidth={1} opacity={0.5} />
+          <Ellipse cx={21} cy={51} rx={5.5} ry={1.8} fill="rgba(0,0,0,0.3)" />
+          {/* dark body + emotion-coloured outline */}
+          <Path d={PIN_PATH} fill={DARK} stroke={color} strokeWidth={2.5} strokeLinejoin="round" />
         </Svg>
         {/* emoji overlay, centred on the bulb (y≈21 of 56) */}
         <View style={[styles.overlayBox, { top: 5, height: 32 }]} pointerEvents="none">
@@ -86,35 +78,23 @@ export function EmotionPin({
   );
 }
 
-// ─── Cluster bubble ───────────────────────────────────────────────────────────
-
-function dominantColor(counts?: Record<string, number>): string {
-  if (!counts) return '#6fe0e6';
-  let best: string | null = null;
-  let bestN = -1;
-  for (const k in counts) {
-    if (counts[k] > bestN) { best = k; bestN = counts[k]; }
-  }
-  return emotionById(best ?? '')?.color ?? '#6fe0e6';
-}
+// ─── Cluster bubble (dark circle + count + Tear Blue outline) ──────────────────
 
 function clusterSize(count: number): number {
-  if (count < 10) return 40;
+  if (count < 10) return 42;
   if (count < 50) return 50;
   if (count < 200) return 60;
   return 70;
 }
 
 export function ClusterPin({
-  latitude, longitude, count, emotionCounts, onPress,
+  latitude, longitude, count, onPress,
 }: {
   latitude: number;
   longitude: number;
   count: number;
-  emotionCounts?: Record<string, number>;
   onPress: () => void;
 }) {
-  const color = dominantColor(emotionCounts);
   const size = clusterSize(count);
   const box = size + 16; // generous transparent margin so nothing clips
   const c = box / 2;
@@ -132,17 +112,11 @@ export function ClusterPin({
     >
       <View style={{ width: box, height: box }}>
         <Svg width={box} height={box}>
-          {/* dark backing ring — crisp outline against the map (opaque) */}
-          <Circle cx={c} cy={c} r={r} fill="#0d1117" />
-          {/* main coloured disc (opaque) */}
-          <Circle cx={c} cy={c} r={r - 2.5} fill={color} />
-          {/* glossy top highlight (small, over the opaque disc — safe) */}
-          <Circle cx={c} cy={c - r * 0.32} r={r * 0.42} fill="#ffffff" opacity={0.16} />
-          {/* thin inner rim for depth (solid dark stroke) */}
-          <Circle cx={c} cy={c} r={r - 5} fill="none" stroke="#0d1117" strokeWidth={1.5} />
+          {/* dark circle + Tear Blue outline */}
+          <Circle cx={c} cy={c} r={r} fill={DARK} stroke={TEAR_BLUE} strokeWidth={2.5} />
         </Svg>
         <View style={[styles.overlayBox, styles.fillBox]} pointerEvents="none">
-          <Text style={[styles.clusterCount, { fontSize: size * 0.36 }]}>{label}</Text>
+          <Text style={[styles.clusterCount, { fontSize: size * 0.38 }]}>{label}</Text>
         </View>
       </View>
     </Marker>
@@ -152,7 +126,7 @@ export function ClusterPin({
 // ─── "You are here" dot (custom, lightweight — no big accuracy circle) ────────
 
 export function LocationDot({
-  latitude, longitude, color = '#6fe0e6',
+  latitude, longitude, color = TEAR_BLUE,
 }: {
   latitude: number;
   longitude: number;
@@ -170,8 +144,7 @@ export function LocationDot({
     >
       <View style={{ width: S, height: S }}>
         <Svg width={S} height={S}>
-          {/* dark halo ring + white ring + coloured core — all opaque */}
-          <Circle cx={c} cy={c} r={9} fill="#0d1117" />
+          <Circle cx={c} cy={c} r={9} fill={DARK} />
           <Circle cx={c} cy={c} r={7.5} fill="#ffffff" />
           <Circle cx={c} cy={c} r={5} fill={color} />
         </Svg>
@@ -191,7 +164,7 @@ const styles = StyleSheet.create({
   fillBox: { top: 0, bottom: 0 },
   pinEmoji: { fontSize: 15, textAlign: 'center' },
   clusterCount: {
-    color: '#0d1117',
+    color: TEAR_BLUE,
     fontWeight: '800',
     textAlign: 'center',
   },

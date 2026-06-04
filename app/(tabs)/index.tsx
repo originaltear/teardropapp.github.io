@@ -15,7 +15,7 @@ import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { useAuth } from '../../lib/auth';
 import { TearsBadge } from '../../components/TearsBadge';
-import { EmotionPin, ClusterPin } from '../../components/MapMarkers';
+import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers';
 import { useTheme } from '../../lib/themes';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
@@ -350,6 +350,15 @@ export default function MapScreen() {
         toolbarEnabled={false}
         onRegionChangeComplete={setRegion}
       >
+        {/* Lightweight "you are here" dot (rendered under cry markers) */}
+        {gpsCoords && (
+          <LocationDot
+            latitude={gpsCoords.latitude}
+            longitude={gpsCoords.longitude}
+            color={accent}
+          />
+        )}
+
         {/* Clusters + individual pins. RLS + getGlobalFeed() already filter
             is_public and blocks, so no client-side filtering needed here. */}
         {clusters.map(feature => {

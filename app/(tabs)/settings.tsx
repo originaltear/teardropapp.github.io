@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert,
   ActivityIndicator, Switch, TextInput, Modal, Share, Image,
@@ -99,7 +99,6 @@ export default function SettingsScreen() {
 
   // ── State ──
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isPremium, setIsPremium] = useState(false);

@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../lib/themes';
 import { Audio } from 'expo-av';
 import { loadCries, deleteCry, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
@@ -130,7 +129,6 @@ function DetailModal({ cry, onClose, onDelete }: {
 
 export default function MyCriesScreen() {
   const router = useRouter();
-  const { theme: { accent } } = useTheme();
   const [cries, setCries] = useState<Cry[]>([]);
   const [selected, setSelected] = useState<Cry | null>(null);
 

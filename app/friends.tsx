@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
 import {
-  searchUsers, followUser, unfollowUser, sendFriendRequest,
+  searchUsers, followUser, unfollowUser,
   respondToFriendRequest, getPendingRequests,
   UserResult, FriendRequest,
 } from '../lib/social';
@@ -116,15 +116,21 @@ export default function FriendsScreen() {
 
   const handleAction = useCallback(async (user: UserResult, relation: string) => {
     if (relation === 'none') {
-      await followUser(user.id);
+      // Optimistic: flip the button immediately, revert if the request fails.
       setResults(prev => prev.map(u => u.id === user.id ? { ...u, relation: 'following' } : u));
+      followUser(user.id).catch(() => {
+        setResults(prev => prev.map(u => u.id === user.id ? { ...u, relation: 'none' } : u));
+      });
     } else if (relation === 'following') {
       Alert.alert('Unfollow', `Unfollow @${user.username}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Unfollow', style: 'destructive', onPress: async () => {
-            await unfollowUser(user.id);
+          text: 'Unfollow', style: 'destructive', onPress: () => {
+            // Optimistic unfollow with revert on failure.
             setResults(prev => prev.map(u => u.id === user.id ? { ...u, relation: 'none' } : u));
+            unfollowUser(user.id).catch(() => {
+              setResults(prev => prev.map(u => u.id === user.id ? { ...u, relation: 'following' } : u));
+            });
           },
         },
       ]);

@@ -80,6 +80,14 @@ export function SplashGate({ children }: { children: React.ReactNode }) {
   const [mapReady, setMapReady] = useState(false);
   const [hidden, setHidden] = useState(false);
 
+  // Minimum on-screen time so the bar always fills smoothly instead of flashing
+  // by on a fast (cached-session) launch.
+  const [minElapsed, setMinElapsed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMinElapsed(true), 1300);
+    return () => clearTimeout(t);
+  }, []);
+
   const progress = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -89,7 +97,8 @@ export function SplashGate({ children }: { children: React.ReactNode }) {
   let target = 0.12;          // mounted
   if (authDone) target = 0.45;
   if (dataDone) target = 0.72;
-  if (mapReady) target = 1;
+  // Hold just shy of full until the minimum time has passed, then complete.
+  if (mapReady) target = minElapsed ? 1 : 0.9;
 
   // Animate the bar toward the current target; fade out once it fills.
   useEffect(() => {

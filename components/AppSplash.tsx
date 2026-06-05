@@ -2,9 +2,11 @@
  * Animated splash / loading screen.
  *
  * The native splash (a static dark screen) shows instantly while the JS bundle
- * loads. As soon as React mounts, this overlay takes over with the full branded
- * design + a thin Tear Blue progress bar that reflects REAL startup progress:
+ * loads. As soon as React mounts, this overlay takes over with the branded
+ * splash artwork (assets/splash-bg.png — logo, title and tagline are baked into
+ * the image) and a thin Tear Blue progress bar overlaid just below the tagline.
  *
+ * The bar reflects REAL startup progress:
  *   mount            →  bar appears              (~12%)
  *   auth check done  →  more progress            (~45%)   [supabase.auth.getSession]
  *   profile loaded   →  more progress            (~72%)   [profiles query / guest]
@@ -16,11 +18,9 @@
 import React, {
   createContext, useCallback, useContext, useEffect, useRef, useState,
 } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
-import Svg, { Path, Ellipse, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { View, StyleSheet, Animated, Easing, ImageBackground } from 'react-native';
 import { useAuth } from '../lib/auth';
 
-const BG = '#070a14';
 const TEAR_BLUE = '#6fe0e6';
 
 // ─── Context so the map can report when it's ready ────────────────────────────
@@ -28,32 +28,7 @@ const TEAR_BLUE = '#6fe0e6';
 const SplashCtx = createContext<{ markMapReady: () => void }>({ markMapReady: () => {} });
 export function useSplashGate() { return useContext(SplashCtx); }
 
-// ─── Branded logo (glossy teardrop in a dark rounded tile) ────────────────────
-
-function Logo() {
-  return (
-    <View style={s.logoTile}>
-      <Svg width={62} height={66} viewBox="0 0 100 106">
-        <Defs>
-          <LinearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#c8f7fb" />
-            <Stop offset="0.5" stopColor={TEAR_BLUE} />
-            <Stop offset="1" stopColor="#3bbecd" />
-          </LinearGradient>
-        </Defs>
-        {/* water-drop body */}
-        <Path
-          d="M50 8 C32 40 19 54 19 70 a31 31 0 1 0 62 0 C81 54 68 40 50 8 Z"
-          fill="url(#drop)"
-        />
-        {/* glossy highlight */}
-        <Ellipse cx={38} cy={60} rx={10} ry={15} fill="#ffffff" opacity={0.25} />
-      </Svg>
-    </View>
-  );
-}
-
-// ─── Visual content ───────────────────────────────────────────────────────────
+// ─── Visual content (artwork + progress bar) ──────────────────────────────────
 
 function SplashContent({ progress }: { progress: Animated.Value }) {
   const width = progress.interpolate({
@@ -62,14 +37,16 @@ function SplashContent({ progress }: { progress: Animated.Value }) {
     extrapolate: 'clamp',
   });
   return (
-    <View style={s.root}>
-      <Logo />
-      <Text style={s.title}>Teardrop</Text>
-      <Text style={s.tagline}>Every Tear Has A Place</Text>
+    <ImageBackground
+      source={require('../assets/splash-bg.png')}
+      style={s.bg}
+      resizeMode="cover"
+    >
+      {/* Loading bar — sits in the dark space just below the baked-in tagline */}
       <View style={s.barTrack}>
         <Animated.View style={[s.barFill, { width }]} />
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -148,47 +125,19 @@ export function SplashGate({ children }: { children: React.ReactNode }) {
 
 const s = StyleSheet.create({
   overlay: { zIndex: 999, elevation: 999 },
-  root: {
+  bg: {
     flex: 1,
-    backgroundColor: BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoTile: {
-    width: 112,
-    height: 112,
-    borderRadius: 26,
-    backgroundColor: '#0e1a2e',
-    borderWidth: 1,
-    borderColor: 'rgba(111,224,230,0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 26,
-    shadowColor: TEAR_BLUE,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  title: {
-    color: TEAR_BLUE,
-    fontSize: 40,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  tagline: {
-    color: '#7d94a8',
-    fontSize: 15,
-    letterSpacing: 0.4,
-    marginTop: 6,
+    backgroundColor: '#070a14', // matches the artwork's dark edges
   },
   barTrack: {
+    position: 'absolute',
+    top: '66%',
+    alignSelf: 'center',
     width: 200,
     height: 3,
     borderRadius: 2,
-    backgroundColor: 'rgba(111,224,230,0.15)',
+    backgroundColor: 'rgba(111,224,230,0.18)',
     overflow: 'hidden',
-    marginTop: 30,
   },
   barFill: {
     height: 3,

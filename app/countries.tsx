@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
-import { loadCries, Cry } from '../lib/storage';
+import { loadCries } from '../lib/storage';
 
 // Map country names to flag emojis via ISO code lookup
 // We'll generate flags from country name using a lookup table of common countries

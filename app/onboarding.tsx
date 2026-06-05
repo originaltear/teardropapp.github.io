@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../lib/themes';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: W } = Dimensions.get('window');
@@ -49,7 +48,6 @@ const SLIDES: Slide[] = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { theme: { accent } } = useTheme();
   const listRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
 

@@ -6,7 +6,7 @@
  */
 import { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   Image, ActivityIndicator, SectionList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../lib/auth';
 import {
   getCloseFriends, addCloseFriend, removeCloseFriend,
-  getFollowList, CloseFriend, UserResult,
+  getFollowList, UserResult,
 } from '../lib/social';
 
 function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
@@ -33,7 +33,6 @@ export default function CloseFriendsScreen() {
   const { theme: { accent } } = useTheme();
   const { session } = useAuth();
 
-  const [closeFriends, setCloseFriends] = useState<CloseFriend[]>([]);
   const [followers, setFollowers] = useState<UserResult[]>([]);
   const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -48,7 +47,6 @@ export default function CloseFriendsScreen() {
           getCloseFriends(),
           getFollowList(session.user.id, 'followers'),
         ]);
-        setCloseFriends(cf);
         setCloseFriendIds(new Set(cf.map(c => c.friend_id)));
         setFollowers(fl.filter(f => f.id !== session.user.id));
       } catch (e) {

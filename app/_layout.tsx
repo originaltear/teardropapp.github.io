@@ -9,6 +9,7 @@ import { registerPushToken, clearBadge } from '../lib/notifications';
 import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
+import { SplashGate } from '../components/AppSplash';
 import { ONBOARDING_KEY } from './onboarding';
 
 // ─── Root navigation + providers ──────────────────────────────────────────────
@@ -190,11 +191,13 @@ function ThemedApp() {
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
       <AuthProvider>
-        <AchievementToastProvider>
-          <OnboardingGate>
-            <RootNav />
-          </OnboardingGate>
-        </AchievementToastProvider>
+        <SplashGate>
+          <AchievementToastProvider>
+            <OnboardingGate>
+              <RootNav />
+            </OnboardingGate>
+          </AchievementToastProvider>
+        </SplashGate>
       </AuthProvider>
     </ThemeContext.Provider>
   );

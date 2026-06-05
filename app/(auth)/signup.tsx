@@ -21,7 +21,7 @@ export default function SignupScreen() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [error, setError]       = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
 
@@ -47,7 +47,7 @@ export default function SignupScreen() {
     }
   }
 
-  async function handleOAuth(provider: 'google' | 'facebook') {
+  async function handleOAuth(provider: 'google') {
     setError(null);
     setOauthLoading(provider);
     try {
@@ -123,15 +123,6 @@ export default function SignupScreen() {
               loading={oauthLoading === 'google'}
               disabled={anyLoading}
               onPress={() => handleOAuth('google')}
-            />
-            <View style={{ height: 10 }} />
-            <OAuthButton
-              label="Sign up with Facebook"
-              icon="f"
-              iconColor="#4267B2"
-              loading={oauthLoading === 'facebook'}
-              disabled={anyLoading}
-              onPress={() => handleOAuth('facebook')}
             />
           </View>
 

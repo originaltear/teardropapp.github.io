@@ -16,6 +16,7 @@ import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { useAuth } from '../../lib/auth';
 import { TearsBadge } from '../../components/TearsBadge';
 import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers';
+import { useSplashGate } from '../../components/AppSplash';
 import { useTheme } from '../../lib/themes';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
@@ -215,6 +216,7 @@ export default function MapScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
+  const { markMapReady } = useSplashGate();
   const mapRef = useRef<MapView>(null);
   const initialRegionRef = useRef<Region | null>(null);
   const [gpsReady, setGpsReady] = useState(false);
@@ -228,21 +230,27 @@ export default function MapScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { setPermissionDenied(true); return; }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const r: Region = {
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      };
-      initialRegionRef.current = r;
-      setRegion(r);
-      setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-      setGpsReady(true);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') { setPermissionDenied(true); return; }
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const r: Region = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        };
+        initialRegionRef.current = r;
+        setRegion(r);
+        setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+        setGpsReady(true);
+      } finally {
+        // Tell the splash the map is ready (resolved one way or another) so the
+        // loading bar can complete and the splash can fade out.
+        markMapReady();
+      }
     })();
-  }, []);
+  }, [markMapReady]);
 
   useFocusEffect(useCallback(() => {
     const onErr = (e: unknown) => console.warn('[map] load cries failed:', e);

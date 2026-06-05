@@ -21,7 +21,7 @@ export default function LoginScreen() {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<'google' | 'facebook' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [error, setError]       = useState<string | null>(null);
 
   // ── Email / password ──────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ export default function LoginScreen() {
 
   // ── OAuth ─────────────────────────────────────────────────────────────────
 
-  async function handleOAuth(provider: 'google' | 'facebook') {
+  async function handleOAuth(provider: 'google') {
     setError(null);
     setOauthLoading(provider);
     try {
@@ -140,18 +140,6 @@ export default function LoginScreen() {
               loading={oauthLoading === 'google'}
               disabled={anyOAuthLoading || loading}
               onPress={() => handleOAuth('google')}
-            />
-
-            <View style={{ height: 10 }} />
-
-            {/* Facebook */}
-            <OAuthButton
-              label="Continue with Facebook"
-              icon="f"
-              iconColor="#4267B2"
-              loading={oauthLoading === 'facebook'}
-              disabled={anyOAuthLoading || loading}
-              onPress={() => handleOAuth('facebook')}
             />
           </View>
 

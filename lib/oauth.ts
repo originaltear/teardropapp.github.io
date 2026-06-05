@@ -34,7 +34,7 @@ export function friendlyOAuthError(err: unknown): string {
   return raw || 'Sign-in failed. Please try again.';
 }
 
-export async function runOAuth(provider: 'google' | 'facebook'): Promise<void> {
+export async function runOAuth(provider: 'google'): Promise<void> {
   const redirectTo = getRedirectUri();
   console.log('[oauth] redirectTo:', redirectTo, '| platform:', Platform.OS);
 

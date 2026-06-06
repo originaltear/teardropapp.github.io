@@ -30,11 +30,12 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files — never commit real keys (.env.example is the committed template)
 .env
 .env*.local
 
-# google-services.json is intentionally tracked (API key is public in APKs)
+# Firebase config — contains a Google API key; keep it out of version control
+google-services.json
 
 # typescript
 *.tsbuildinfo

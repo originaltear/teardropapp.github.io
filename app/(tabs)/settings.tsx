@@ -411,7 +411,7 @@ export default function SettingsScreen() {
           {/* Appearance */}
           <SectionLabel text="Appearance" />
           <SettingsGroup>
-            <ToggleRow label="Haptic feedback" value={hapticsOn} onChange={toggleHaptics} />
+            <ToggleRow label="Vibration" value={hapticsOn} onChange={toggleHaptics} />
             {isPremium ? (
               <SettingsRow
                 label={`Theme: ${theme.emoji} ${theme.name}`}

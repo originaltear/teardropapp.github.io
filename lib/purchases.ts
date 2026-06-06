@@ -20,7 +20,7 @@ import Purchases, {
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
-const RC_API_KEY_ANDROID = 'test_TOoVoNDzemlfNlJfiJxFoLpuGPB';
+const RC_API_KEY_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
 export const ENTITLEMENT_ID = 'teardrop_pro';
 const CRYSTAL_TEAR = '💎';
 
@@ -33,7 +33,10 @@ const CRYSTAL_TEAR = '💎';
  * entirely in release builds. Premium then falls back to the DB is_premium flag.
  */
 const IS_TEST_KEY = RC_API_KEY_ANDROID.startsWith('test_');
-const RC_DISABLED = IS_TEST_KEY && !__DEV__;
+// Disable RevenueCat when a Test Store key is used in a release build (it crashes
+// the app), or when no key is configured at all. Premium then falls back to the
+// DB is_premium flag.
+const RC_DISABLED = (IS_TEST_KEY && !__DEV__) || !RC_API_KEY_ANDROID;
 
 // ─── Initialise (call once at app start, after auth resolves) ─────────────────
 

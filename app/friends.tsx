@@ -11,6 +11,7 @@ import {
   respondToFriendRequest, getPendingRequests,
   UserResult, FriendRequest,
 } from '../lib/social';
+import { tapLight } from '../lib/haptics';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -116,6 +117,7 @@ export default function FriendsScreen() {
 
   const handleAction = useCallback(async (user: UserResult, relation: string) => {
     if (relation === 'none') {
+      tapLight();
       // Optimistic: flip the button immediately, revert if the request fails.
       setResults(prev => prev.map(u => u.id === user.id ? { ...u, relation: 'following' } : u));
       followUser(user.id).catch(() => {
@@ -126,6 +128,7 @@ export default function FriendsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Unfollow', style: 'destructive', onPress: () => {
+            tapLight();
             // Optimistic unfollow with revert on failure.
             setResults(prev => prev.map(u => u.id === user.id ? { ...u, relation: 'none' } : u));
             unfollowUser(user.id).catch(() => {

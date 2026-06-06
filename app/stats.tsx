@@ -537,7 +537,7 @@ function Header({ onBack }: { onBack: () => void }) {
   const { theme: { accent } } = useTheme();
   return (
     <View style={s.header}>
-      <TouchableOpacity onPress={onBack} style={s.backBtn}>
+      <TouchableOpacity onPress={onBack} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Go back">
         <Text style={[s.backTxt, { color: accent }]}>←</Text>
       </TouchableOpacity>
       <Text style={s.title}>Statistics</Text>

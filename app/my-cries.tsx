@@ -2,62 +2,21 @@
  * Full-screen list of the current user's cries.
  * Navigated to from the Profile tab when tapping "Cries".
  */
-import { useRef, useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Modal, ScrollView, Image, Alert, ActivityIndicator,
+  Modal, ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Audio } from 'expo-av';
 import { loadCries, deleteCry, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  const d = new Date(iso), now = Date.now(), diff = now - d.getTime();
-  const mins = Math.floor(diff / 60000), hours = Math.floor(diff / 3600000), days = Math.floor(diff / 86400000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function Drops({ intensity }: { intensity: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1,2,3,4,5].map(n => <Text key={n} style={{ fontSize: 12, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>)}
-    </View>
-  );
-}
-
-// ─── Audio player ─────────────────────────────────────────────────────────────
-
-function AudioPlayer({ uri }: { uri: string }) {
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  async function toggle() {
-    if (playing) { await soundRef.current?.stopAsync(); setPlaying(false); return; }
-    try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate(s => { if (s.isLoaded && s.didJustFinish) { setPlaying(false); sound.unloadAsync(); } });
-      await sound.playAsync();
-    } catch { Alert.alert('Error', 'Could not play audio.'); }
-  }
-  return (
-    <TouchableOpacity style={s.audioBtn} onPress={toggle} activeOpacity={0.8}>
-      <Text style={s.audioIcon}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={s.audioTxt}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
-    </TouchableOpacity>
-  );
-}
+import { Drops } from '../components/Drops';
+import { AudioPlayer } from '../components/AudioPlayer';
+import { CryPhoto } from '../components/CryPhoto';
+import { timeAgo, fullDateTime } from '../lib/format';
+import { warning } from '../lib/haptics';
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
@@ -77,6 +36,7 @@ function DetailModal({ cry, onClose, onDelete }: {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete', style: 'destructive', onPress: async () => {
+            warning();
             setDeleting(true);
             await deleteCry(cry.id);
             setDeleting(false);
@@ -99,7 +59,7 @@ function DetailModal({ cry, onClose, onDelete }: {
               ? <ActivityIndicator size="small" color="#ef4444" />
               : <Text style={s.deleteTxt}>🗑 Delete</Text>}
           </TouchableOpacity>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
             <Text style={s.closeTxt}>✕</Text>
           </TouchableOpacity>
         </View>
@@ -108,13 +68,9 @@ function DetailModal({ cry, onClose, onDelete }: {
             <Text style={{ fontSize: 22 }}>{emotion?.emoji ?? '💧'}</Text>
             <Text style={[s.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>{emotion?.label ?? cry.emotion}</Text>
           </View>
-          <Text style={s.dateLabel}>
-            {new Date(cry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-            {' · '}
-            {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-          </Text>
+          <Text style={s.dateLabel}>{fullDateTime(cry.createdAt)}</Text>
           <Drops intensity={cry.intensity} />
-          {cry.photoUri ? <Image source={{ uri: cry.photoUri }} style={s.photo} resizeMode="cover" /> : null}
+          {cry.photoUri ? <CryPhoto uri={cry.photoUri} style={s.photo} /> : null}
           {cry.note
             ? <View style={s.noteBox}><Text style={s.noteText}>{cry.note}</Text></View>
             : <Text style={s.noNote}>No note</Text>}
@@ -142,7 +98,7 @@ export default function MyCriesScreen() {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Go back">
           <Text style={s.backTxt}>←</Text>
         </TouchableOpacity>
         <Text style={s.title}>My Cries</Text>
@@ -163,7 +119,7 @@ export default function MyCriesScreen() {
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={[s.emotionName, { color }]}>{emotion?.label ?? cry.emotion}</Text>
-                  <Text style={s.time}>{formatDate(cry.createdAt)}</Text>
+                  <Text style={s.time}>{timeAgo(cry.createdAt)}</Text>
                 </View>
                 <Drops intensity={cry.intensity} />
                 {cry.note ? <Text style={s.noteSnippet} numberOfLines={1}>{cry.note}</Text> : null}

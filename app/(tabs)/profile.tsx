@@ -257,10 +257,10 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity onPress={() => router.push('/stats')} style={styles.editBtn}>
+          <TouchableOpacity onPress={() => router.push('/stats')} style={styles.editBtn} accessibilityRole="button" accessibilityLabel="Statistics">
             <Text style={styles.editTxt}>📊</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/calendar')} style={styles.editBtn}>
+          <TouchableOpacity onPress={() => router.push('/calendar')} style={styles.editBtn} accessibilityRole="button" accessibilityLabel="Calendar">
             <Text style={styles.editTxt}>📅</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setEditOpen(true)} style={styles.editBtn}>

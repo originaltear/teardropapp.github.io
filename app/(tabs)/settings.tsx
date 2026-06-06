@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert,
   ActivityIndicator, Switch, TextInput, Modal, Share, Image,
@@ -18,6 +18,7 @@ import {
 import { clearPushToken } from '../../lib/notifications';
 import { checkPremium } from '../../lib/purchases';
 import { useTheme, THEMES } from '../../lib/themes';
+import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -103,6 +104,7 @@ export default function SettingsScreen() {
   const [deleting, setDeleting] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [hapticsOn, setHapticsOn] = useState(true);
 
   // Privacy settings
   const [profileVisibility, setProfileVisibility] =
@@ -150,6 +152,17 @@ export default function SettingsScreen() {
       }
     })();
   }, [session]));
+
+  // ── Haptics preference (local, works for guests too) ──
+  useEffect(() => {
+    loadHapticsPref().then(setHapticsOn);
+  }, []);
+
+  async function toggleHaptics(v: boolean) {
+    setHapticsOn(v);
+    await setHapticsEnabled(v); // applies in-memory immediately + persists
+    if (v) tapLight();          // instant confirmation when turning it back on
+  }
 
   // ── Auto-save privacy settings ──
   async function saveVisibility(v: ProfileSettings['profile_visibility']) {
@@ -395,6 +408,24 @@ export default function SettingsScreen() {
             />
           </SettingsGroup>
 
+          {/* Appearance */}
+          <SectionLabel text="Appearance" />
+          <SettingsGroup>
+            <ToggleRow label="Haptic feedback" value={hapticsOn} onChange={toggleHaptics} />
+            {isPremium ? (
+              <SettingsRow
+                label={`Theme: ${theme.emoji} ${theme.name}`}
+                onPress={() => setShowThemePicker(true)}
+              />
+            ) : (
+              <SettingsRow
+                label="Custom themes"
+                value="Premium only"
+                onPress={() => router.push('/paywall')}
+              />
+            )}
+          </SettingsGroup>
+
           {/* Premium */}
           <SectionLabel text="Premium" />
           <SettingsGroup>
@@ -405,28 +436,17 @@ export default function SettingsScreen() {
                   <Text style={{ color: '#6fe0e6', fontSize: 13, fontWeight: '700' }}>💎 Active</Text>
                 </View>
                 <SettingsRow
-                  label={`Theme: ${theme.emoji} ${theme.name}`}
-                  onPress={() => setShowThemePicker(true)}
-                />
-                <SettingsRow
                   label="Manage subscription"
                   value="Google Play ›"
                   onPress={() => Alert.alert('Manage subscription', 'Open Google Play → Subscriptions to manage or cancel your plan.')}
                 />
               </>
             ) : (
-              <>
-                <SettingsRow
-                  label="Upgrade to Pro 💎"
-                  value="Unlock features ›"
-                  onPress={() => router.push('/paywall')}
-                />
-                <SettingsRow
-                  label="Custom themes"
-                  value="Premium only"
-                  onPress={() => router.push('/paywall')}
-                />
-              </>
+              <SettingsRow
+                label="Upgrade to Pro 💎"
+                value="Unlock features ›"
+                onPress={() => router.push('/paywall')}
+              />
             )}
           </SettingsGroup>
 

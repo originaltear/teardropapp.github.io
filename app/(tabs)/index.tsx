@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal, Image, Alert, FlatList, Dimensions,
+  ActivityIndicator, Modal, FlatList, Dimensions,
 } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
@@ -9,7 +9,6 @@ import * as Location from 'expo-location';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Audio } from 'expo-av';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
@@ -18,6 +17,11 @@ import { TearsBadge } from '../../components/TearsBadge';
 import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers';
 import { useSplashGate } from '../../components/AppSplash';
 import { PressableScale } from '../../components/PressableScale';
+import { Avatar } from '../../components/Avatar';
+import { Drops } from '../../components/Drops';
+import { AudioPlayer } from '../../components/AudioPlayer';
+import { CryPhoto } from '../../components/CryPhoto';
+import { fullDateTime, timeAgo } from '../../lib/format';
 import { tapLight, tapMedium, selection } from '../../lib/haptics';
 import { useTheme } from '../../lib/themes';
 
@@ -73,80 +77,6 @@ const DARK_MAP_STYLE = [
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d778d' }] },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
-    ' · ' +
-    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  );
-}
-
-function Drops({ intensity, size = 16 }: { intensity: number; size?: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <Text key={n} style={{ fontSize: size, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
-      ))}
-    </View>
-  );
-}
-
-// ─── Audio player ─────────────────────────────────────────────────────────────
-
-function AudioPlayer({ uri }: { uri: string }) {
-  const { theme: { accent } } = useTheme();
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-
-  async function toggle() {
-    if (playing) {
-      await soundRef.current?.stopAsync();
-      setPlaying(false);
-      return;
-    }
-    try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate(s => {
-        if (s.isLoaded && s.didJustFinish) {
-          setPlaying(false);
-          sound.unloadAsync();
-        }
-      });
-      await sound.playAsync();
-    } catch {
-      Alert.alert('Error', 'Could not play audio.');
-    }
-  }
-
-  return (
-    <TouchableOpacity style={[styles.audioPlayer, { borderColor: accent }]} onPress={toggle} activeOpacity={0.8}>
-      <Text style={[styles.audioIcon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={[styles.audioLabel, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
-    </TouchableOpacity>
-  );
-}
-
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-
-function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
-  const { theme: { accent } } = useTheme();
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={{
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: accent, alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
-    </View>
-  );
-}
-
 // ─── Cry detail card ──────────────────────────────────────────────────────────
 
 function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose: () => void }) {
@@ -187,16 +117,16 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
             {emotion?.label ?? cry.emotion}
           </Text>
         </View>
-        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+        <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
           <Text style={styles.closeTxt}>✕</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.dateText}>{formatDate(cry.date)}</Text>
+      <Text style={styles.dateText}>{fullDateTime(cry.date)}</Text>
       <Drops intensity={cry.intensity} />
 
       {cry.photoUri ? (
-        <Image source={{ uri: cry.photoUri }} style={styles.photo} resizeMode="cover" />
+        <CryPhoto uri={cry.photoUri} style={styles.photo} />
       ) : null}
 
       {cry.note ? (
@@ -239,7 +169,7 @@ function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: (
           {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
         </View>
         {cry.note ? <Text style={styles.clNote} numberOfLines={1}>{cry.note}</Text> : null}
-        <Text style={styles.clDate}>{formatDate(cry.date)}</Text>
+        <Text style={styles.clDate}>{timeAgo(cry.date)}</Text>
       </View>
       <Text style={styles.clArrow}>›</Text>
     </TouchableOpacity>
@@ -461,6 +391,9 @@ export default function MapScreen() {
                   ]}
                   onPress={() => { if (!active) { selection(); setMapFilter(f); } }}
                   activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? "Show friends' cries" : 'Show all cries'}
                 >
                   <Text style={styles.segmentEmoji}>
                     {f === 'mine' ? '👤' : f === 'following' ? '👥' : '🌍'}
@@ -475,11 +408,22 @@ export default function MapScreen() {
         </View>
       )}
 
+      {/* First-cry nudge for new users with an empty map */}
+      {gpsReady && cries.length === 0 && (
+        <SafeAreaView edges={['bottom']} style={styles.hintContainer} pointerEvents="none">
+          <View style={styles.firstCryHint}>
+            <Text style={styles.firstCryHintTxt}>💧 Tap + to log your first cry</Text>
+          </View>
+        </SafeAreaView>
+      )}
+
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
         <PressableScale
           style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]}
           onPress={() => { tapMedium(); handleAddCry(); }}
           scaleTo={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Log a cry"
         >
           <Text style={styles.fabIcon}>+</Text>
         </PressableScale>
@@ -638,14 +582,15 @@ const styles = StyleSheet.create({
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
-  audioPlayer: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#0d1117', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#6fe0e6',
+  // First-cry hint
+  hintContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
+  firstCryHint: {
+    backgroundColor: 'rgba(13,17,23,0.92)',
+    borderWidth: 1, borderColor: '#1f2937', borderRadius: 16,
+    paddingHorizontal: 14, paddingVertical: 8,
+    marginRight: 24, marginBottom: 100,
   },
-  audioIcon: { fontSize: 18, color: '#6fe0e6' },
-  audioLabel: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
+  firstCryHintTxt: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
 
   // Cluster contents sheet
   clusterCard: {

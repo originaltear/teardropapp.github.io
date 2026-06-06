@@ -2,17 +2,21 @@ import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
-  Modal, Image, Alert, TextInput, KeyboardAvoidingView,
+  Modal, Alert, TextInput, KeyboardAvoidingView,
   Platform, ScrollView, ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
 import { tapLight, selection } from '../../lib/haptics';
-// Note: TextInput + ScrollView used in DetailModal comment section
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { Audio } from 'expo-av';
 import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { TearsBadge } from '../../components/TearsBadge';
+import { Avatar } from '../../components/Avatar';
+import { Drops } from '../../components/Drops';
+import { AudioPlayer } from '../../components/AudioPlayer';
+import { CryPhoto } from '../../components/CryPhoto';
+import { ListSkeleton } from '../../components/Skeleton';
+import { timeAgo, fullDateTime } from '../../lib/format';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
@@ -20,74 +24,6 @@ import {
   SocialCry, Comment,
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  const d = new Date(iso), now = new Date();
-  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
-function formatFullDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-    + ' · ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-}
-
-function Drops({ intensity, size = 14 }: { intensity: number; size?: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1,2,3,4,5].map(n => (
-        <Text key={n} style={{ fontSize: size, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
-      ))}
-    </View>
-  );
-}
-
-const Avatar = memo(function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
-  if (uri) return (
-    <Image
-      source={{ uri }}
-      style={{ width: size, height: size, borderRadius: size / 2 }}
-      fadeDuration={150}
-    />
-  );
-  return (
-    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
-    </View>
-  );
-});
-
-// ─── Audio player ─────────────────────────────────────────────────────────────
-
-function AudioPlayer({ uri }: { uri: string }) {
-  const { theme: { accent } } = useTheme();
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  async function toggle() {
-    if (playing) { await soundRef.current?.stopAsync(); setPlaying(false); return; }
-    try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate(s => { if (s.isLoaded && s.didJustFinish) { setPlaying(false); sound.unloadAsync(); } });
-      await sound.playAsync();
-    } catch { Alert.alert('Error', 'Could not play audio.'); }
-  }
-  return (
-    <TouchableOpacity style={[styles.audioPlayer, { borderColor: accent }]} onPress={toggle} activeOpacity={0.8}>
-      <Text style={[styles.audioIcon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={[styles.audioLabel, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
-    </TouchableOpacity>
-  );
-}
 
 // ─── Detail modal with likes + comments ───────────────────────────────────────
 
@@ -141,6 +77,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
       const c = await addComment(cry.id, commentText.trim());
       if (c) setComments(prev => [...prev, c]);
       setCommentText('');
+      tapLight();
     } catch (e: any) {
       if (e?.code === 'COMMENTS_DISABLED') {
         setCommentsDisabled(true);
@@ -178,16 +115,19 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
               <Text style={styles.badgeEmoji}>{emotion?.emoji ?? '💧'}</Text>
               <Text style={[styles.badgeLabel, { color: emotion?.color ?? '#6fe0e6' }]}>{emotion?.label ?? cry.emotion}</Text>
             </View>
-            <Text style={styles.sheetDate}>{formatFullDate(cry.created_at)}</Text>
+            <Text style={styles.sheetDate}>{fullDateTime(cry.created_at)}</Text>
             <Drops intensity={cry.intensity} size={18} />
-            {cry.photo_uri ? <Image source={{ uri: cry.photo_uri }} style={styles.photo} resizeMode="cover" /> : null}
+            {cry.photo_uri ? <CryPhoto uri={cry.photo_uri} style={styles.photo} /> : null}
             {cry.note ? <View style={styles.noteBox}><Text style={styles.noteText}>{cry.note}</Text></View> : null}
             {cry.audio_uri ? <AudioPlayer uri={cry.audio_uri} /> : null}
 
             {/* Like button */}
             <View style={styles.likeRow}>
               {!isOwn && myId && (
-                <TouchableOpacity style={styles.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
+                <TouchableOpacity
+                  style={styles.likeBtn} onPress={toggleLike} activeOpacity={0.75}
+                  accessibilityRole="button" accessibilityLabel={liked ? 'Unlike this cry' : 'Like this cry'}
+                >
                   <Text style={styles.likeIcon}>{liked ? '💧' : '🤍'}</Text>
                   <Text style={[styles.likeTxt, liked && { color: accent }]}>
                     {liked ? 'Liked' : 'Like'}
@@ -273,7 +213,7 @@ const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onS
               <TearsBadge tears={cry.profile.selected_tears} />
             )}
           </View>
-          <Text style={styles.timeAgo}>{formatDate(cry.created_at)}</Text>
+          <Text style={styles.timeAgo}>{timeAgo(cry.created_at)}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
           <Text style={[styles.emotionChip, { color, backgroundColor: color + '22' }]}>
@@ -432,9 +372,7 @@ export default function FeedScreen() {
       <AuthGateModal visible={authGate} onClose={() => setAuthGate(false)} />
 
       {loading ? (
-        <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color={accent} />
-        </View>
+        <ListSkeleton />
       ) : (
         <FlatList
           data={displayCries}

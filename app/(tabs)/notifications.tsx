@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, FlatList,
-  TouchableOpacity, Image, ActivityIndicator,
+  TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,17 +14,13 @@ import {
 import { supabase } from '../../lib/supabase';
 import { clearBadge } from '../../lib/notifications';
 import { useTheme } from '../../lib/themes';
+import { Avatar } from '../../components/Avatar';
+import { ListSkeleton } from '../../components/Skeleton';
+import { emotionById } from '../../lib/emotions';
+import { timeAgo } from '../../lib/format';
+import { tapLight } from '../../lib/haptics';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string) {
-  const d = new Date(iso), now = new Date();
-  const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
 
 function notifIcon(type: Notification['type']) {
   return { like: '💧', comment: '💬', friend_request: '👥', follow: '➕' }[type];
@@ -40,15 +36,6 @@ function notifText(n: Notification): string {
   }
 }
 
-function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.4 }}>💧</Text>
-    </View>
-  );
-}
-
 // ─── Notification row ─────────────────────────────────────────────────────────
 
 function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
@@ -61,6 +48,7 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
   const { theme: { accent } } = useTheme();
   const isFollow = notif.type === 'follow';
   const isFriendReq = notif.type === 'friend_request';
+  const cryEmotion = notif.cry ? emotionById(notif.cry.emotion) : null;
 
   return (
     <TouchableOpacity
@@ -69,7 +57,12 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
       activeOpacity={0.75}
     >
       {/* Avatar — tappable to go to profile */}
-      <TouchableOpacity onPress={() => router.push(`/user-profile?id=${notif.actor_id}`)} activeOpacity={0.8}>
+      <TouchableOpacity
+        onPress={() => router.push(`/user-profile?id=${notif.actor_id}`)}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${notif.actor?.display_name ?? 'user'}'s profile`}
+      >
         <View style={styles.iconBadge}>
           <Avatar uri={notif.actor?.avatar_uri} size={42} />
           <View style={styles.typeIcon}>
@@ -85,10 +78,11 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
         )}
         {!notif.comment_content && notif.cry && (
           <Text style={styles.rowSub}>
-            {notif.cry.emotion} · {'💧'.repeat(notif.cry.intensity)}
+            {cryEmotion ? `${cryEmotion.emoji} ${cryEmotion.label}` : notif.cry.emotion}
+            {' · '}{'💧'.repeat(notif.cry.intensity)}
           </Text>
         )}
-        <Text style={styles.rowTime}>{formatDate(notif.created_at)}</Text>
+        <Text style={styles.rowTime}>{timeAgo(notif.created_at)}</Text>
 
         {/* Action buttons */}
         <View style={styles.actionRow}>
@@ -124,46 +118,49 @@ export default function NotificationsScreen() {
   const { theme: { accent } } = useTheme();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   // Track which actor IDs have been followed back
   const [followedBack, setFollowedBack] = useState<Set<string>>(new Set());
 
-  useFocusEffect(useCallback(() => {
-    if (!session) return;
+  const load = useCallback(async (isRefresh = false) => {
+    if (!session) { setLoading(false); return; }
+    if (!isRefresh) setLoading(true);
     clearBadge();
-    setLoading(true);
-    (async () => {
-      try {
-        const data = await getNotifications();
-        setNotifications(data);
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
 
-        const actorIds = [...new Set(
-          data.filter(n => n.type === 'follow' || n.type === 'friend_request').map(n => n.actor_id)
-        )];
-        if (actorIds.length > 0) {
-          const { data: follows } = await supabase
-            .from('follows')
-            .select('following_id')
-            .eq('follower_id', session.user.id)
-            .in('following_id', actorIds);
-          setFollowedBack(new Set((follows ?? []).map(f => f.following_id)));
-        } else {
-          setFollowedBack(new Set());
-        }
-
-        const unread = data.filter(n => !n.read).map(n => n.id);
-        if (unread.length) {
-          markNotificationsRead(unread);
-          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        }
-      } catch (e) {
-        console.warn('[notifications] load failed:', e);
-      } finally {
-        setLoading(false);
+      const actorIds = [...new Set(
+        data.filter(n => n.type === 'follow' || n.type === 'friend_request').map(n => n.actor_id)
+      )];
+      if (actorIds.length > 0) {
+        const { data: follows } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', session.user.id)
+          .in('following_id', actorIds);
+        setFollowedBack(new Set((follows ?? []).map(f => f.following_id)));
+      } else {
+        setFollowedBack(new Set());
       }
-    })();
-  }, [session]));
+
+      const unread = data.filter(n => !n.read).map(n => n.id);
+      if (unread.length) {
+        markNotificationsRead(unread);
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      }
+    } catch (e) {
+      console.warn('[notifications] load failed:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [session]);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   async function handleFollowBack(actorId: string) {
+    tapLight();
     await followUser(actorId);
     setFollowedBack(prev => new Set([...prev, actorId]));
   }
@@ -198,9 +195,7 @@ export default function NotificationsScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.empty}>
-          <ActivityIndicator size="large" color={accent} />
-        </View>
+        <ListSkeleton />
       ) : (
         <FlatList
           data={notifications}
@@ -219,6 +214,14 @@ export default function NotificationsScreen() {
           )}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
           contentContainerStyle={notifications.length === 0 ? styles.emptyFlex : undefined}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); load(true); }}
+              tintColor={accent}
+              colors={[accent]}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🔔</Text>
@@ -247,7 +250,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1f2937', borderRadius: 10,
     width: 20, height: 20, alignItems: 'center', justifyContent: 'center',
   },
-  avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
   rowContent: { flex: 1, gap: 2 },
   rowText: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 },
   rowComment: { color: '#64748b', fontSize: 13, fontStyle: 'italic', lineHeight: 18 },

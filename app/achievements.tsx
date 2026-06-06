@@ -2,9 +2,9 @@
  * Full achievements list — all in one flat list.
  * Route: /achievements
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator,
+  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -56,6 +56,16 @@ export default function AchievementsScreen() {
 
   const unlockedCount = ACHIEVEMENTS.filter(a => unlockedMap[a.id]).length;
 
+  // Animate the progress bar filling up once the unlock data has loaded.
+  const fill = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fill, {
+      toValue: ACHIEVEMENTS.length ? unlockedCount / ACHIEVEMENTS.length : 0,
+      duration: 650,
+      useNativeDriver: false,
+    }).start();
+  }, [unlockedCount, fill]);
+
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
@@ -70,6 +80,20 @@ export default function AchievementsScreen() {
         </View>
         <View style={{ width: 36 }} />
       </View>
+
+      {!loading && (
+        <View style={s.progressWrap}>
+          <View style={s.progressTrack}>
+            <Animated.View style={[s.progressFill, {
+              backgroundColor: accent,
+              width: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+            }]} />
+          </View>
+          <Text style={[s.progressPct, { color: accent }]}>
+            {Math.round((ACHIEVEMENTS.length ? unlockedCount / ACHIEVEMENTS.length : 0) * 100)}%
+          </Text>
+        </View>
+      )}
 
       {loading ? (
         <View style={s.center}>
@@ -140,6 +164,14 @@ const s = StyleSheet.create({
   title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
   subtitle: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  progressWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6,
+  },
+  progressTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: '#1f2937', overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: 4 },
+  progressPct: { fontSize: 12, fontWeight: '700', fontFamily: 'monospace', width: 40, textAlign: 'right' },
 
   list: { paddingVertical: 8 },
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 76 },

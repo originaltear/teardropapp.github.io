@@ -17,8 +17,13 @@ import { useAchievementToast } from '../components/AchievementToastProvider';
 import { useAuth } from '../lib/auth';
 import { showPostCryAd } from '../lib/ads';
 import { useTheme } from '../lib/themes';
+import { PressableScale } from '../components/PressableScale';
+import { tapLight, tapMedium, selection, success, warning } from '../lib/haptics';
 
 type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
+
+// Names for the 1–5 intensity scale so the drops carry meaning.
+const INTENSITY_LABELS = ['', 'Barely', 'Mild', 'Moderate', 'Heavy', 'Overwhelming'];
 
 const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] = [
   { value: 'everyone',      icon: '🌍', label: 'Everyone' },
@@ -138,6 +143,7 @@ export default function LogCryScreen() {
       const { recording: rec } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY,
       );
+      tapMedium();
       setRecording(rec);
       setIsRecording(true);
       setRecordSecs(0);
@@ -149,6 +155,7 @@ export default function LogCryScreen() {
 
   async function stopRecording() {
     if (!recording) return;
+    tapLight();
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     setIsRecording(false);
     try {
@@ -236,10 +243,13 @@ export default function LogCryScreen() {
       // Without this guard a thrown save (e.g. device storage full) left the
       // button spinning forever and silently dropped the cry.
       console.warn('[log-cry] save failed:', e);
+      warning();
       setSaving(false);
       Alert.alert('Could not save', 'Something went wrong saving your cry. Please try again.');
       return;
     }
+
+    success();
 
     // Trigger achievement check in background. Runs after we navigate back, but
     // the toast provider lives at the app root, so the unlock popup still appears
@@ -305,7 +315,7 @@ export default function LogCryScreen() {
                     { borderColor: e.color },
                     selected && { backgroundColor: e.color + '33' },
                   ]}
-                  onPress={() => setEmotion(e.id)}
+                  onPress={() => { selection(); setEmotion(e.id); }}
                   activeOpacity={0.75}
                 >
                   <Text style={styles.emotionEmoji}>{e.emoji}</Text>
@@ -321,10 +331,11 @@ export default function LogCryScreen() {
           <Text style={styles.sectionLabel}>Intensity</Text>
           <View style={styles.intensityRow}>
             {[1, 2, 3, 4, 5].map(n => (
-              <TouchableOpacity key={n} onPress={() => setIntensity(n)} style={styles.dropBtn}>
+              <TouchableOpacity key={n} onPress={() => { selection(); setIntensity(n); }} style={styles.dropBtn}>
                 <Text style={[styles.drop, { opacity: n <= intensity ? 1 : 0.25 }]}>💧</Text>
               </TouchableOpacity>
             ))}
+            <Text style={[styles.intensityLabel, { color: accent }]}>{INTENSITY_LABELS[intensity]}</Text>
           </View>
 
           {/* Note */}
@@ -420,17 +431,16 @@ export default function LogCryScreen() {
 
         {/* Save button */}
         <View style={styles.footer}>
-          <TouchableOpacity
+          <PressableScale
             style={[styles.saveBtn, { backgroundColor: accent }, (!emotion || saving) && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={!emotion || saving}
-            activeOpacity={0.85}
           >
             {saving
               ? <ActivityIndicator color="#0d1117" />
               : <Text style={styles.saveTxt}>Save cry</Text>
             }
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -477,9 +487,10 @@ const styles = StyleSheet.create({
   emotionEmoji: { fontSize: 16 },
   emotionLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
 
-  intensityRow: { flexDirection: 'row', gap: 8 },
+  intensityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dropBtn: { padding: 4 },
   drop: { fontSize: 28 },
+  intensityLabel: { flex: 1, textAlign: 'right', fontSize: 15, fontWeight: '700' },
 
   noteInput: {
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',

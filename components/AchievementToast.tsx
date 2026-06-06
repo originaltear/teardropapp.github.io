@@ -8,6 +8,7 @@ import {
   Animated, Dimensions,
 } from 'react-native';
 import type { Achievement } from '../lib/achievements';
+import { success } from '../lib/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +23,7 @@ export function AchievementToast({ achievement, onDismiss }: Props) {
 
   useEffect(() => {
     if (!achievement) return;
+    success();
     scale.setValue(0.7);
     opacity.setValue(0);
     Animated.parallel([

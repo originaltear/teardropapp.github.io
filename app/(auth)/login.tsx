@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ActivityIndicator, ScrollView,
+  ActivityIndicator, ScrollView, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../../lib/supabase';
 import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
 import { useTheme } from '../../lib/themes';
+import { PressableScale } from '../../components/PressableScale';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -23,6 +24,12 @@ export default function LoginScreen() {
   const [loading, setLoading]   = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [error, setError]       = useState<string | null>(null);
+
+  // Gentle fade + rise of the logo when the screen first appears.
+  const intro = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+  }, [intro]);
 
   // ── Email / password ──────────────────────────────────────────────────────
 
@@ -76,13 +83,16 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Logo */}
-          <View style={styles.logoArea}>
+          <Animated.View style={[styles.logoArea, {
+            opacity: intro,
+            transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
+          }]}>
             <View style={[styles.logoCircle, { backgroundColor: accent, shadowColor: accent }]}>
               <Text style={styles.logoEmoji}>💧</Text>
             </View>
             <Text style={styles.appName}>Teardrop</Text>
             <Text style={styles.tagline}>Your emotional atlas</Text>
-          </View>
+          </Animated.View>
 
           {/* Form */}
           <View style={styles.form}>
@@ -114,16 +124,15 @@ export default function LoginScreen() {
 
             {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
 
-            <TouchableOpacity
+            <PressableScale
               style={[styles.primaryBtn, { backgroundColor: accent }, loading && styles.btnDisabled]}
               onPress={handleLogin}
               disabled={loading}
-              activeOpacity={0.85}
             >
               {loading
                 ? <ActivityIndicator color="#0d1117" />
                 : <Text style={styles.primaryBtnTxt}>Log in</Text>}
-            </TouchableOpacity>
+            </PressableScale>
 
             {/* Divider */}
             <View style={styles.divider}>

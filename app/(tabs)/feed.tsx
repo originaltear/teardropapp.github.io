@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState, memo } from 'react';
+import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
   Modal, Image, Alert, TextInput, KeyboardAvoidingView,
-  Platform, ScrollView, ActivityIndicator, RefreshControl,
+  Platform, ScrollView, ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
+import { tapLight, selection } from '../../lib/haptics';
 // Note: TextInput + ScrollView used in DetailModal comment section
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -125,6 +126,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
 
   async function toggleLike() {
     if (!myId) return;
+    tapLight();
     const next = !liked;
     setLiked(next);
     setLikeCount(c => c + (next ? 1 : -1));
@@ -251,7 +253,15 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
 const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onSelect: (cry: SocialCry) => void }) {
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, { toValue: 1, duration: 280, useNativeDriver: true }).start();
+  }, [enter]);
   return (
+    <Animated.View style={{
+      opacity: enter,
+      transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+    }}>
     <TouchableOpacity style={styles.item} onPress={() => onSelect(cry)} activeOpacity={0.75}>
       <Avatar uri={cry.profile.avatar_uri} size={44} />
       <View style={styles.itemContent}>
@@ -284,6 +294,7 @@ const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onS
         </View>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 });
 
@@ -364,7 +375,7 @@ export default function FeedScreen() {
             <TouchableOpacity
               key={t}
               style={[styles.tabChip, tab === t && { backgroundColor: accent, borderColor: accent }]}
-              onPress={() => setTab(t)}
+              onPress={() => { if (tab !== t) { selection(); setTab(t); } }}
             >
               <Text style={[styles.tabChipTxt, tab === t && styles.tabChipTxtActive]}>
                 {t === 'mine' ? '👤 Mine' : '👥 Following'}

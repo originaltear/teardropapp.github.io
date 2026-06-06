@@ -17,6 +17,8 @@ import { useAuth } from '../../lib/auth';
 import { TearsBadge } from '../../components/TearsBadge';
 import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers';
 import { useSplashGate } from '../../components/AppSplash';
+import { PressableScale } from '../../components/PressableScale';
+import { tapLight, tapMedium, selection } from '../../lib/haptics';
 import { useTheme } from '../../lib/themes';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
@@ -303,6 +305,7 @@ export default function MapScreen() {
   }, [superIndex, region]);
 
   const handleClusterPress = useCallback((clusterId: number, lng: number, lat: number) => {
+    tapLight();
     try {
       // Cap zoom so a cluster of points at (nearly) the same spot doesn't shoot
       // the camera to an extreme street-level zoom showing nothing.
@@ -397,30 +400,40 @@ export default function MapScreen() {
       {session && (
         <View style={styles.filterContainer} pointerEvents="box-none">
           <View style={styles.segmented}>
-            {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => (
-              <TouchableOpacity
-                key={f}
-                style={[
-                  styles.segment,
-                  mapFilter === f && { backgroundColor: accent },
-                  i < 2 && styles.segmentBorder,
-                ]}
-                onPress={() => setMapFilter(f)}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.segmentEmoji}>
-                  {f === 'mine' ? '👤' : f === 'following' ? '👥' : '🌍'}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => {
+              const active = mapFilter === f;
+              return (
+                <TouchableOpacity
+                  key={f}
+                  style={[
+                    styles.segment,
+                    active && { backgroundColor: accent },
+                    i < 2 && styles.segmentBorder,
+                  ]}
+                  onPress={() => { if (!active) { selection(); setMapFilter(f); } }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.segmentEmoji}>
+                    {f === 'mine' ? '👤' : f === 'following' ? '👥' : '🌍'}
+                  </Text>
+                  <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
+                    {f === 'mine' ? 'Mine' : f === 'following' ? 'Friends' : 'All'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       )}
 
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
-        <TouchableOpacity style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]} onPress={handleAddCry} activeOpacity={0.85}>
+        <PressableScale
+          style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]}
+          onPress={() => { tapMedium(); handleAddCry(); }}
+          scaleTo={0.88}
+        >
           <Text style={styles.fabIcon}>+</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </SafeAreaView>
 
       {selectedCry && (
@@ -462,11 +475,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   segment: {
-    paddingHorizontal: 26, paddingVertical: 12,
-    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 22, paddingVertical: 9,
+    alignItems: 'center', justifyContent: 'center', gap: 3,
   },
   segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
-  segmentEmoji: { fontSize: 22 },
+  segmentEmoji: { fontSize: 20 },
+  segmentLabel: {
+    color: '#94a3b8', fontSize: 10, fontWeight: '700',
+    fontFamily: 'monospace', letterSpacing: 0.5,
+  },
+  segmentLabelActive: { color: '#0d1117' },
   center: {
     flex: 1, backgroundColor: '#0d1117',
     alignItems: 'center', justifyContent: 'center',

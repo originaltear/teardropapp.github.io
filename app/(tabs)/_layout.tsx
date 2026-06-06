@@ -4,6 +4,7 @@ import { View, Text } from 'react-native';
 import { useAuth } from '../../lib/auth';
 import { getUnreadCount } from '../../lib/social';
 import { useTheme } from '../../lib/themes';
+import { selection } from '../../lib/haptics';
 
 const TAB_BAR_BG = '#111827';
 const INACTIVE = '#4a5568';
@@ -48,6 +49,7 @@ export default function TabLayout() {
   const { theme: { accent } } = useTheme();
   return (
     <Tabs
+      screenListeners={{ tabPress: () => selection() }}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

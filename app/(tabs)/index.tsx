@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal, Image, Alert,
+  ActivityIndicator, Modal, Image, Alert, FlatList, Dimensions,
 } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
@@ -84,11 +84,11 @@ function formatDate(iso: string) {
   );
 }
 
-function Drops({ intensity }: { intensity: number }) {
+function Drops({ intensity, size = 16 }: { intensity: number; size?: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 2 }}>
       {[1, 2, 3, 4, 5].map(n => (
-        <Text key={n} style={{ fontSize: 16, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
+        <Text key={n} style={{ fontSize: size, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
       ))}
     </View>
   );
@@ -212,6 +212,40 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
   );
 }
 
+// ─── Cluster contents: one row per cry inside a tapped cluster ─────────────────
+
+// Cap the scrollable list so the sheet never covers the whole screen.
+const CLUSTER_LIST_MAX_H = Dimensions.get('window').height * 0.55;
+
+function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: () => void }) {
+  const cry = normalizeCry(rawCry);
+  const emotion = emotionById(cry.emotion);
+  const color = emotion?.color ?? '#6fe0e6';
+  return (
+    <TouchableOpacity style={styles.clRow} onPress={onPress} activeOpacity={0.7}>
+      {cry.profile ? <Avatar uri={cry.profile.avatar_uri} size={38} /> : null}
+      <View style={{ flex: 1, gap: 4 }}>
+        {cry.profile ? (
+          <Text style={styles.clUser} numberOfLines={1}>
+            {cry.profile.display_name} <Text style={styles.clHandle}>@{cry.profile.username}</Text>
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <Text style={[styles.clEmotion, { color, backgroundColor: color + '22' }]}>
+            {emotion?.emoji} {emotion?.label ?? cry.emotion}
+          </Text>
+          <Drops intensity={cry.intensity} size={11} />
+          {cry.photoUri ? <Text style={{ fontSize: 11 }}>📷</Text> : null}
+          {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
+        </View>
+        {cry.note ? <Text style={styles.clNote} numberOfLines={1}>{cry.note}</Text> : null}
+        <Text style={styles.clDate}>{formatDate(cry.date)}</Text>
+      </View>
+      <Text style={styles.clArrow}>›</Text>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Map screen ───────────────────────────────────────────────────────────────
 
 export default function MapScreen() {
@@ -229,6 +263,10 @@ export default function MapScreen() {
   const [mapFilter, setMapFilter] = useState<MapFilter>('mine');
   // Current visible region — drives which clusters are computed
   const [region, setRegion] = useState<Region | null>(null);
+  // The cluster the user tapped — drives the "cries in this cluster" sheet
+  const [clusterView, setClusterView] = useState<{
+    cries: (Cry | SocialCry)[]; clusterId: number; lng: number; lat: number;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -304,8 +342,19 @@ export default function MapScreen() {
     return superIndex.getClusters(bbox, Math.min(Math.max(zoom, 0), 20));
   }, [superIndex, region]);
 
+  // Tapping a cluster opens a sheet listing every cry inside it (its "leaves").
   const handleClusterPress = useCallback((clusterId: number, lng: number, lat: number) => {
     tapLight();
+    try {
+      const leaves = superIndex.getLeaves(clusterId, Infinity);
+      const list = leaves.map(l => (l.properties as PointProps).cry);
+      setClusterView({ cries: list, clusterId, lng, lat });
+    } catch { /* ignore */ }
+  }, [superIndex]);
+
+  // "Zoom in" from the sheet — spread the cluster out to where it breaks apart.
+  const zoomToCluster = useCallback((clusterId: number, lng: number, lat: number) => {
+    setClusterView(null);
     try {
       // Cap zoom so a cluster of points at (nearly) the same spot doesn't shoot
       // the camera to an extreme street-level zoom showing nothing.
@@ -436,6 +485,45 @@ export default function MapScreen() {
         </PressableScale>
       </SafeAreaView>
 
+      {/* Cluster contents sheet — list of every cry inside the tapped cluster */}
+      {clusterView && (
+        <Modal transparent animationType="slide" onRequestClose={() => setClusterView(null)}>
+          <TouchableOpacity
+            style={styles.backdrop}
+            activeOpacity={1}
+            onPress={() => setClusterView(null)}
+          />
+          <SafeAreaView edges={['bottom']} style={styles.clusterCard}>
+            <View style={styles.handle} />
+            <View style={styles.clusterHeader}>
+              <Text style={styles.clusterTitle}>
+                {clusterView.cries.length} {clusterView.cries.length === 1 ? 'cry' : 'cries'} here
+              </Text>
+              <TouchableOpacity
+                style={styles.zoomBtn}
+                onPress={() => zoomToCluster(clusterView.clusterId, clusterView.lng, clusterView.lat)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.zoomTxt, { color: accent }]}>⊕ Zoom in</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={clusterView.cries}
+              keyExtractor={c => c.id}
+              style={{ maxHeight: CLUSTER_LIST_MAX_H }}
+              renderItem={({ item }) => (
+                <ClusterRow
+                  cry={item}
+                  onPress={() => { tapLight(); setClusterView(null); setSelectedCry(item); }}
+                />
+              )}
+              ItemSeparatorComponent={() => <View style={styles.clSep} />}
+              showsVerticalScrollIndicator={false}
+            />
+          </SafeAreaView>
+        </Modal>
+      )}
+
       {selectedCry && (
         <Modal transparent animationType="slide" onRequestClose={() => setSelectedCry(null)}>
           <TouchableOpacity
@@ -558,4 +646,33 @@ const styles = StyleSheet.create({
   },
   audioIcon: { fontSize: 18, color: '#6fe0e6' },
   audioLabel: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
+
+  // Cluster contents sheet
+  clusterCard: {
+    backgroundColor: '#111827',
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingTop: 12, borderTopWidth: 1, borderColor: '#1f2937',
+  },
+  clusterHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12,
+    borderBottomWidth: 1, borderBottomColor: '#1f2937',
+  },
+  clusterTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
+  zoomBtn: {
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
+  },
+  zoomTxt: { fontSize: 13, fontWeight: '600' },
+  clSep: { height: 1, backgroundColor: '#1f2937', marginLeft: 20 },
+  clRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
+  clUser: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
+  clHandle: { color: '#4a5568', fontSize: 12, fontWeight: '400' },
+  clEmotion: {
+    fontSize: 12, fontWeight: '600',
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, overflow: 'hidden',
+  },
+  clNote: { color: '#64748b', fontSize: 12 },
+  clDate: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
+  clArrow: { color: '#4a5568', fontSize: 20, fontWeight: '300' },
 });

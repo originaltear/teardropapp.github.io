@@ -37,6 +37,11 @@ yarn-error.*
 # Firebase config — contains a Google API key; keep it out of version control
 google-services.json
 
+# Release signing — keystores and their credentials must never be committed
+# (*.jks is already covered above; these add belt-and-suspenders at repo root)
+*.keystore
+keystore.properties
+
 # typescript
 *.tsbuildinfo
 

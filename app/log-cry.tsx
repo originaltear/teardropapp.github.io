@@ -82,11 +82,15 @@ export default function LogCryScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Mirrors the `recording` state so the unmount cleanup can reach it — without
+  // this, dismissing the screen mid-recording left the mic session running.
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       soundRef.current?.unloadAsync();
+      recordingRef.current?.stopAndUnloadAsync().catch(() => {});
     };
   }, []);
 
@@ -145,6 +149,7 @@ export default function LogCryScreen() {
       );
       tapMedium();
       setRecording(rec);
+      recordingRef.current = rec;
       setIsRecording(true);
       setRecordSecs(0);
       timerRef.current = setInterval(() => setRecordSecs(s => s + 1), 1000);
@@ -167,6 +172,7 @@ export default function LogCryScreen() {
       Alert.alert('Error', 'Could not stop recording.');
     }
     setRecording(null);
+    recordingRef.current = null;
   }
 
   async function playAudio() {
@@ -215,14 +221,18 @@ export default function LogCryScreen() {
     if (!emotion || !lat || !lng) return;
     setSaving(true);
 
-    // Reverse geocode to get country (best-effort — don't block save on failure)
+    // Reverse geocode to get country (best-effort, bounded — a hanging
+    // geocoder must never leave the Save button spinning)
     let country: string | undefined;
     try {
-      const geo = await Location.reverseGeocodeAsync({
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lng),
-      });
-      country = geo[0]?.country ?? undefined;
+      const geo = await Promise.race([
+        Location.reverseGeocodeAsync({
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lng),
+        }),
+        new Promise<null>(res => setTimeout(() => res(null), 3000)),
+      ]);
+      country = geo?.[0]?.country ?? undefined;
     } catch { /* ignore geocoding failure */ }
 
     try {

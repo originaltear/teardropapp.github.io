@@ -251,12 +251,29 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
   if (cries.some(c => { const d = new Date(c.createdAt); return d.getMonth() === 1 && d.getDate() === 14; }))
     ok.add('valentine_cry');
 
-  // Geography — home_turf
-  for (const anchor of cries) {
-    const nearby = cries.filter(c =>
-      haversineM(anchor.latitude, anchor.longitude, c.latitude, c.longitude) <= 100
-    );
-    if (nearby.length >= 10) { ok.add('home_turf'); break; }
+  // Geography — home_turf (10+ cries within 100m of one spot).
+  // Bucket by ~111m latitude bands so each anchor only compares against its own
+  // and the two neighbouring bands — near-linear instead of O(n²), which froze
+  // the JS thread for seconds once a user passed a few hundred cries.
+  if (n >= 10) {
+    const bandFor = (lat: number) => Math.round(lat / 0.001);
+    const bands = new Map<number, Cry[]>();
+    for (const c of cries) {
+      const b = bandFor(c.latitude);
+      const list = bands.get(b);
+      if (list) list.push(c); else bands.set(b, [c]);
+    }
+    outer: for (const anchor of cries) {
+      const base = bandFor(anchor.latitude);
+      let nearby = 0;
+      for (let d = -1; d <= 1; d++) {
+        for (const c of bands.get(base + d) ?? []) {
+          if (haversineM(anchor.latitude, anchor.longitude, c.latitude, c.longitude) <= 100) {
+            if (++nearby >= 10) { ok.add('home_turf'); break outer; }
+          }
+        }
+      }
+    }
   }
 
   // Geography — city_hopper (5+ distinct ~11km grid cells)

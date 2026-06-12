@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
@@ -206,3 +206,37 @@ function ThemedApp() {
 export default function RootLayout() {
   return <ThemedApp />;
 }
+
+// ─── Crash fallback ───────────────────────────────────────────────────────────
+// expo-router renders this instead of a raw red/white screen if anything in the
+// tree throws. "Try again" re-renders the route that crashed.
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  console.warn('[root] uncaught render error:', error?.message);
+  return (
+    <View style={eb.container}>
+      <Text style={eb.emoji}>💧</Text>
+      <Text style={eb.title}>Something went wrong</Text>
+      <Text style={eb.sub}>An unexpected error occurred. Your cries are safe.</Text>
+      <TouchableOpacity style={eb.btn} onPress={retry} activeOpacity={0.85}>
+        <Text style={eb.btnTxt}>Try again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const eb = StyleSheet.create({
+  container: {
+    flex: 1, backgroundColor: '#0d1117',
+    alignItems: 'center', justifyContent: 'center',
+    gap: 12, paddingHorizontal: 40,
+  },
+  emoji: { fontSize: 48, opacity: 0.6 },
+  title: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
+  sub: { color: '#4a5568', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  btn: {
+    marginTop: 12, backgroundColor: '#6fe0e6', borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 36,
+  },
+  btnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
+});

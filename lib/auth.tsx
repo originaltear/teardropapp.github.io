@@ -42,7 +42,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
-      if (session) checkUsername(session.user.id);
+      if (session) {
+        checkUsername(session.user.id);
+        // Push any cries logged while offline (the pending queue) — without
+        // this they only synced on a fresh SIGNED_IN, so a logged-in user who
+        // saved offline wouldn't see them again until next login.
+        syncLocalToSupabase(session.user.id, session.user.email ?? undefined)
+          .catch(e => console.warn('[auth] sync-on-start failed:', e));
+      }
     });
 
     // Listen for auth state changes

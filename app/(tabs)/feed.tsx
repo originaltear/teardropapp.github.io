@@ -21,7 +21,7 @@ import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
   getSocialFeed, getMapCries, likeCry, unlikeCry, getComments, addComment,
-  SocialCry, Comment,
+  deleteComment, SocialCry, Comment,
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
 
@@ -67,7 +67,27 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
     setLiked(next);
     setLikeCount(c => c + (next ? 1 : -1));
     onLikeToggle(cry.id, next);
-    if (next) await likeCry(cry.id); else await unlikeCry(cry.id);
+    try {
+      if (next) await likeCry(cry.id); else await unlikeCry(cry.id);
+    } catch {
+      // Roll the optimistic update back (e.g. offline)
+      setLiked(!next);
+      setLikeCount(c => c + (next ? -1 : 1));
+      onLikeToggle(cry.id, !next);
+    }
+  }
+
+  function confirmDeleteComment(c: Comment) {
+    Alert.alert('Delete comment', 'Delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          await deleteComment(c.id);
+          setComments(prev => prev.filter(x => x.id !== c.id));
+        },
+      },
+    ]);
   }
 
   async function submitComment() {
@@ -151,10 +171,16 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
               comments.map(c => (
                 <View key={c.id} style={styles.commentRow}>
                   <Avatar uri={c.profile.avatar_uri} size={28} />
-                  <View style={styles.commentBubble}>
+                  <TouchableOpacity
+                    style={styles.commentBubble}
+                    activeOpacity={c.user_id === myId ? 0.7 : 1}
+                    onLongPress={c.user_id === myId ? () => confirmDeleteComment(c) : undefined}
+                    delayLongPress={400}
+                    accessibilityHint={c.user_id === myId ? 'Hold to delete your comment' : undefined}
+                  >
                     <Text style={[styles.commentUser, { color: accent }]}>{c.profile.display_name}</Text>
                     <Text style={styles.commentText}>{c.content}</Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               ))
             )}
@@ -258,7 +284,10 @@ export default function FeedScreen() {
 
   async function loadFeed(isRefresh = false) {
     if (!session) return;
-    isRefresh ? setRefreshing(true) : setLoading(true);
+    // Only show the skeleton when there's nothing on screen yet — returning to
+    // the tab refreshes silently instead of flashing the whole list away.
+    if (isRefresh) setRefreshing(true);
+    else if (allCries.length === 0) setLoading(true);
     try {
       const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
       const feed = await loader;
@@ -269,6 +298,14 @@ export default function FeedScreen() {
       isRefresh ? setRefreshing(false) : setLoading(false);
     }
   }
+
+  // Switching tab or account = genuinely unknown data — clear so the skeleton
+  // shows instead of stale rows (and a logged-out user never sees the previous
+  // account's feed).
+  useEffect(() => {
+    setAllCries([]);
+    if (session) setLoading(true);
+  }, [tab, session?.user.id]);
 
   useFocusEffect(useCallback(() => {
     loadFeed();

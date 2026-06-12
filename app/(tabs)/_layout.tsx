@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text } from 'react-native';
+import { View, Text, AppState } from 'react-native';
 import { useAuth } from '../../lib/auth';
 import { getUnreadCount } from '../../lib/social';
 import { useTheme } from '../../lib/themes';
@@ -20,9 +20,15 @@ function NotifIcon({ color }: { color: string }) {
 
   useEffect(() => {
     if (!session) { setCount(0); return; }
-    getUnreadCount().then(setCount);
-    const interval = setInterval(() => getUnreadCount().then(setCount), 30000);
-    return () => clearInterval(interval);
+    // Skip ticks while backgrounded (no point burning data/battery), but
+    // refresh immediately when the app comes back to the foreground.
+    const tick = () => {
+      if (AppState.currentState === 'active') getUnreadCount().then(setCount).catch(() => {});
+    };
+    tick();
+    const interval = setInterval(tick, 30000);
+    const sub = AppState.addEventListener('change', st => { if (st === 'active') tick(); });
+    return () => { clearInterval(interval); sub.remove(); };
   }, [session]);
 
   return (

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 
 const supabaseUrl  = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseKey  = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -25,4 +26,13 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     persistSession: true,
     detectSessionInUrl: false,
   },
+});
+
+// The auto-refresh timer is suspended while Android backgrounds the JS thread,
+// so a long-backgrounded app can resume with an expired token and fail its
+// first requests. Drive the timer from AppState (official Supabase RN guidance)
+// so a resumed app refreshes immediately.
+AppState.addEventListener('change', state => {
+  if (state === 'active') supabase.auth.startAutoRefresh();
+  else supabase.auth.stopAutoRefresh();
 });

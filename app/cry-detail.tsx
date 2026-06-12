@@ -3,79 +3,28 @@
  * Opened from notifications (like/comment) or anywhere a cry_id is available.
  * Route: /cry-detail?id=UUID
  */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Image, ActivityIndicator, TextInput, KeyboardAvoidingView,
+  ActivityIndicator, TextInput, KeyboardAvoidingView,
   Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Audio } from 'expo-av';
 import { emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import {
-  getCry, likeCry, unlikeCry, getComments, addComment, SocialCry, Comment,
-  reportContent,
+  getCry, likeCry, unlikeCry, getComments, addComment, deleteComment,
+  SocialCry, Comment, reportContent,
 } from '../lib/social';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatFullDate(iso: string) {
-  const d = new Date(iso);
-  return (
-    d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) +
-    ' · ' +
-    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  );
-}
-
-function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[s.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
-    </View>
-  );
-}
-
-function Drops({ intensity, size = 16 }: { intensity: number; size?: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 2 }}>
-      {[1, 2, 3, 4, 5].map(n => (
-        <Text key={n} style={{ fontSize: size, opacity: n <= intensity ? 1 : 0.2 }}>💧</Text>
-      ))}
-    </View>
-  );
-}
-
-function AudioPlayer({ uri }: { uri: string }) {
-  const { theme: { accent } } = useTheme();
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-  async function toggle() {
-    if (playing) { await soundRef.current?.stopAsync(); setPlaying(false); return; }
-    try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate(st => {
-        if (st.isLoaded && st.didJustFinish) { setPlaying(false); sound.unloadAsync(); }
-      });
-      await sound.playAsync();
-    } catch { Alert.alert('Error', 'Could not play audio.'); }
-  }
-  return (
-    <TouchableOpacity style={[s.audioBtn, { borderColor: accent }]} onPress={toggle} activeOpacity={0.8}>
-      <Text style={[s.audioIcon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
-      <Text style={[s.audioTxt, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
-    </TouchableOpacity>
-  );
-}
+import { Avatar } from '../components/Avatar';
+import { Drops } from '../components/Drops';
+import { AudioPlayer } from '../components/AudioPlayer';
+import { CryPhoto } from '../components/CryPhoto';
+import { fullDateTime } from '../lib/format';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -134,7 +83,26 @@ export default function CryDetailScreen() {
     const next = !liked;
     setLiked(next);
     setLikeCount(c => c + (next ? 1 : -1));
-    if (next) await likeCry(cry.id); else await unlikeCry(cry.id);
+    try {
+      if (next) await likeCry(cry.id); else await unlikeCry(cry.id);
+    } catch {
+      // Roll the optimistic update back (e.g. offline)
+      setLiked(!next);
+      setLikeCount(c => c + (next ? -1 : 1));
+    }
+  }
+
+  function confirmDeleteComment(c: Comment) {
+    Alert.alert('Delete comment', 'Delete this comment?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive',
+        onPress: async () => {
+          await deleteComment(c.id);
+          setComments(prev => prev.filter(x => x.id !== c.id));
+        },
+      },
+    ]);
   }
 
   async function submitComment() {
@@ -257,11 +225,11 @@ export default function CryDetailScreen() {
             </Text>
           </View>
 
-          <Text style={s.dateText}>{formatFullDate(cry.created_at)}</Text>
+          <Text style={s.dateText}>{fullDateTime(cry.created_at)}</Text>
           <Drops intensity={cry.intensity} />
 
           {cry.photo_uri
-            ? <Image source={{ uri: cry.photo_uri }} style={s.photo} resizeMode="cover" />
+            ? <CryPhoto uri={cry.photo_uri} style={s.photo} />
             : null}
           {cry.note
             ? <View style={s.noteBox}><Text style={s.noteText}>{cry.note}</Text></View>
@@ -293,10 +261,16 @@ export default function CryDetailScreen() {
             comments.map(c => (
               <View key={c.id} style={s.commentRow}>
                 <Avatar uri={c.profile.avatar_uri} size={30} />
-                <View style={s.commentBubble}>
+                <TouchableOpacity
+                  style={s.commentBubble}
+                  activeOpacity={c.user_id === session?.user.id ? 0.7 : 1}
+                  onLongPress={c.user_id === session?.user.id ? () => confirmDeleteComment(c) : undefined}
+                  delayLongPress={400}
+                  accessibilityHint={c.user_id === session?.user.id ? 'Hold to delete your comment' : undefined}
+                >
                   <Text style={[s.commentUser, { color: accent }]}>{c.profile.display_name}</Text>
                   <Text style={s.commentText}>{c.content}</Text>
-                </View>
+                </TouchableOpacity>
               </View>
             ))
           )}
@@ -346,7 +320,6 @@ const s = StyleSheet.create({
   headerTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '600' },
 
   content: { padding: 20, gap: 14 },
-  avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
 
   profileRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -370,15 +343,6 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 22 },
-
-  audioBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#111827', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#6fe0e6',
-  },
-  audioIcon: { fontSize: 16, color: '#6fe0e6' },
-  audioTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
 
   likeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   likeBtn: {

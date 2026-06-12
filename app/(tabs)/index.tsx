@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal, FlatList, Dimensions,
+  ActivityIndicator, Modal, FlatList, Dimensions, Alert, Linking,
 } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
@@ -199,20 +199,47 @@ export default function MapScreen() {
   } | null>(null);
 
   useEffect(() => {
+    const applyCoords = (latitude: number, longitude: number) => {
+      if (!initialRegionRef.current) {
+        const r: Region = { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+        initialRegionRef.current = r;
+        setRegion(r);
+      }
+      setGpsCoords({ latitude, longitude });
+      setGpsReady(true);
+    };
+
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') { setPermissionDenied(true); return; }
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const r: Region = {
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        };
-        initialRegionRef.current = r;
-        setRegion(r);
-        setGpsCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+
+        // 1. Last known position is instant (no GPS round-trip) — get the map
+        //    on screen immediately and refine with the live fix below.
+        const last = await Location.getLastKnownPositionAsync().catch(() => null);
+        if (last) applyCoords(last.coords.latitude, last.coords.longitude);
+
+        // 2. Live fix, bounded so a cold GPS / indoor user is never stuck on
+        //    the spinner forever.
+        const live = await Promise.race([
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          new Promise<null>(res => setTimeout(() => res(null), 12000)),
+        ]).catch(() => null);
+        if (live) {
+          applyCoords(live.coords.latitude, live.coords.longitude);
+        } else if (!last) {
+          // No fix at all — show the map zoomed out rather than blocking the
+          // whole tab. Logging still requires coordinates (FAB explains).
+          initialRegionRef.current = { latitude: 20, longitude: 0, latitudeDelta: 100, longitudeDelta: 100 };
+          setRegion(initialRegionRef.current);
+          setGpsReady(true);
+        }
+      } catch (e) {
+        console.warn('[map] location failed:', e);
+        if (!initialRegionRef.current) {
+          initialRegionRef.current = { latitude: 20, longitude: 0, latitudeDelta: 100, longitudeDelta: 100 };
+          setRegion(initialRegionRef.current);
+        }
         setGpsReady(true);
       } finally {
         // Tell the splash the map is ready (resolved one way or another) so the
@@ -232,7 +259,13 @@ export default function MapScreen() {
   }, [session, mapFilter]));
 
   function handleAddCry() {
-    if (!gpsCoords) return;
+    if (!gpsCoords) {
+      Alert.alert(
+        'Location unavailable',
+        "We couldn't get your position. Make sure GPS is turned on, then try again.",
+      );
+      return;
+    }
     router.push({
       pathname: '/log-cry',
       params: { lat: String(gpsCoords.latitude), lng: String(gpsCoords.longitude) },
@@ -303,6 +336,15 @@ export default function MapScreen() {
         <Text style={{ fontSize: 48 }}>📍</Text>
         <Text style={styles.errorTitle}>Location needed</Text>
         <Text style={styles.errorSub}>Enable location in Settings to log where you cried.</Text>
+        <TouchableOpacity
+          style={[styles.settingsBtn, { backgroundColor: accent }]}
+          onPress={() => Linking.openSettings()}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Open app settings"
+        >
+          <Text style={styles.settingsBtnTxt}>Open Settings</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -408,8 +450,9 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* First-cry nudge for new users with an empty map */}
-      {gpsReady && cries.length === 0 && (
+      {/* First-cry nudge for new users with an empty map (own cries only —
+          the message makes no sense on the Friends/All filters) */}
+      {gpsReady && cries.length === 0 && mapFilter === 'mine' && (
         <SafeAreaView edges={['bottom']} style={styles.hintContainer} pointerEvents="none">
           <View style={styles.firstCryHint}>
             <Text style={styles.firstCryHintTxt}>💧 Tap + to log your first cry</Text>
@@ -525,6 +568,11 @@ const styles = StyleSheet.create({
   loadingText: { color: '#4a5568', fontSize: 14, marginTop: 12, fontFamily: 'monospace' },
   errorTitle: { color: '#6fe0e6', fontSize: 18, fontWeight: '600' },
   errorSub: { color: '#4a5568', fontSize: 14, textAlign: 'center' },
+  settingsBtn: {
+    marginTop: 8, borderRadius: 14,
+    paddingVertical: 12, paddingHorizontal: 28,
+  },
+  settingsBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 
   headerTitle: {
     color: '#6fe0e6', fontSize: 18, fontWeight: '700', letterSpacing: 1,

@@ -2,7 +2,7 @@
  * AudioPlayer — play/stop a voice-note URI. Shared by the map, feed and
  * my-cries detail views (previously copy-pasted in all three).
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import { useTheme } from '../lib/themes';
@@ -11,6 +11,10 @@ export function AudioPlayer({ uri }: { uri: string }) {
   const { theme: { accent } } = useTheme();
   const soundRef = useRef<Audio.Sound | null>(null);
   const [playing, setPlaying] = useState(false);
+
+  // Stop playback when the player unmounts (sheet closed mid-listen) —
+  // unloading also releases the native audio session.
+  useEffect(() => () => { soundRef.current?.unloadAsync(); }, []);
 
   async function toggle() {
     if (playing) {

@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import Constants from 'expo-constants';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -249,9 +250,14 @@ export default function SettingsScreen() {
         text: 'Log out', style: 'destructive',
         onPress: async () => {
           setLoggingOut(true);
-          await clearPushToken();
-          await supabase.auth.signOut();
-          setLoggingOut(false);
+          try {
+            // Best-effort — a failed token clear must never trap the user in
+            // a logged-in state with a spinning button.
+            await clearPushToken().catch(e => console.warn('[settings] clearPushToken failed:', e));
+            await supabase.auth.signOut();
+          } finally {
+            setLoggingOut(false);
+          }
         },
       },
     ]);
@@ -349,9 +355,19 @@ export default function SettingsScreen() {
                 <Text style={styles.rowLabel}>Logged in as</Text>
                 <Text style={styles.rowValue} numberOfLines={1}>{session.user.email}</Text>
               </View>
-            ) : null}
+            ) : (
+              <SettingsRow
+                label="Log in or create account"
+                value="Unlock social features ›"
+                onPress={() => router.push('/(auth)/login')}
+              />
+            )}
           </SettingsGroup>
 
+          {/* Privacy / notification prefs only exist server-side — hidden for
+              guests so the screen doesn't show toggles that silently no-op. */}
+          {session ? (
+          <>
           {/* Privacy */}
           <SectionLabel text="Privacy" />
           <SettingsGroup>
@@ -407,6 +423,8 @@ export default function SettingsScreen() {
               onChange={v => toggleNotif('friend_requests', v)}
             />
           </SettingsGroup>
+          </>
+          ) : null}
 
           {/* Appearance */}
           <SectionLabel text="Appearance" />
@@ -426,7 +444,9 @@ export default function SettingsScreen() {
             )}
           </SettingsGroup>
 
-          {/* Premium */}
+          {/* Premium — needs an account to attach the purchase to */}
+          {session ? (
+          <>
           <SectionLabel text="Premium" />
           <SettingsGroup>
             {isPremium ? (
@@ -449,6 +469,8 @@ export default function SettingsScreen() {
               />
             )}
           </SettingsGroup>
+          </>
+          ) : null}
 
           {/* Data */}
           <SectionLabel text="Data" />
@@ -461,7 +483,7 @@ export default function SettingsScreen() {
           <SettingsGroup>
             <View style={styles.row}>
               <Text style={styles.rowLabel}>Version</Text>
-              <Text style={styles.rowValue}>1.0.0</Text>
+              <Text style={styles.rowValue}>{Constants.expoConfig?.version ?? '1.0.0'}</Text>
             </View>
             <SettingsRow label="Report a problem" onPress={() => setShowReport(true)} />
           </SettingsGroup>

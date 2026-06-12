@@ -6,7 +6,7 @@
 import { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Image, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/themes';
 import { emotionById } from '../lib/emotions';
+import { Avatar } from '../components/Avatar';
+import { timeAgo } from '../lib/format';
 import {
   getProfileStats, followUser, unfollowUser,
   getUserCries, blockUser, unblockUser, isUserBlocked, reportContent, SocialCry,
@@ -27,29 +29,6 @@ interface PublicProfile {
   avatar_uri: string | null;
   bio: string | null;
   is_public: boolean;
-}
-
-function Avatar({ uri, size = 80 }: { uri?: string | null; size?: number }) {
-  const { theme: { accent } } = useTheme();
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={{
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: accent, alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
-    </View>
-  );
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso), now = Date.now(), diff = now - d.getTime();
-  const mins = Math.floor(diff / 60000), hours = Math.floor(diff / 3600000), days = Math.floor(diff / 86400000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function UserProfileScreen() {
@@ -203,7 +182,7 @@ export default function UserProfileScreen() {
       <ScrollView contentContainerStyle={s.content}>
         {/* Avatar + name */}
         <View style={s.avatarSection}>
-          <Avatar uri={profile.avatar_uri} size={88} />
+          <Avatar uri={profile.avatar_uri} size={88} fallbackColor={accent} />
           <Text style={s.displayName}>{profile.display_name}</Text>
           <Text style={s.handle}>@{profile.username}</Text>
           {profile.bio ? <Text style={s.bio}>{profile.bio}</Text> : null}
@@ -282,7 +261,7 @@ export default function UserProfileScreen() {
                       ? <Text style={s.cryNote} numberOfLines={1}>{cry.note}</Text>
                       : null}
                   </View>
-                  <Text style={s.cryTime}>{formatDate(cry.created_at)}</Text>
+                  <Text style={s.cryTime}>{timeAgo(cry.created_at)}</Text>
                 </TouchableOpacity>
               );
             })}

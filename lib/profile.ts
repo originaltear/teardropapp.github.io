@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from './supabase';
+import { uploadLocalFile } from './upload';
 
 export interface Profile {
   displayName: string;
@@ -71,14 +71,6 @@ export async function saveProfile(profile: Profile): Promise<void> {
 
 // ─── Avatar upload ────────────────────────────────────────────────────────────
 
-/** Decode a base64 string into raw bytes without any extra dependency. */
-function base64ToBytes(base64: string): Uint8Array {
-  const binary = global.atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
 /**
  * Uploads a local image URI to Supabase Storage (avatars bucket) and returns the
  * public URL.
@@ -88,11 +80,6 @@ function base64ToBytes(base64: string): Uint8Array {
  *   the database. A local path works on the current install but points at the
  *   app's private cache, which is wiped on reinstall, leaving a broken image
  *   (the "grey circle after reinstall" bug).
- *
- * Note: we read the file via expo-file-system rather than `fetch(uri).blob()` —
- * the Fetch/Blob path is unreliable for file:// URIs on React Native and was
- * silently producing empty uploads, which is why every avatar fell back to a
- * local path.
  */
 export async function uploadAvatar(localUri: string): Promise<string | null> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -101,30 +88,10 @@ export async function uploadAvatar(localUri: string): Promise<string | null> {
   // Already a remote URL — nothing to do
   if (localUri.startsWith('http://') || localUri.startsWith('https://')) return localUri;
 
-  try {
-    const base64 = await FileSystem.readAsStringAsync(localUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    if (!base64) throw new Error('read returned empty contents');
+  const fileName = `${session.user.id}/avatar-${Date.now()}.jpg`;
+  const publicUrl = await uploadLocalFile('avatars', fileName, localUri, 'image/jpeg');
+  if (!publicUrl) return null;
 
-    const bytes = base64ToBytes(base64);
-    if (bytes.length === 0) throw new Error('decoded file is empty');
-
-    const fileName = `${session.user.id}/avatar-${Date.now()}.jpg`;
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, bytes, { contentType: 'image/jpeg', upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
-
-    // Add cache-buster so React Native Image doesn't serve the old cached version
-    return `${publicUrl}?t=${Date.now()}`;
-  } catch (err) {
-    console.warn('[uploadAvatar] Upload failed:', err);
-    return null;
-  }
+  // Add cache-buster so React Native Image doesn't serve the old cached version
+  return `${publicUrl}?t=${Date.now()}`;
 }

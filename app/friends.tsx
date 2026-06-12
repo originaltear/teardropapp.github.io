@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image, Alert,
@@ -104,11 +104,17 @@ export default function FriendsScreen() {
     getPendingRequests().then(setPendingRequests);
   }, []);
 
+  // Monotonic id so a slow response for an old query can never overwrite the
+  // results of a newer one.
+  const searchSeq = useRef(0);
+
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
     const t = setTimeout(async () => {
+      const seq = ++searchSeq.current;
       setSearching(true);
       const r = await searchUsers(query);
+      if (seq !== searchSeq.current) return; // stale response — drop it
       setResults(r);
       setSearching(false);
     }, 400);

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   StyleSheet, View, Text, FlatList,
   TouchableOpacity, RefreshControl,
@@ -122,13 +122,18 @@ export default function NotificationsScreen() {
   // Track which actor IDs have been followed back
   const [followedBack, setFollowedBack] = useState<Set<string>>(new Set());
 
+  // Tracks whether anything is on screen — skeleton only shows before the very
+  // first load; returning to the tab refreshes silently instead of flashing.
+  const hasItemsRef = useRef(false);
+
   const load = useCallback(async (isRefresh = false) => {
     if (!session) { setLoading(false); return; }
-    if (!isRefresh) setLoading(true);
+    if (!isRefresh && !hasItemsRef.current) setLoading(true);
     clearBadge();
     try {
       const data = await getNotifications();
       setNotifications(data);
+      hasItemsRef.current = data.length > 0;
 
       const actorIds = [...new Set(
         data.filter(n => n.type === 'follow' || n.type === 'friend_request').map(n => n.actor_id)

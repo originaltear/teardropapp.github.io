@@ -222,15 +222,17 @@ async function enrichCries(
 ): Promise<SocialCry[]> {
   if (cries.length === 0) return [];
   const cryIds = cries.map(c => c.id);
-  const [likesRes, commentsRes, myLikesRes] = await Promise.all([
-    supabase.from('likes').select('cry_id').in('cry_id', cryIds),
+  const [likesRes, commentsRes] = await Promise.all([
+    supabase.from('likes').select('cry_id, user_id').in('cry_id', cryIds),
     supabase.from('comments').select('cry_id').in('cry_id', cryIds),
-    supabase.from('likes').select('cry_id').in('cry_id', cryIds).eq('user_id', userId),
   ]);
   const likeMap: Record<string, number> = {};
   const commentMap: Record<string, number> = {};
-  const myLikedSet = new Set((myLikesRes.data ?? []).map(l => l.cry_id));
-  for (const l of likesRes.data ?? []) likeMap[l.cry_id] = (likeMap[l.cry_id] ?? 0) + 1;
+  const myLikedSet = new Set<string>();
+  for (const l of likesRes.data ?? []) {
+    likeMap[l.cry_id] = (likeMap[l.cry_id] ?? 0) + 1;
+    if (l.user_id === userId) myLikedSet.add(l.cry_id);
+  }
   for (const c of commentsRes.data ?? []) commentMap[c.cry_id] = (commentMap[c.cry_id] ?? 0) + 1;
   return cries.map(c => ({
     ...c,
@@ -437,15 +439,21 @@ export async function likeCry(cryId: string): Promise<void> {
   // 23505 = unique_violation — user already liked this cry (idempotent, not an error)
   if (error && error.code !== '23505') {
     console.warn('[likeCry] error:', error.message);
+    // Throw so optimistic UI can roll the heart back (e.g. offline)
+    throw new Error(error.message);
   }
 }
 
 export async function unlikeCry(cryId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
-  await supabase.from('likes').delete()
+  const { error } = await supabase.from('likes').delete()
     .eq('user_id', session.user.id)
     .eq('cry_id', cryId);
+  if (error) {
+    console.warn('[unlikeCry] error:', error.message);
+    throw new Error(error.message);
+  }
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────

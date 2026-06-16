@@ -1,3 +1,4 @@
+// Platform-specific: iOS + Android (keyboard avoidance behavior)
 import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {

@@ -1,3 +1,4 @@
+// Platform-specific: iOS + Android (OAuth flow differs per platform)
 /**
  * Shared OAuth helpers used by both login and signup screens.
  *

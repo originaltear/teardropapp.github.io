@@ -1,3 +1,4 @@
+// Platform-specific: iOS + Android (Android notification channel, iOS badge)
 /**
  * Push notification registration + local notification handler.
  *

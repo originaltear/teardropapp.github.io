@@ -1,10 +1,13 @@
 /**
  * lib/purchases.ts — RevenueCat wrapper
  *
+ * Platform-specific: iOS + Android — selects the store-appropriate RevenueCat
+ * public SDK key at runtime (appl_… on iOS, goog_…/test_… on Android).
+ *
  * Wraps react-native-purchases so the rest of the app never imports
  * the SDK directly (easier to mock / swap out later).
  *
- * Product IDs (must match what's created in App Store / Play Store):
+ * Product IDs (must match what's created in App Store Connect / Play Console):
  *   teardrop_premium_monthly
  *   teardrop_premium_yearly
  *   teardrop_premium_lifetime
@@ -21,6 +24,12 @@ import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
 const RC_API_KEY_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
+const RC_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';
+
+// Active key for the current platform. iOS ships a live Apple key (appl_…);
+// Android currently ships a Test Store key until the live Play key is ready.
+const RC_API_KEY = Platform.OS === 'ios' ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
+
 export const ENTITLEMENT_ID = 'teardrop_pro';
 const CRYSTAL_TEAR = '💎';
 
@@ -28,15 +37,13 @@ const CRYSTAL_TEAR = '💎';
  * RevenueCat's SDK *deliberately crashes the app* if a `test_` (Test Store) API key
  * is used in a release / non-debuggable build — it posts a dialog and then calls
  * SimulatedStoreErrorDialogActivity.crashApp(). This happens asynchronously on the
- * main looper, so a try/catch around configure() can't stop it. Until a real Play
- * Store key is configured on the RevenueCat dashboard, we must skip configuration
- * entirely in release builds. Premium then falls back to the DB is_premium flag.
+ * main looper, so a try/catch around configure() can't stop it. So we skip
+ * configuration entirely whenever the active platform's key is a test key in a
+ * release build, or when no key is configured at all. Premium then falls back to
+ * the DB is_premium flag.
  */
-const IS_TEST_KEY = RC_API_KEY_ANDROID.startsWith('test_');
-// Disable RevenueCat when a Test Store key is used in a release build (it crashes
-// the app), or when no key is configured at all. Premium then falls back to the
-// DB is_premium flag.
-const RC_DISABLED = (IS_TEST_KEY && !__DEV__) || !RC_API_KEY_ANDROID;
+const IS_TEST_KEY = RC_API_KEY.startsWith('test_');
+const RC_DISABLED = (IS_TEST_KEY && !__DEV__) || !RC_API_KEY;
 
 // ─── Initialise (call once at app start, after auth resolves) ─────────────────
 
@@ -45,21 +52,17 @@ let _rcConfigured = false;
 export function initPurchases(userId?: string) {
   try {
     if (RC_DISABLED) {
-      console.warn('[purchases] RevenueCat disabled in release build (test key). Premium falls back to DB flag.');
+      console.warn('[purchases] RevenueCat disabled (no live key for this platform in release build). Premium falls back to DB flag.');
       return;
     }
     Purchases.setLogLevel(LOG_LEVEL.WARN);
-    if (Platform.OS === 'android') {
-      if (!_rcConfigured) {
-        Purchases.configure({ apiKey: RC_API_KEY_ANDROID, appUserID: userId ?? null });
-        _rcConfigured = true;
-      } else if (userId) {
-        // Already configured — just switch user ID without re-configuring
-        Purchases.logIn(userId).catch(() => {});
-      }
+    if (!_rcConfigured) {
+      Purchases.configure({ apiKey: RC_API_KEY, appUserID: userId ?? null });
+      _rcConfigured = true;
+    } else if (userId) {
+      // Already configured — just switch user ID without re-configuring
+      Purchases.logIn(userId).catch(() => {});
     }
-    // iOS key added here when ready:
-    // if (Platform.OS === 'ios') Purchases.configure({ apiKey: 'ios_key', appUserID: userId });
   } catch (e) {
     console.warn('[purchases] init error:', e);
   }

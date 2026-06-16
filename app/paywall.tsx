@@ -1,12 +1,15 @@
 /**
  * Paywall screen — /paywall
  * Opens as a modal from Settings or when a premium feature is tapped.
+ *
+ * Platform-specific: iOS + Android — billing copy and store wording adapt to
+ * the active platform (App Store on iOS, Google Play on Android).
  */
 
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -15,6 +18,16 @@ import {
   type PlanOption,
 } from '../lib/purchases';
 import { useTheme } from '../lib/themes';
+
+// Store name shown in the billing disclosure — must match the platform the
+// purchase is actually processed by.
+const STORE_NAME = Platform.OS === 'ios' ? 'the App Store' : 'Google Play';
+
+// Required by App Store Review Guideline 3.1.2: the paywall must link to the
+// Terms of Use (EULA) and Privacy Policy. Apple's standard EULA is used as the
+// Terms of Use; the Privacy Policy is hosted on GitHub Pages.
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const PRIVACY_URL = 'https://originaltear.github.io/teardropapp.github.io/privacy-policy.html';
 
 const PERKS = [
   { icon: '🚫', label: 'Ad-free experience' },
@@ -141,9 +154,21 @@ export default function PaywallScreen() {
         </TouchableOpacity>
 
         <Text style={s.legalNote}>
-          Prices are in USD. Payment charged to your Google Play / App Store account.
-          Subscriptions auto-renew unless cancelled at least 24 hours before the end of the period.
+          Prices are in USD. Payment is charged to your {STORE_NAME} account at confirmation
+          of purchase. Subscriptions auto-renew unless cancelled at least 24 hours before the
+          end of the current period. Manage or cancel anytime in your account settings.
         </Text>
+
+        {/* Legal links — required by App Store Review Guideline 3.1.2 */}
+        <View style={s.legalLinks}>
+          <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)} activeOpacity={0.7}>
+            <Text style={s.legalLink}>Terms of Use</Text>
+          </TouchableOpacity>
+          <Text style={s.legalDot}>·</Text>
+          <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)} activeOpacity={0.7}>
+            <Text style={s.legalLink}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Restore */}
         <TouchableOpacity onPress={handleRestore} disabled={restoring} activeOpacity={0.7}>
@@ -224,7 +249,13 @@ const s = StyleSheet.create({
 
   legalNote: {
     color: '#374151', fontSize: 11, textAlign: 'center',
-    lineHeight: 16, marginBottom: 20, paddingHorizontal: 8,
+    lineHeight: 16, marginBottom: 12, paddingHorizontal: 8,
   },
+  legalLinks: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, marginBottom: 16,
+  },
+  legalLink: { color: '#6fe0e6', fontSize: 12, fontWeight: '600' },
+  legalDot: { color: '#374151', fontSize: 12 },
   restoreTxt: { color: '#4a5568', fontSize: 14, fontWeight: '500', paddingVertical: 8 },
 });

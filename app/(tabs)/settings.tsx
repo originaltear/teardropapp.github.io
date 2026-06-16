@@ -1,7 +1,9 @@
+// Platform-specific: iOS + Android (subscription management differs per store)
 import { useCallback, useState, useEffect } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert,
   ActivityIndicator, Switch, TextInput, Modal, Share, Image,
+  Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -457,8 +459,18 @@ export default function SettingsScreen() {
                 </View>
                 <SettingsRow
                   label="Manage subscription"
-                  value="Google Play ›"
-                  onPress={() => Alert.alert('Manage subscription', 'Open Google Play → Subscriptions to manage or cancel your plan.')}
+                  value={Platform.OS === 'ios' ? 'App Store ›' : 'Google Play ›'}
+                  onPress={() => {
+                    if (Platform.OS === 'ios') {
+                      Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() =>
+                        Alert.alert('Manage subscription', 'Open Settings → your Apple ID → Subscriptions to manage or cancel your plan.')
+                      );
+                    } else {
+                      Linking.openURL('https://play.google.com/store/account/subscriptions').catch(() =>
+                        Alert.alert('Manage subscription', 'Open Google Play → Subscriptions to manage or cancel your plan.')
+                      );
+                    }
+                  }}
                 />
               </>
             ) : (

@@ -1,3 +1,4 @@
+// Platform-specific: iOS + Android (keyboard avoidance behavior)
 /**
  * Full cry detail screen.
  * Opened from notifications (like/comment) or anywhere a cry_id is available.

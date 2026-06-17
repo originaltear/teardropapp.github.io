@@ -15,13 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   getPlans, purchasePlan, restorePurchases,
-  type PlanOption,
+  PRODUCT_IDS, type PlanOption,
 } from '../lib/purchases';
 import { useTheme } from '../lib/themes';
 
 // Store name shown in the billing disclosure — must match the platform the
 // purchase is actually processed by.
-const STORE_NAME = Platform.OS === 'ios' ? 'the App Store' : 'Google Play';
+const STORE_NAME = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
 
 // Required by App Store Review Guideline 3.1.2: the paywall must link to the
 // Terms of Use (EULA) and Privacy Policy. Apple's standard EULA is used as the
@@ -40,7 +40,7 @@ export default function PaywallScreen() {
   const router = useRouter();
   const { theme: { accent } } = useTheme();
   const [plans, setPlans]         = useState<PlanOption[]>([]);
-  const [selected, setSelected]   = useState<string>('teardrop_premium_yearly');
+  const [selected, setSelected]   = useState<string>(PRODUCT_IDS.yearly);
   const [loading, setLoading]     = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -153,6 +153,13 @@ export default function PaywallScreen() {
             : <Text style={s.ctaTxt}>Get Pro</Text>}
         </TouchableOpacity>
 
+        {/* Platform-specific store line */}
+        <Text style={s.storeLine}>
+          {Platform.OS === 'ios'
+            ? 'Billed securely through the App Store'
+            : 'Billed securely through Google Play'}
+        </Text>
+
         <Text style={s.legalNote}>
           Prices are in USD. Payment is charged to your {STORE_NAME} account at confirmation
           of purchase. Subscriptions auto-renew unless cancelled at least 24 hours before the
@@ -247,6 +254,10 @@ const s = StyleSheet.create({
   },
   ctaTxt: { color: '#0d1117', fontSize: 17, fontWeight: '800' },
 
+  storeLine: {
+    color: '#4a5568', fontSize: 12, textAlign: 'center',
+    fontWeight: '500', marginBottom: 12,
+  },
   legalNote: {
     color: '#374151', fontSize: 11, textAlign: 'center',
     lineHeight: 16, marginBottom: 12, paddingHorizontal: 8,

@@ -7,10 +7,10 @@
  * Wraps react-native-purchases so the rest of the app never imports
  * the SDK directly (easier to mock / swap out later).
  *
- * Product IDs (must match what's created in App Store Connect / Play Console):
- *   teardrop_premium_monthly
- *   teardrop_premium_yearly
- *   teardrop_premium_lifetime
+ * Store product IDs differ per platform (see PRODUCT_IDS below):
+ *   iOS     — reverse-DNS App Store product IDs
+ *   Android — Google Play "subscriptionId:basePlanId" form (lifetime is a
+ *             one-time product with no base plan)
  *
  * Entitlement: teardrop_pro
  */
@@ -25,6 +25,25 @@ import { supabase } from './supabase';
 
 const RC_API_KEY_ANDROID = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
 const RC_API_KEY_IOS = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';
+
+// ─── Store product identifiers (per platform) ─────────────────────────────────
+//
+// These must match the product IDs configured in App Store Connect / Play
+// Console and wired into the RevenueCat offering. iOS uses reverse-DNS IDs;
+// Android subscriptions use the "subscriptionId:basePlanId" form while the
+// lifetime tier is a one-time product (no base plan).
+export const PRODUCT_IDS = Platform.select({
+  ios: {
+    monthly:  'com.originaltear.teardrop.pro.monthly',
+    yearly:   'com.originaltear.teardrop.pro.yearly',
+    lifetime: 'com.originaltear.teardrop.pro.lifetime',
+  },
+  default: {
+    monthly:  'pro_monthly:monthly-auto',
+    yearly:   'pro_monthly:yearly-auto',
+    lifetime: 'pro_lifetime',
+  },
+});
 
 // Active key for the current platform. iOS ships a live Apple key (appl_…);
 // Android currently ships a Test Store key until the live Play key is ready.
@@ -146,14 +165,14 @@ export interface PlanOption {
 export const FALLBACK_PLANS: PlanOption[] = [
   {
     pkg: null,
-    identifier: 'teardrop_premium_monthly',
+    identifier: PRODUCT_IDS.monthly,
     title: 'Monthly',
     price: '$2.99',
     period: 'per month',
   },
   {
     pkg: null,
-    identifier: 'teardrop_premium_yearly',
+    identifier: PRODUCT_IDS.yearly,
     title: 'Yearly',
     price: '$19.99',
     period: 'per year',
@@ -161,7 +180,7 @@ export const FALLBACK_PLANS: PlanOption[] = [
   },
   {
     pkg: null,
-    identifier: 'teardrop_premium_lifetime',
+    identifier: PRODUCT_IDS.lifetime,
     title: 'Lifetime',
     price: '$49.99',
     period: 'one-time',

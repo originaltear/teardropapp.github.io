@@ -8,8 +8,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../../lib/supabase';
 import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
+import { signInWithApple } from '../../lib/apple-auth';
 import { useTheme } from '../../lib/themes';
 import { PressableScale } from '../../components/PressableScale';
 
@@ -24,6 +26,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
   // Gentle fade + rise of the logo when the screen first appears.
@@ -62,6 +65,19 @@ export default function LoginScreen() {
     } finally {
       setOauthLoading(null);
     }
+  }
+
+  // ── Sign in with Apple (iOS) ────────────────────────────────────────────────
+
+  async function handleApple() {
+    setError(null);
+    setAppleLoading(true);
+    const result = await signInWithApple();
+    setAppleLoading(false);
+    if (result === 'error') {
+      setError('Apple sign-in failed. Please try again or use your email.');
+    }
+    // 'success' → AuthProvider redirects automatically; 'cancelled' → no-op
   }
 
   // ── Continue as guest ─────────────────────────────────────────────────────
@@ -142,15 +158,32 @@ export default function LoginScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Google */}
-            <OAuthButton
-              label="Continue with Google"
-              icon="G"
-              iconColor={accent}
-              loading={oauthLoading === 'google'}
-              disabled={anyOAuthLoading || loading}
-              onPress={() => handleOAuth('google')}
-            />
+            {/* Third-party login — Sign in with Apple on iOS (Guideline 4.8),
+                Google on Android. */}
+            {Platform.OS === 'ios' ? (
+              appleLoading ? (
+                <View style={styles.appleBtnLoading}>
+                  <ActivityIndicator color="#0d1117" />
+                </View>
+              ) : (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                  cornerRadius={14}
+                  style={styles.appleBtn}
+                  onPress={handleApple}
+                />
+              )
+            ) : (
+              <OAuthButton
+                label="Continue with Google"
+                icon="G"
+                iconColor={accent}
+                loading={oauthLoading === 'google'}
+                disabled={anyOAuthLoading || loading}
+                onPress={() => handleOAuth('google')}
+              />
+            )}
           </View>
 
           {/* Sign-up link */}
@@ -245,6 +278,12 @@ const styles = StyleSheet.create({
   },
   oauthIcon: { fontSize: 16, fontWeight: '800', width: 20, textAlign: 'center' },
   oauthTxt: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
+
+  appleBtn: { width: '100%', height: 50 },
+  appleBtnLoading: {
+    width: '100%', height: 50, borderRadius: 14, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 28 },
   switchTxt: { color: '#4a5568', fontSize: 14 },

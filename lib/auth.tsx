@@ -1,8 +1,44 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { supabase } from './supabase';
 import { syncLocalToSupabase } from './storage';
+
+/**
+ * Auto-provision a profile for a Sign in with Apple user who has no username yet.
+ *
+ * App Store Review Guideline 4 (Sign in with Apple) forbids asking the user to
+ * re-enter their name/email after authenticating with Apple — that data is
+ * already supplied by Apple. So instead of routing Apple users to the profile-
+ * setup screen, we generate a username and seed the display name from the Apple
+ * credential. The display name stays editable later in the Profile tab.
+ *
+ * Returns true if a username was set (caller then skips the setup screen).
+ */
+async function autoProvisionAppleProfile(user: User): Promise<boolean> {
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const rawName = String(meta.display_name ?? meta.full_name ?? meta.name ?? '').trim();
+  const base = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 14) || 'tear';
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const candidate = `${base}_${Math.floor(1000 + Math.random() * 9000)}`.slice(0, 20);
+    const { data: taken, error: rpcErr } = await supabase.rpc('is_username_taken', { uname: candidate });
+    if (rpcErr) return false;
+    if (taken) continue;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        username: candidate,
+        display_name: rawName || candidate,
+        profile_visibility: 'everyone',
+      })
+      .eq('id', user.id);
+    if (!error) return true;
+    if (error.code !== '23505') return false; // not a uniqueness clash → give up
+  }
+  return false;
+}
 
 type AuthCtx = {
   session: Session | null;
@@ -23,18 +59,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [hasUsername, setHasUsername] = useState<boolean | null>(null);
 
-  async function checkUsername(userId: string) {
+  async function checkUsername(user: User) {
     const { data } = await supabase
       .from('profiles')
       .select('username')
-      .eq('id', userId)
+      .eq('id', user.id)
       .single();
-    setHasUsername(!!data?.username);
+
+    if (data?.username) { setHasUsername(true); return; }
+
+    // No username yet. Sign in with Apple users must not be sent to a profile-
+    // setup screen that re-asks for their name (Guideline 4). Auto-provision and
+    // skip straight into the app; everyone else sets a username manually.
+    if (user.app_metadata?.provider === 'apple') {
+      const provisioned = await autoProvisionAppleProfile(user);
+      setHasUsername(provisioned);
+      return;
+    }
+
+    setHasUsername(false);
   }
 
   async function refreshUsername() {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) await checkUsername(session.user.id);
+    if (session) await checkUsername(session.user);
   }
 
   useEffect(() => {
@@ -43,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setLoading(false);
       if (session) {
-        checkUsername(session.user.id);
+        checkUsername(session.user);
         // Push any cries logged while offline (the pending queue) — without
         // this they only synced on a fresh SIGNED_IN, so a logged-in user who
         // saved offline wouldn't see them again until next login.
@@ -59,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // When a user signs in, upload any locally stored guest cries to their account
         if (event === 'SIGNED_IN' && session) {
-          checkUsername(session.user.id);
+          checkUsername(session.user);
           syncLocalToSupabase(session.user.id, session.user.email ?? undefined)
             .catch(e => console.warn('[auth] sync-on-login failed:', e));
         }

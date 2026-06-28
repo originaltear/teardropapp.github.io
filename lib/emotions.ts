@@ -15,6 +15,7 @@ export const EMOTIONS: Emotion[] = [
   { id: 'relief',     label: 'Relief',       color: '#8fe0a8', emoji: '🍃' },
   { id: 'overwhelmed',label: 'Overwhelmed',  color: '#f2a86b', emoji: '🌊' },
   { id: 'mixed',      label: 'Mixed',        color: '#6fe0e6', emoji: '💧' },
+  { id: 'idk',        label: 'Idk',          color: '#9d92ad', emoji: '❓' },
 ];
 
 // Pre-built index for O(1) lookups — emotionById is called in hot render paths

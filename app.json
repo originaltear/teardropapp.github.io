@@ -2,7 +2,7 @@
   "expo": {
     "name": "Teardrop",
     "slug": "teardrop",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "scheme": "teardrop",
     "orientation": "portrait",
     "newArchEnabled": false,
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.originaltear.teardrop",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -33,7 +33,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "versionCode": 3,
+      "versionCode": 4,
       "package": "com.originaltear.teardrop",
       "googleServicesFile": "./google-services.json"
     },

@@ -20,6 +20,11 @@ import {
 } from '../../lib/social';
 import { clearPushToken } from '../../lib/notifications';
 import { checkPremium } from '../../lib/purchases';
+import {
+  getLinkedIdentities, linkProvider, unlinkProvider, providerLabel,
+  type LinkableProvider,
+} from '../../lib/account-linking';
+import type { UserIdentity } from '@supabase/supabase-js';
 import { useTheme, THEMES } from '../../lib/themes';
 import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
 
@@ -86,6 +91,9 @@ const VISIBILITY_LABELS: Record<ProfileSettings['profile_visibility'], string> =
   only_me:   '🔒  Only me',
 };
 
+// Providers a user can link to their account in addition to how they signed up.
+const LINKABLE_PROVIDERS: LinkableProvider[] = ['apple', 'google'];
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 const DEFAULT_NOTIF_PREFS: ProfileSettings['notification_preferences'] = {
@@ -130,16 +138,21 @@ export default function SettingsScreen() {
   // Visibility dropdown open
   const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
 
+  // Account linking (Supabase Auth identities)
+  const [identities, setIdentities] = useState<UserIdentity[]>([]);
+  const [linkingProvider, setLinkingProvider] = useState<LinkableProvider | null>(null);
+
   // ── Load settings on focus ──
   useFocusEffect(useCallback(() => {
     if (!session) { setLoading(false); return; }
     (async () => {
       setLoading(true);
       try {
-        const [settings, blocked, premium] = await Promise.all([
+        const [settings, blocked, premium, ids] = await Promise.all([
           getProfileSettings(),
           getBlockedUsers(),
           checkPremium(),
+          getLinkedIdentities(),
         ]);
         if (settings) {
           setProfileVisibility(settings.profile_visibility);
@@ -148,6 +161,7 @@ export default function SettingsScreen() {
         }
         setBlockedUsers(blocked);
         setIsPremium(premium);
+        setIdentities(ids);
       } catch (e) {
         console.warn('[settings] load failed:', e);
       } finally {
@@ -165,6 +179,49 @@ export default function SettingsScreen() {
     setHapticsOn(v);
     await setHapticsEnabled(v); // applies in-memory immediately + persists
     if (v) tapLight();          // instant confirmation when turning it back on
+  }
+
+  // ── Account linking ──
+  async function refreshIdentities() {
+    setIdentities(await getLinkedIdentities());
+  }
+
+  async function handleLink(provider: LinkableProvider) {
+    tapLight();
+    setLinkingProvider(provider);
+    const result = await linkProvider(provider);
+    setLinkingProvider(null);
+    if (result === 'success') {
+      await refreshIdentities();
+      // Android finishes the link asynchronously via the deep-link handler.
+      if (Platform.OS === 'android') setTimeout(refreshIdentities, 1500);
+    } else if (result === 'error') {
+      Alert.alert(
+        `Couldn't link ${providerLabel(provider)}`,
+        'Please try again. If it keeps failing, this sign-in method may not be set up yet.',
+      );
+    }
+  }
+
+  function handleUnlink(identity: UserIdentity) {
+    if (identities.length <= 1) {
+      Alert.alert('Cannot unlink', 'You must keep at least one login method on your account.');
+      return;
+    }
+    Alert.alert(
+      `Unlink ${providerLabel(identity.provider)}?`,
+      `You'll no longer be able to log in with ${providerLabel(identity.provider)}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unlink', style: 'destructive', onPress: async () => {
+            const result = await unlinkProvider(identity);
+            if (result === 'success') await refreshIdentities();
+            else Alert.alert('Unlink failed', 'Please try again.');
+          },
+        },
+      ],
+    );
   }
 
   // ── Auto-save privacy settings ──
@@ -365,6 +422,42 @@ export default function SettingsScreen() {
               />
             )}
           </SettingsGroup>
+
+          {/* Login methods — link additional providers to the same account */}
+          {session ? (
+            <>
+              <SectionLabel text="Login methods" />
+              <SettingsGroup>
+                {LINKABLE_PROVIDERS.map(provider => {
+                  const identity = identities.find(i => i.provider === provider);
+                  const linked = !!identity;
+                  const busy = linkingProvider === provider;
+                  return (
+                    <View key={provider} style={styles.row}>
+                      <Text style={styles.rowLabel}>{providerLabel(provider)}</Text>
+                      {busy ? (
+                        <ActivityIndicator color="#6fe0e6" />
+                      ) : linked ? (
+                        <TouchableOpacity
+                          onPress={() => handleUnlink(identity!)}
+                          disabled={identities.length <= 1}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.linkedTxt}>
+                            ✓ Linked{identities.length > 1 ? '  ·  Unlink' : ''}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity onPress={() => handleLink(provider)} activeOpacity={0.7}>
+                          <Text style={styles.linkTxt}>Link ›</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })}
+              </SettingsGroup>
+            </>
+          ) : null}
 
           {/* Privacy / notification prefs only exist server-side — hidden for
               guests so the screen doesn't show toggles that silently no-op. */}
@@ -693,6 +786,8 @@ const styles = StyleSheet.create({
   rowLabel: { color: '#e2e8f0', fontSize: 15, flex: 1, flexWrap: 'wrap' },
   rowValue: { color: '#4a5568', fontSize: 14, maxWidth: '55%', textAlign: 'right' },
   rowChevron: { color: '#4a5568', fontSize: 20 },
+  linkTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
+  linkedTxt: { color: '#4ade80', fontSize: 13, fontWeight: '600' },
   dangerNote: {
     color: '#374151', fontSize: 11, paddingHorizontal: 20, paddingTop: 8, lineHeight: 16,
   },

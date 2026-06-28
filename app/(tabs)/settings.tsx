@@ -1,5 +1,5 @@
 // Platform-specific: iOS + Android (subscription management differs per store)
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import {
   StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert,
   ActivityIndicator, Switch, TextInput, Modal, Share, Image,
@@ -25,6 +25,7 @@ import {
   type LinkableProvider,
 } from '../../lib/account-linking';
 import type { UserIdentity } from '@supabase/supabase-js';
+import { validateUsername, isUsernameTaken, updateUsername } from '../../lib/username';
 import { useTheme, THEMES } from '../../lib/themes';
 import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
 
@@ -142,17 +143,28 @@ export default function SettingsScreen() {
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
   const [linkingProvider, setLinkingProvider] = useState<LinkableProvider | null>(null);
 
+  // Username editing
+  const [username, setUsername] = useState<string | null>(null);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameErr, setUsernameErr] = useState<string | null>(null);
+  const [savingUsername, setSavingUsername] = useState(false);
+  const usernameDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ── Load settings on focus ──
   useFocusEffect(useCallback(() => {
     if (!session) { setLoading(false); return; }
     (async () => {
       setLoading(true);
       try {
-        const [settings, blocked, premium, ids] = await Promise.all([
+        const [settings, blocked, premium, ids, profileRow] = await Promise.all([
           getProfileSettings(),
           getBlockedUsers(),
           checkPremium(),
           getLinkedIdentities(),
+          supabase.from('profiles').select('username').eq('id', session.user.id).single(),
         ]);
         if (settings) {
           setProfileVisibility(settings.profile_visibility);
@@ -162,6 +174,7 @@ export default function SettingsScreen() {
         setBlockedUsers(blocked);
         setIsPremium(premium);
         setIdentities(ids);
+        setUsername(profileRow.data?.username ?? null);
       } catch (e) {
         console.warn('[settings] load failed:', e);
       } finally {
@@ -174,6 +187,51 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadHapticsPref().then(setHapticsOn);
   }, []);
+
+  // ── Real-time username availability check (modal) ──
+  useEffect(() => {
+    if (!showUsernameModal) return;
+    setUsernameAvailable(null);
+    setUsernameErr(null);
+    const u = newUsername.toLowerCase().trim();
+    if (!u || u === username) return;            // unchanged or empty — nothing to check
+    const err = validateUsername(u);
+    if (err) { setUsernameErr(err); return; }
+
+    setCheckingUsername(true);
+    if (usernameDebounce.current) clearTimeout(usernameDebounce.current);
+    usernameDebounce.current = setTimeout(async () => {
+      try {
+        const taken = await isUsernameTaken(u);
+        setUsernameAvailable(!taken);
+      } catch {
+        setUsernameAvailable(null);
+      } finally {
+        setCheckingUsername(false);
+      }
+    }, 450);
+
+    return () => { if (usernameDebounce.current) clearTimeout(usernameDebounce.current); };
+  }, [newUsername, showUsernameModal, username]);
+
+  function openUsernameModal() {
+    setNewUsername(username ?? '');
+    setUsernameAvailable(null);
+    setUsernameErr(null);
+    setShowUsernameModal(true);
+  }
+
+  async function handleSaveUsername() {
+    const u = newUsername.toLowerCase().trim();
+    if (u === username) { setShowUsernameModal(false); return; }
+    setSavingUsername(true);
+    const err = await updateUsername(u);
+    setSavingUsername(false);
+    if (err) { setUsernameErr(err); return; }
+    setUsername(u);
+    setShowUsernameModal(false);
+    tapLight();
+  }
 
   async function toggleHaptics(v: boolean) {
     setHapticsOn(v);
@@ -410,10 +468,17 @@ export default function SettingsScreen() {
           <SectionLabel text="Account" />
           <SettingsGroup>
             {session ? (
+              <>
               <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', gap: 2 }]}>
                 <Text style={styles.rowLabel}>Logged in as</Text>
                 <Text style={styles.rowValue} numberOfLines={1}>{session.user.email}</Text>
               </View>
+              <SettingsRow
+                label="Username"
+                value={username ? `@${username}  ›` : 'Set username  ›'}
+                onPress={openUsernameModal}
+              />
+              </>
             ) : (
               <SettingsRow
                 label="Log in or create account"
@@ -754,6 +819,58 @@ export default function SettingsScreen() {
         </SafeAreaView>
       </Modal>
 
+      {/* Change username */}
+      <Modal visible={showUsernameModal} transparent animationType="slide" onRequestClose={() => setShowUsernameModal(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
+        <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeaderRow}>
+              <Text style={styles.sheetTitle}>Change username</Text>
+              <TouchableOpacity onPress={() => setShowUsernameModal(false)}>
+                <Text style={styles.sheetClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.usernameInputRow}>
+              <Text style={styles.usernameAt}>@</Text>
+              <TextInput
+                style={styles.usernameInput}
+                value={newUsername}
+                onChangeText={t => setNewUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                placeholder="yourname"
+                placeholderTextColor="#4a5568"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                maxLength={20}
+              />
+              {checkingUsername && <ActivityIndicator size="small" color="#6fe0e6" />}
+            </View>
+            {usernameErr
+              ? <Text style={styles.usernameStatusErr}>✕  {usernameErr}</Text>
+              : usernameAvailable === true
+                ? <Text style={styles.usernameStatusOk}>✓  @{newUsername} is available</Text>
+                : usernameAvailable === false
+                  ? <Text style={styles.usernameStatusErr}>✕  @{newUsername} is taken</Text>
+                  : null}
+            <Text style={styles.reportHint}>3–20 characters · lowercase letters, numbers and _ only</Text>
+            <TouchableOpacity
+              style={[
+                styles.reportSubmit,
+                (savingUsername || checkingUsername || usernameAvailable !== true) && { opacity: 0.4 },
+              ]}
+              onPress={handleSaveUsername}
+              disabled={savingUsername || checkingUsername || usernameAvailable !== true}
+            >
+              {savingUsername
+                ? <ActivityIndicator color="#0d1117" />
+                : <Text style={styles.reportSubmitTxt}>Save</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -788,6 +905,15 @@ const styles = StyleSheet.create({
   rowChevron: { color: '#4a5568', fontSize: 20 },
   linkTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
   linkedTxt: { color: '#4ade80', fontSize: 13, fontWeight: '600' },
+  usernameInputRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 12, paddingHorizontal: 14, marginBottom: 8,
+  },
+  usernameAt: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
+  usernameInput: { flex: 1, paddingVertical: 14, color: '#e2e8f0', fontSize: 16, fontFamily: 'monospace' },
+  usernameStatusOk: { color: '#4ade80', fontSize: 13, marginBottom: 4 },
+  usernameStatusErr: { color: '#ef6f6f', fontSize: 13, marginBottom: 4 },
   dangerNote: {
     color: '#374151', fontSize: 11, paddingHorizontal: 20, paddingTop: 8, lineHeight: 16,
   },

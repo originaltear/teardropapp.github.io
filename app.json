@@ -33,7 +33,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "versionCode": 4,
+      "versionCode": 5,
       "package": "com.originaltear.teardrop",
       "googleServicesFile": "./google-services.json"
     },

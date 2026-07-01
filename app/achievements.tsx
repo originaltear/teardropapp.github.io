@@ -4,14 +4,14 @@
  */
 import { useCallback, useState, useRef, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Animated,
+  View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../lib/auth';
-import { ACHIEVEMENTS, getUnlockedAchievements } from '../lib/achievements';
+import { ACHIEVEMENTS, getUnlockedAchievements, type Achievement } from '../lib/achievements';
 import { supabase } from '../lib/supabase';
 
 function formatDate(iso: string) {
@@ -25,6 +25,7 @@ export default function AchievementsScreen() {
   const [unlockedMap, setUnlockedMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [accountRank, setAccountRank] = useState<number | null>(null);
+  const [selected, setSelected] = useState<Achievement | null>(null);
 
   useFocusEffect(useCallback(() => {
     if (!session) { setLoading(false); return; }
@@ -108,7 +109,13 @@ export default function AchievementsScreen() {
           renderItem={({ item: a }) => {
             const unlocked = !!unlockedMap[a.id];
             return (
-              <View style={[s.row, !unlocked && s.rowLocked]}>
+              <TouchableOpacity
+                style={[s.row, !unlocked && s.rowLocked]}
+                onPress={() => setSelected(a)}
+                activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel={`${a.title}. ${unlocked ? 'Unlocked' : 'Locked'}. Tap for details.`}
+              >
                 <View style={[s.emojiWrap, unlocked && s.emojiWrapUnlocked]}>
                   <Text style={[s.emoji, !unlocked && { opacity: 0.25 }]}>{a.emoji}</Text>
                 </View>
@@ -142,12 +149,65 @@ export default function AchievementsScreen() {
                 </View>
 
                 {unlocked && <Text style={s.check}>✓</Text>}
-              </View>
+              </TouchableOpacity>
             );
           }}
           ListFooterComponent={<View style={{ height: 32 }} />}
         />
       )}
+
+      {/* Achievement detail popup */}
+      <Modal visible={!!selected} transparent animationType="fade" onRequestClose={() => setSelected(null)}>
+        <TouchableOpacity style={s.popupBackdrop} activeOpacity={1} onPress={() => setSelected(null)}>
+          <TouchableOpacity style={s.popup} activeOpacity={1} onPress={() => {}}>
+            {selected && (() => {
+              const unlocked = !!unlockedMap[selected.id];
+              const showRank = (selected.id === 'founder' || selected.id === 'first_wave') && accountRank;
+              return (
+                <>
+                  <View style={[s.popupEmojiWrap, unlocked && s.emojiWrapUnlocked]}>
+                    <Text style={[s.popupEmoji, !unlocked && { opacity: 0.3 }]}>{selected.emoji}</Text>
+                  </View>
+                  <Text style={s.popupTitle}>{selected.title}</Text>
+                  {selected.isTear && (
+                    <View style={s.tearTag}>
+                      <Text style={s.tearTagTxt}>{selected.tearEmoji} Tear</Text>
+                    </View>
+                  )}
+
+                  <Text style={s.popupLabel}>HOW TO UNLOCK</Text>
+                  <Text style={s.popupHow}>{selected.howToUnlock}</Text>
+
+                  {unlocked ? (
+                    <>
+                      <Text style={[s.popupStatus, { color: accent }]}>
+                        ✓ Unlocked {formatDate(unlockedMap[selected.id])}
+                      </Text>
+                      <Text style={s.popupMsg}>"{selected.unlockMessage}"</Text>
+                    </>
+                  ) : (
+                    <Text style={s.popupLocked}>🔒 Not unlocked yet</Text>
+                  )}
+
+                  {showRank && (
+                    <Text style={s.rankBadge}>
+                      {unlocked ? `Account #${accountRank}` : `You are account #${accountRank}`}
+                    </Text>
+                  )}
+
+                  <TouchableOpacity
+                    style={[s.popupClose, { backgroundColor: accent }]}
+                    onPress={() => setSelected(null)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={s.popupCloseTxt}>Close</Text>
+                  </TouchableOpacity>
+                </>
+              );
+            })()}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -203,4 +263,39 @@ const s = StyleSheet.create({
   rowHow: { color: '#64748b', fontSize: 12, lineHeight: 16 },
   rankBadge: { color: '#f2cf6b', fontSize: 11, fontWeight: '600', marginTop: 2 },
   check: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
+
+  // Detail popup
+  popupBackdrop: {
+    flex: 1, backgroundColor: '#000000aa',
+    alignItems: 'center', justifyContent: 'center', padding: 32,
+  },
+  popup: {
+    width: '100%', maxWidth: 340,
+    backgroundColor: '#111827', borderRadius: 20,
+    borderWidth: 1, borderColor: '#1f2937',
+    alignItems: 'center', padding: 24, gap: 8,
+  },
+  popupEmojiWrap: {
+    width: 72, height: 72, borderRadius: 20,
+    backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 4,
+  },
+  popupEmoji: { fontSize: 40 },
+  popupTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '800', textAlign: 'center' },
+  popupLabel: {
+    color: '#4a5568', fontSize: 10, fontFamily: 'monospace',
+    letterSpacing: 1.5, marginTop: 12,
+  },
+  popupHow: { color: '#cbd5e1', fontSize: 15, lineHeight: 21, textAlign: 'center' },
+  popupStatus: { fontSize: 13, fontFamily: 'monospace', fontWeight: '600', marginTop: 12 },
+  popupMsg: {
+    color: '#64748b', fontSize: 13, fontStyle: 'italic',
+    lineHeight: 18, textAlign: 'center', marginTop: 2,
+  },
+  popupLocked: { color: '#4a5568', fontSize: 13, marginTop: 12 },
+  popupClose: {
+    borderRadius: 14, paddingVertical: 13, paddingHorizontal: 40,
+    alignItems: 'center', marginTop: 20, alignSelf: 'stretch',
+  },
+  popupCloseTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
 });

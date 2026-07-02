@@ -17,6 +17,7 @@ import { emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import {
   getCry, likeCry, unlikeCry, getComments, addComment, deleteComment,
+  likeComment, unlikeComment,
   SocialCry, Comment, reportContent,
 } from '../lib/social';
 import { supabase } from '../lib/supabase';
@@ -43,6 +44,7 @@ export default function CryDetailScreen() {
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
   const [commentsDisabled, setCommentsDisabled] = useState(false);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
 
   useFocusEffect(useCallback(() => {
     if (!id) return;
@@ -100,7 +102,8 @@ export default function CryDetailScreen() {
         text: 'Delete', style: 'destructive',
         onPress: async () => {
           await deleteComment(c.id);
-          setComments(prev => prev.filter(x => x.id !== c.id));
+          // DB cascades replies; mirror that locally
+          setComments(prev => prev.filter(x => x.id !== c.id && x.parent_comment_id !== c.id));
         },
       },
     ]);
@@ -110,9 +113,13 @@ export default function CryDetailScreen() {
     if (!commentText.trim() || !session) return;
     setPosting(true);
     try {
-      const c = await addComment(id!, commentText.trim());
+      // Replies always attach to the top-level comment so threads stay one
+      // level deep (replying to a reply targets its parent thread).
+      const parentId = replyTo ? (replyTo.parent_comment_id ?? replyTo.id) : undefined;
+      const c = await addComment(id!, commentText.trim(), parentId);
       if (c) setComments(prev => [...prev, c]);
       setCommentText('');
+      setReplyTo(null);
     } catch (e: any) {
       if (e?.code === 'COMMENTS_DISABLED') {
         setCommentsDisabled(true); // swap input for the notice bar
@@ -121,6 +128,22 @@ export default function CryDetailScreen() {
       }
     }
     setPosting(false);
+  }
+
+  async function toggleCommentLike(c: Comment) {
+    if (!session) return;
+    const next = !c.liked_by_me;
+    setComments(prev => prev.map(x => x.id === c.id
+      ? { ...x, liked_by_me: next, like_count: x.like_count + (next ? 1 : -1) }
+      : x));
+    try {
+      if (next) await likeComment(c.id); else await unlikeComment(c.id);
+    } catch {
+      // Roll back the optimistic update (e.g. offline)
+      setComments(prev => prev.map(x => x.id === c.id
+        ? { ...x, liked_by_me: !next, like_count: x.like_count + (next ? -1 : 1) }
+        : x));
+    }
   }
 
   const emotion = cry ? emotionById(cry.emotion) : null;
@@ -252,40 +275,66 @@ export default function CryDetailScreen() {
             )}
           </View>
 
-          {/* Comments */}
+          {/* Comments — one-level threads: top-level comments with replies below */}
           <Text style={s.sectionLabel}>COMMENTS</Text>
           {commentsDisabled ? (
             <Text style={s.commentsOffTxt}>💬  Comments have been turned off</Text>
           ) : comments.length === 0 ? (
             <Text style={s.noComments}>No comments yet</Text>
           ) : (
-            comments.map(c => (
-              <View key={c.id} style={s.commentRow}>
-                <Avatar uri={c.profile.avatar_uri} size={30} />
-                <TouchableOpacity
-                  style={s.commentBubble}
-                  activeOpacity={c.user_id === session?.user.id ? 0.7 : 1}
-                  onLongPress={c.user_id === session?.user.id ? () => confirmDeleteComment(c) : undefined}
-                  delayLongPress={400}
-                  accessibilityHint={c.user_id === session?.user.id ? 'Hold to delete your comment' : undefined}
-                >
-                  <Text style={[s.commentUser, { color: accent }]}>{c.profile.display_name}</Text>
-                  <Text style={s.commentText}>{c.content}</Text>
-                </TouchableOpacity>
-              </View>
-            ))
+            comments
+              .filter(c => !c.parent_comment_id)
+              .map(parent => (
+                <View key={parent.id}>
+                  <CommentItem
+                    comment={parent}
+                    accent={accent}
+                    isOwn={parent.user_id === session?.user.id}
+                    canInteract={!!session}
+                    onLike={() => toggleCommentLike(parent)}
+                    onReply={() => setReplyTo(parent)}
+                    onDelete={() => confirmDeleteComment(parent)}
+                  />
+                  {comments
+                    .filter(r => r.parent_comment_id === parent.id)
+                    .map(reply => (
+                      <View key={reply.id} style={s.replyIndent}>
+                        <CommentItem
+                          comment={reply}
+                          accent={accent}
+                          isOwn={reply.user_id === session?.user.id}
+                          canInteract={!!session}
+                          onLike={() => toggleCommentLike(reply)}
+                          onReply={() => setReplyTo(reply)}
+                          onDelete={() => confirmDeleteComment(reply)}
+                        />
+                      </View>
+                    ))}
+                </View>
+              ))
           )}
           <View style={{ height: 100 }} />
         </ScrollView>
 
         {/* Comment input — hidden entirely when comments are disabled */}
         {session && !commentsDisabled && (
+          <View>
+          {replyTo && (
+            <View style={s.replyingBar}>
+              <Text style={s.replyingTxt} numberOfLines={1}>
+                Replying to <Text style={{ color: accent }}>@{replyTo.profile.username}</Text>
+              </Text>
+              <TouchableOpacity onPress={() => setReplyTo(null)} hitSlop={8}>
+                <Text style={s.replyingClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View style={s.inputRow}>
             <TextInput
               style={s.inputField}
               value={commentText}
               onChangeText={setCommentText}
-              placeholder="Add a comment…"
+              placeholder={replyTo ? `Reply to @${replyTo.profile.username}…` : 'Add a comment…'}
               placeholderTextColor="#4a5568"
               multiline
               maxLength={500}
@@ -300,9 +349,52 @@ export default function CryDetailScreen() {
                 : <Text style={s.sendTxt}>↑</Text>}
             </TouchableOpacity>
           </View>
+          </View>
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+// ─── Comment bubble with like + reply actions ─────────────────────────────────
+
+function CommentItem({ comment, accent, isOwn, canInteract, onLike, onReply, onDelete }: {
+  comment: Comment;
+  accent: string;
+  isOwn: boolean;
+  canInteract: boolean;
+  onLike: () => void;
+  onReply: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <View style={s.commentRow}>
+      <Avatar uri={comment.profile.avatar_uri} size={30} />
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity
+          style={s.commentBubble}
+          activeOpacity={isOwn ? 0.7 : 1}
+          onLongPress={isOwn ? onDelete : undefined}
+          delayLongPress={400}
+          accessibilityHint={isOwn ? 'Hold to delete your comment' : undefined}
+        >
+          <Text style={[s.commentUser, { color: accent }]}>{comment.profile.display_name}</Text>
+          <Text style={s.commentText}>{comment.content}</Text>
+        </TouchableOpacity>
+        {canInteract && (
+          <View style={s.commentActions}>
+            <TouchableOpacity onPress={onLike} hitSlop={8} accessibilityRole="button" accessibilityLabel="Like comment">
+              <Text style={[s.commentAction, comment.liked_by_me && { color: accent }]}>
+                {comment.liked_by_me ? '💧' : '🤍'}{comment.like_count > 0 ? ` ${comment.like_count}` : ''}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onReply} hitSlop={8} accessibilityRole="button" accessibilityLabel="Reply to comment">
+              <Text style={s.commentAction}>Reply</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -369,6 +461,18 @@ const s = StyleSheet.create({
   commentText: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
 
   commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
+  commentActions: { flexDirection: 'row', gap: 16, marginTop: 4, marginLeft: 4 },
+  commentAction: { color: '#4a5568', fontSize: 12, fontWeight: '600' },
+  replyIndent: { marginLeft: 40, marginTop: 8 },
+
+  replyingBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderTopWidth: 1, borderTopColor: '#1f2937',
+    backgroundColor: '#111827',
+  },
+  replyingTxt: { flex: 1, color: '#4a5568', fontSize: 12 },
+  replyingClose: { color: '#4a5568', fontSize: 14, padding: 2 },
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,

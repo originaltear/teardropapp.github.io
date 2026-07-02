@@ -62,6 +62,35 @@ function RootNav() {
   }, [session?.user.id, hasUsername]);
 
   // ── Handle notification taps (background / quit state) ───────────────────
+  //
+  // Cold-start gotcha: when the app is launched BY a notification tap,
+  // getLastNotificationResponseAsync resolves before the navigator is mounted.
+  // Navigating at that point throws ("Attempted to navigate before mounting
+  // the Root Layout") and the tap silently did nothing — the app opened on
+  // the map instead of the cry. We queue the route and flush it once auth
+  // has resolved (navigator mounted). Taps are also deduped because newer
+  // expo-notifications fires BOTH the listener and the last-response promise
+  // for the same cold-start tap.
+  const pendingRouteRef = useRef<string | null>(null);
+  const routerReadyRef = useRef(false);
+  const lastHandledTapRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (loading) return;
+    routerReadyRef.current = true;
+    if (pendingRouteRef.current) {
+      const route = pendingRouteRef.current;
+      pendingRouteRef.current = null;
+      // Give the freshly mounted navigator one frame before pushing
+      const t = setTimeout(() => {
+        try { router.push(route as any); } catch (e) {
+          console.warn('[notifications] deferred navigation failed:', e);
+        }
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, [loading]);
+
   useEffect(() => {
     Notifications.getLastNotificationResponseAsync().then(response => {
       if (response) handleNotificationResponse(response);
@@ -76,15 +105,33 @@ function RootNav() {
     };
   }, []);
 
+  function navigateFromNotification(route: string) {
+    if (routerReadyRef.current) {
+      try {
+        router.push(route as any);
+      } catch {
+        pendingRouteRef.current = route; // navigator not ready after all — retry on flush
+      }
+    } else {
+      pendingRouteRef.current = route;
+    }
+  }
+
   function handleNotificationResponse(response: Notifications.NotificationResponse) {
+    // Dedupe: the same tap can arrive via both the listener and
+    // getLastNotificationResponseAsync on cold start
+    const tapKey = response.notification.request.identifier;
+    if (tapKey && lastHandledTapRef.current === tapKey) return;
+    lastHandledTapRef.current = tapKey ?? null;
+
     const data = response.notification.request.content.data as Record<string, string> | undefined;
     if (!data) return;
     clearBadge();
     const { type, cry_id } = data;
-    if ((type === 'like' || type === 'comment') && cry_id) {
-      router.push(`/cry-detail?id=${cry_id}`);
+    if ((type === 'like' || type === 'comment' || type === 'reply') && cry_id) {
+      navigateFromNotification(`/cry-detail?id=${cry_id}`);
     } else if (type === 'follow' || type === 'friend_request') {
-      router.push('/(tabs)/notifications');
+      navigateFromNotification('/(tabs)/notifications');
     }
   }
 

@@ -78,13 +78,16 @@ export interface Comment {
   cry_id: string;
   content: string;
   created_at: string;
+  parent_comment_id: string | null;
+  like_count: number;
+  liked_by_me: boolean;
   profile: { username: string; display_name: string; avatar_uri: string | null };
 }
 
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'friend_request' | 'follow';
+  type: 'like' | 'comment' | 'reply' | 'friend_request' | 'follow';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -459,17 +462,40 @@ export async function unlikeCry(cryId: string): Promise<void> {
 // ─── Comments ─────────────────────────────────────────────────────────────────
 
 export async function getComments(cryId: string): Promise<Comment[]> {
+  const { data: { session } } = await supabase.auth.getSession();
   const { data } = await supabase
     .from('comments')
     .select('*, profile:profiles!comments_user_id_fkey(username, display_name, avatar_uri)')
     .eq('cry_id', cryId)
     .order('created_at', { ascending: true });
-  return (data ?? []) as Comment[];
+  const comments = data ?? [];
+  if (comments.length === 0) return [];
+
+  // Attach like counts + whether the current user liked each comment
+  const { data: likeRows } = await supabase
+    .from('comment_likes')
+    .select('comment_id, user_id')
+    .in('comment_id', comments.map(c => c.id));
+  const likeMap: Record<string, number> = {};
+  const mine = new Set<string>();
+  for (const l of likeRows ?? []) {
+    likeMap[l.comment_id] = (likeMap[l.comment_id] ?? 0) + 1;
+    if (l.user_id === session?.user.id) mine.add(l.comment_id);
+  }
+  return comments.map(c => ({
+    ...c,
+    like_count: likeMap[c.id] ?? 0,
+    liked_by_me: mine.has(c.id),
+  })) as Comment[];
 }
 
 export const MAX_COMMENT_LEN = 500;
 
-export async function addComment(cryId: string, content: string): Promise<Comment | null> {
+export async function addComment(
+  cryId: string,
+  content: string,
+  parentCommentId?: string,
+): Promise<Comment | null> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
 
@@ -495,10 +521,39 @@ export async function addComment(cryId: string, content: string): Promise<Commen
 
   const { data } = await supabase
     .from('comments')
-    .insert({ user_id: session.user.id, cry_id: cryId, content: safe })
+    .insert({
+      user_id: session.user.id,
+      cry_id: cryId,
+      content: safe,
+      parent_comment_id: parentCommentId ?? null,
+    })
     .select('*, profile:profiles!comments_user_id_fkey(username, display_name, avatar_uri)')
     .single();
-  return data as Comment | null;
+  if (!data) return null;
+  return { ...data, like_count: 0, liked_by_me: false } as Comment;
+}
+
+// ─── Comment likes ────────────────────────────────────────────────────────────
+
+export async function likeComment(commentId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const { error } = await supabase
+    .from('comment_likes')
+    .insert({ user_id: session.user.id, comment_id: commentId });
+  // 23505 = already liked (idempotent, not an error)
+  if (error && error.code !== '23505') throw new Error(error.message);
+}
+
+export async function unlikeComment(commentId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const { error } = await supabase
+    .from('comment_likes')
+    .delete()
+    .eq('user_id', session.user.id)
+    .eq('comment_id', commentId);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
@@ -526,7 +581,7 @@ export async function getNotifications(): Promise<Notification[]> {
 
   // Fetch comment content for comment-type notifications
   const commentNotifIds = data
-    .filter(n => n.type === 'comment' && n.reference_id)
+    .filter(n => (n.type === 'comment' || n.type === 'reply') && n.reference_id)
     .map(n => n.reference_id as string);
 
   let commentMap: Record<string, string> = {};
@@ -540,7 +595,7 @@ export async function getNotifications(): Promise<Notification[]> {
 
   return data.map(n => ({
     ...n,
-    comment_content: n.type === 'comment' && n.reference_id
+    comment_content: (n.type === 'comment' || n.type === 'reply') && n.reference_id
       ? (commentMap[n.reference_id] ?? null)
       : null,
   })) as Notification[];

@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { registerPushToken, clearBadge } from '../lib/notifications';
+import { checkForUpdate } from '../lib/update-check';
 import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
@@ -60,6 +61,12 @@ function RootNav() {
       registerPushToken();
     }
   }, [session?.user.id, hasUsername]);
+
+  // ── Update prompt (deferred so it never competes with startup work) ───────
+  useEffect(() => {
+    const t = setTimeout(checkForUpdate, 4000);
+    return () => clearTimeout(t);
+  }, []);
 
   // ── Handle notification taps (background / quit state) ───────────────────
   //

@@ -60,7 +60,16 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
     if (displayName && data.user) {
       await supabase.auth
         .updateUser({ data: { display_name: displayName } })
-        .catch(() => { /* non-fatal: name is also collected in profile setup */ });
+        .catch(() => { /* non-fatal */ });
+      // Belt-and-suspenders: auto-provisioning (lib/auth.tsx) may already have
+      // run with a generated fallback name before updateUser landed. Writing
+      // the real Apple-provided name straight to the profile row wins either
+      // way — last write is the correct one.
+      await supabase
+        .from('profiles')
+        .update({ display_name: displayName })
+        .eq('id', data.user.id)
+        .then(undefined, () => { /* non-fatal */ });
     }
 
     return 'success';

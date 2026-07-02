@@ -16,7 +16,11 @@ import { syncLocalToSupabase } from './storage';
  * Returns true if a username was set (caller then skips the setup screen).
  */
 async function autoProvisionAppleProfile(user: User): Promise<boolean> {
-  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  // Re-fetch the user first: apple-auth.ts writes the Apple-provided name to
+  // user_metadata via updateUser() right after sign-in, which races with the
+  // SIGNED_IN event that got us here. A fresh read usually sees the name.
+  const { data: freshData } = await supabase.auth.getUser();
+  const meta = ((freshData?.user ?? user).user_metadata ?? {}) as Record<string, unknown>;
   const rawName = String(meta.display_name ?? meta.full_name ?? meta.name ?? '').trim();
   const base = rawName.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 14) || 'tear';
 

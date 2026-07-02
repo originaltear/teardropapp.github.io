@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { uploadLocalFile } from './upload';
+import { compressForUpload } from './image';
 
 export interface Profile {
   displayName: string;
@@ -89,7 +90,9 @@ export async function uploadAvatar(localUri: string): Promise<string | null> {
   if (localUri.startsWith('http://') || localUri.startsWith('https://')) return localUri;
 
   const fileName = `${session.user.id}/avatar-${Date.now()}.jpg`;
-  const publicUrl = await uploadLocalFile('avatars', fileName, localUri, 'image/jpeg');
+  // Avatars render at ≤88px in the UI — 512px is plenty
+  const compressed = await compressForUpload(localUri, 512, 0.7);
+  const publicUrl = await uploadLocalFile('avatars', fileName, compressed, 'image/jpeg');
   if (!publicUrl) return null;
 
   // Add cache-buster so React Native Image doesn't serve the old cached version

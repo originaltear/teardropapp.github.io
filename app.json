@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.originaltear.teardrop",
-      "buildNumber": "6",
+      "buildNumber": "7",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -33,7 +33,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "versionCode": 5,
+      "versionCode": 6,
       "package": "com.originaltear.teardrop",
       "googleServicesFile": "./google-services.json"
     },

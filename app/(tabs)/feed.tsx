@@ -21,7 +21,7 @@ import { timeAgo, fullDateTime } from '../../lib/format';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
-  getSocialFeed, getMapCries, likeCry, unlikeCry, getComments, addComment,
+  getSocialFeed, getMineFeed, FEED_PAGE_SIZE, likeCry, unlikeCry, getComments, addComment,
   deleteComment, SocialCry, Comment,
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
@@ -279,6 +279,8 @@ export default function FeedScreen() {
   const [tab, setTab] = useState<FeedTab>('following');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [endReached, setEndReached] = useState(false);
   // Mine tab filters
   const [mineEmotion, setMineEmotion] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -290,13 +292,32 @@ export default function FeedScreen() {
     if (isRefresh) setRefreshing(true);
     else if (allCries.length === 0) setLoading(true);
     try {
-      const loader = tab === 'mine' ? getMapCries('mine') : getSocialFeed();
-      const feed = await loader;
+      const feed = tab === 'mine' ? await getMineFeed() : await getSocialFeed();
       setAllCries(feed);
+      setEndReached(feed.length < FEED_PAGE_SIZE);
     } catch (e) {
       console.warn('[feed] loadFeed failed:', e);
     } finally {
       isRefresh ? setRefreshing(false) : setLoading(false);
+    }
+  }
+
+  // Infinite scroll: fetch the page older than the last visible cry
+  async function loadMore() {
+    if (!session || loading || refreshing || loadingMore || endReached || allCries.length === 0) return;
+    setLoadingMore(true);
+    try {
+      const oldest = allCries[allCries.length - 1].created_at;
+      const more = tab === 'mine' ? await getMineFeed(oldest) : await getSocialFeed(oldest);
+      if (more.length < FEED_PAGE_SIZE) setEndReached(true);
+      setAllCries(prev => {
+        const seen = new Set(prev.map(c => c.id));
+        return [...prev, ...more.filter(c => !seen.has(c.id))];
+      });
+    } catch (e) {
+      console.warn('[feed] loadMore failed:', e);
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -305,6 +326,7 @@ export default function FeedScreen() {
   // account's feed).
   useEffect(() => {
     setAllCries([]);
+    setEndReached(false);
     if (session) setLoading(true);
   }, [tab, session?.user.id]);
 
@@ -421,6 +443,11 @@ export default function FeedScreen() {
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={displayCries.length === 0 ? styles.emptyContainer : styles.listContent}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator color={accent} style={{ paddingVertical: 20 }} /> : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

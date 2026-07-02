@@ -254,7 +254,13 @@ const CRY_SELECT = `
 
 // ─── Following feed ───────────────────────────────────────────────────────────
 
-export async function getSocialFeed(): Promise<SocialCry[]> {
+export const FEED_PAGE_SIZE = 30;
+
+/**
+ * @param before — cursor for infinite scroll: only cries older than this
+ *                 created_at are returned. Omit for the first page.
+ */
+export async function getSocialFeed(before?: string): Promise<SocialCry[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return [];
 
@@ -269,14 +275,33 @@ export async function getSocialFeed(): Promise<SocialCry[]> {
   const allIds = followingIds.filter(id => !blockedIds.has(id));
   if (allIds.length === 0) return [];
 
-  const { data: cries, error } = await supabase
+  let query = supabase
     .from('cries').select(CRY_SELECT)
     .in('user_id', allIds)
     .order('created_at', { ascending: false })
-    .limit(60);
+    .limit(FEED_PAGE_SIZE);
+  if (before) query = query.lt('created_at', before);
 
+  const { data: cries, error } = await query;
   if (error || !cries) return [];
   // RLS already enforces visibility + block rules — no client-side is_public filter needed
+  return enrichCries(cries, session.user.id);
+}
+
+/** Own cries for the feed's "Mine" tab, paginated like the following feed. */
+export async function getMineFeed(before?: string): Promise<SocialCry[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+
+  let query = supabase
+    .from('cries').select(CRY_SELECT)
+    .eq('user_id', session.user.id)
+    .order('created_at', { ascending: false })
+    .limit(FEED_PAGE_SIZE);
+  if (before) query = query.lt('created_at', before);
+
+  const { data: cries, error } = await query;
+  if (error || !cries) return [];
   return enrichCries(cries, session.user.id);
 }
 
@@ -316,7 +341,8 @@ export async function getMapCries(filter: MapFilter): Promise<SocialCry[]> {
     const { data: cries } = await supabase
       .from('cries').select(CRY_SELECT)
       .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500); // cap the map payload — heavy criers were downloading everything
     return enrichCries(cries ?? [], session.user.id);
   }
 
@@ -331,7 +357,8 @@ export async function getMapCries(filter: MapFilter): Promise<SocialCry[]> {
     if (followingIds.length === 0) return [];
     const { data: cries } = await supabase
       .from('cries').select(CRY_SELECT).in('user_id', followingIds)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500); // cap the map payload
     // RLS already enforces visibility + block rules
     return enrichCries(cries ?? [], session.user.id);
   }

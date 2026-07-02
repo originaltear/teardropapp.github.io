@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { uploadLocalFile } from './upload';
+import { compressForUpload } from './image';
 
 const LOCAL_KEY = 'teardrop_cries';
 
@@ -89,8 +90,11 @@ async function uploadCryMedia(
   const out: { photoUri?: string; audioUri?: string } = {};
 
   if (isLocalUri(cry.photoUri)) {
+    // Downscale before upload — full-resolution photos waste data on every
+    // feed load; the app never renders them larger than a card.
+    const compressed = await compressForUpload(cry.photoUri);
     const url = await uploadLocalFile(
-      MEDIA_BUCKET, `${userId}/${cry.id}/photo.jpg`, cry.photoUri, 'image/jpeg',
+      MEDIA_BUCKET, `${userId}/${cry.id}/photo.jpg`, compressed, 'image/jpeg',
     );
     if (url) out.photoUri = url;
   }

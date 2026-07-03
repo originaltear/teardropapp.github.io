@@ -82,18 +82,14 @@ export async function registerPushToken(): Promise<void> {
 
     const token = tokenData.data;
 
-    // Persist to Supabase (upsert-style: only write if changed)
-    const { data: existing_ } = await supabase
+    // Persist to Supabase. We always write (no read-first): push_token is a
+    // protected column that clients can't SELECT — only the send-push Edge
+    // Function (service role) can read it — and the write is cheap and rare.
+    const { error: upErr } = await supabase
       .from('profiles')
-      .select('push_token')
-      .eq('id', session.user.id)
-      .single();
-
-    if (existing_?.push_token !== token) {
-      await supabase
-        .from('profiles')
-        .update({ push_token: token })
-        .eq('id', session.user.id);
+      .update({ push_token: token })
+      .eq('id', session.user.id);
+    if (!upErr) {
       console.log('[notifications] Push token registered:', token.slice(0, 30) + '…');
     }
   } catch (err: any) {

@@ -7,9 +7,13 @@
 import { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, TextInput, KeyboardAvoidingView,
+  ActivityIndicator, TextInput,
   Platform, Alert,
 } from 'react-native';
+// react-native-keyboard-controller's drop-in KAV: unlike the RN one, it also
+// works on Android 15+ edge-to-edge, where the legacy adjustResize no longer
+// resizes the window (comment input used to disappear behind the keyboard).
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -178,7 +182,7 @@ export default function CryDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeAreaView style={s.container} edges={['top', 'bottom']}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Text style={[s.backTxt, { color: accent }]}>←</Text>
@@ -191,7 +195,7 @@ export default function CryDetailScreen() {
 
   if (!cry) {
     return (
-      <SafeAreaView style={s.container} edges={['top']}>
+      <SafeAreaView style={s.container} edges={['top', 'bottom']}>
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Text style={[s.backTxt, { color: accent }]}>←</Text>
@@ -206,7 +210,7 @@ export default function CryDetailScreen() {
   }
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['top', 'bottom']}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Text style={[s.backTxt, { color: accent }]}>←</Text>
@@ -222,9 +226,9 @@ export default function CryDetailScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={{ flex: 1 }}
-        keyboardVerticalOffset={90}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {/* Profile row */}

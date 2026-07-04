@@ -7,13 +7,9 @@
 import { useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, TextInput,
+  ActivityIndicator, TextInput, KeyboardAvoidingView,
   Platform, Alert,
 } from 'react-native';
-// react-native-keyboard-controller's drop-in KAV: unlike the RN one, it also
-// works on Android 15+ edge-to-edge, where the legacy adjustResize no longer
-// resizes the window (comment input used to disappear behind the keyboard).
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -226,7 +222,7 @@ export default function CryDetailScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >

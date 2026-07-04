@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
@@ -258,7 +259,11 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
-  return <ThemedApp />;
+  return (
+    <KeyboardProvider>
+      <ThemedApp />
+    </KeyboardProvider>
+  );
 }
 
 // ─── Crash fallback ───────────────────────────────────────────────────────────

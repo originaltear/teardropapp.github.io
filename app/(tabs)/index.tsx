@@ -17,6 +17,7 @@ import { TearsBadge } from '../../components/TearsBadge';
 import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers';
 import { useSplashGate } from '../../components/AppSplash';
 import { PressableScale } from '../../components/PressableScale';
+import { QuickLogSheet } from '../../components/QuickLogSheet';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
 import { AudioPlayer } from '../../components/AudioPlayer';
@@ -36,6 +37,7 @@ interface NormalizedCry {
   note?: string;
   photoUri?: string;
   audioUri?: string;
+  tags?: string[];
   latitude: number;
   longitude: number;
   profile?: { display_name: string; username: string; avatar_uri: string | null; selected_tears?: string[] };
@@ -53,6 +55,7 @@ function normalizeCry(c: Cry | SocialCry): NormalizedCry {
     note:      sc.note ?? lc.note,
     photoUri:  sc.photo_uri ?? lc.photoUri,
     audioUri:  sc.audio_uri ?? lc.audioUri,
+    tags:      (sc.tags ?? lc.tags) ?? undefined,
     latitude:  c.latitude,
     longitude: c.longitude,
     profile:   sc.profile,
@@ -125,6 +128,12 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
       <Text style={styles.dateText}>{fullDateTime(cry.date)}</Text>
       <Drops intensity={cry.intensity} />
 
+      {cry.tags && cry.tags.length > 0 && (
+        <View style={styles.tagsRow}>
+          {cry.tags.map(t => <Text key={t} style={styles.tagPill}>#{t}</Text>)}
+        </View>
+      )}
+
       {cry.photoUri ? (
         <CryPhoto uri={cry.photoUri} style={styles.photo} />
       ) : null}
@@ -191,6 +200,7 @@ export default function MapScreen() {
   const [selectedCry, setSelectedCry] = useState<Cry | SocialCry | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mapFilter, setMapFilter] = useState<MapFilter>('mine');
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
   // Current visible region — drives which clusters are computed
   const [region, setRegion] = useState<Region | null>(null);
   // The cluster the user tapped — drives the "cries in this cluster" sheet
@@ -249,26 +259,33 @@ export default function MapScreen() {
     })();
   }, [markMapReady]);
 
-  useFocusEffect(useCallback(() => {
+  const reloadCries = useCallback(() => {
     const onErr = (e: unknown) => console.warn('[map] load cries failed:', e);
     if (session && mapFilter !== 'mine') {
       getMapCries(mapFilter).then(setCries).catch(onErr);
     } else {
       loadCries().then(setCries).catch(onErr);
     }
-  }, [session, mapFilter]));
+  }, [session, mapFilter]);
 
-  function handleAddCry() {
+  useFocusEffect(useCallback(() => { reloadCries(); }, [reloadCries]));
+
+  function requireCoords(): boolean {
     if (!gpsCoords) {
       Alert.alert(
         'Location unavailable',
         "We couldn't get your position. Make sure GPS is turned on, then try again.",
       );
-      return;
+      return false;
     }
+    return true;
+  }
+
+  function handleAddCry() {
+    if (!requireCoords()) return;
     router.push({
       pathname: '/log-cry',
-      params: { lat: String(gpsCoords.latitude), lng: String(gpsCoords.longitude) },
+      params: { lat: String(gpsCoords!.latitude), lng: String(gpsCoords!.longitude) },
     });
   }
 
@@ -462,6 +479,15 @@ export default function MapScreen() {
 
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
         <PressableScale
+          style={[styles.quickFab, { borderColor: accent }]}
+          onPress={() => { tapLight(); if (requireCoords()) setQuickLogOpen(true); }}
+          scaleTo={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Quick log a cry"
+        >
+          <Text style={styles.quickFabIcon}>⚡</Text>
+        </PressableScale>
+        <PressableScale
           style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]}
           onPress={() => { tapMedium(); handleAddCry(); }}
           scaleTo={0.88}
@@ -471,6 +497,13 @@ export default function MapScreen() {
           <Text style={styles.fabIcon}>+</Text>
         </PressableScale>
       </SafeAreaView>
+
+      <QuickLogSheet
+        visible={quickLogOpen}
+        coords={gpsCoords}
+        onClose={() => setQuickLogOpen(false)}
+        onLogged={reloadCries}
+      />
 
       {/* Cluster contents sheet — list of every cry inside the tapped cluster */}
       {clusterView && (
@@ -581,6 +614,14 @@ const styles = StyleSheet.create({
   },
 
   fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
+  quickFab: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(13,17,23,0.92)',
+    borderWidth: 1, borderColor: '#6fe0e6',
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 32, marginBottom: 12,
+  },
+  quickFabIcon: { fontSize: 20 },
   fab: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: '#6fe0e6',
     alignItems: 'center', justifyContent: 'center',
@@ -630,13 +671,20 @@ const styles = StyleSheet.create({
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tagPill: {
+    color: '#94a3b8', fontSize: 12, fontWeight: '500',
+    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
+    overflow: 'hidden',
+  },
   // First-cry hint
   hintContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
   firstCryHint: {
     backgroundColor: 'rgba(13,17,23,0.92)',
     borderWidth: 1, borderColor: '#1f2937', borderRadius: 16,
     paddingHorizontal: 14, paddingVertical: 8,
-    marginRight: 24, marginBottom: 100,
+    marginRight: 24, marginBottom: 160,
   },
   firstCryHintTxt: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
 

@@ -10,7 +10,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { EMOTIONS } from '../lib/emotions';
-import { saveCry, loadCries } from '../lib/storage';
+import { saveCry, updateCry, loadCries, generateCryId, Cry } from '../lib/storage';
+import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
 import * as Location from 'expo-location';
 import { getProfileSettings } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
@@ -33,14 +34,6 @@ const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] =
   { value: 'only_me',       icon: '🫥', label: 'Only me' },
 ];
 
-function generateId(): string {
-  // RFC 4122 v4 UUID — required by Supabase uuid column type
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
-
 // (Achievement toast is now handled by AchievementToast modal component)
 
 // ─── Log Cry screen ───────────────────────────────────────────────────────────
@@ -50,15 +43,24 @@ export default function LogCryScreen() {
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
   const { queueAchievements } = useAchievementToast();
-  const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
+  const { lat, lng, editId } = useLocalSearchParams<{ lat: string; lng: string; editId: string }>();
+  const isEdit = !!editId;
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('everyone');
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  // The cry being edited — carries the fields that never change (id, coords,
+  // country, createdAt). Null while loading and in create mode.
+  const [editingCry, setEditingCry] = useState<Cry | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(isEdit);
 
-  // Load user's default visibility from profile
+  // Load user's default visibility from profile (create mode only — an edit
+  // must keep the cry's own visibility)
   useEffect(() => {
+    if (isEdit) return;
     getProfileSettings().then(s => {
       if (s?.profile_visibility) {
         // Map profile visibility → cry visibility (close_friends not available at profile level)
@@ -70,7 +72,53 @@ export default function LogCryScreen() {
         setVisibility(map[s.profile_visibility] ?? 'everyone');
       }
     });
-  }, []);
+  }, [isEdit]);
+
+  // Edit mode: prefill every field from the existing cry
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    loadCries().then(cries => {
+      if (cancelled) return;
+      const found = cries.find(c => c.id === editId);
+      if (!found) {
+        Alert.alert('Not found', 'This cry could not be loaded.');
+        router.back();
+        return;
+      }
+      setEditingCry(found);
+      setEmotion(found.emotion);
+      setIntensity(found.intensity);
+      setNote(found.note ?? '');
+      setVisibility(found.visibility ?? 'everyone');
+      setTags(found.tags ?? []);
+      setPhotoUri(found.photoUri ?? null);
+      setAudioUri(found.audioUri ?? null);
+      setLoadingEdit(false);
+    });
+    return () => { cancelled = true; };
+  }, [editId]);
+
+  // ── Tag helpers ──
+
+  function toggleTag(tag: string) {
+    selection();
+    setTags(prev => {
+      if (prev.includes(tag)) return prev.filter(t => t !== tag);
+      if (prev.length >= MAX_TAGS) {
+        warning();
+        return prev;
+      }
+      return [...prev, tag];
+    });
+  }
+
+  function addCustomTag() {
+    const tag = normalizeTag(tagInput);
+    setTagInput('');
+    if (!tag) return;
+    toggleTag(tag);
+  }
 
   // ── Photo state ──
   const [photoUri, setPhotoUri] = useState<string | null>(null);
@@ -219,7 +267,45 @@ export default function LogCryScreen() {
   // ── Save ──
 
   async function handleSave() {
-    if (!emotion || !lat || !lng) return;
+    if (!emotion) return;
+
+    // ── Edit: persist changes to the existing cry ──
+    if (isEdit) {
+      if (!editingCry) return;
+      setSaving(true);
+      try {
+        await updateCry({
+          ...editingCry,
+          emotion,
+          intensity,
+          note: note.trim() || undefined,
+          photoUri: photoUri ?? undefined,
+          audioUri: audioUri ?? undefined,
+          visibility,
+          tags: tags.length ? tags : undefined,
+        });
+      } catch {
+        warning();
+        setSaving(false);
+        Alert.alert('Could not save', 'Something went wrong saving your changes. Please try again.');
+        return;
+      }
+      success();
+      // Achievements can change when the emotion does (e.g. Full Spectrum)
+      if (session) {
+        loadCries()
+          .then(cries => checkAndSaveAchievements(cries, session))
+          .then(newOnes => { if (newOnes?.length) queueAchievements(newOnes); })
+          .catch(() => { /* best-effort */ });
+      }
+      setSaving(false);
+      if (router.canGoBack()) router.back();
+      else router.replace('/(tabs)/');
+      return;
+    }
+
+    // ── Create ──
+    if (!lat || !lng) return;
     setSaving(true);
 
     // Reverse geocode to get country (best-effort, bounded — a hanging
@@ -238,7 +324,7 @@ export default function LogCryScreen() {
 
     try {
       await saveCry({
-        id: generateId(),
+        id: generateCryId(),
         createdAt: new Date().toISOString(),
         latitude: parseFloat(lat),
         longitude: parseFloat(lng),
@@ -249,6 +335,7 @@ export default function LogCryScreen() {
         audioUri: audioUri ?? undefined,
         country,
         visibility,
+        tags: tags.length ? tags : undefined,
       });
     } catch (e) {
       // Without this guard a thrown save (e.g. device storage full) left the
@@ -281,11 +368,30 @@ export default function LogCryScreen() {
     else router.replace('/(tabs)/');
   }
 
-  const latNum = parseFloat(lat ?? '0');
-  const lngNum = parseFloat(lng ?? '0');
-  const locationStr = lat && lng
+  const latNum = editingCry?.latitude ?? parseFloat(lat ?? '0');
+  const lngNum = editingCry?.longitude ?? parseFloat(lng ?? '0');
+  const hasCoords = isEdit ? !!editingCry : !!(lat && lng);
+  const locationStr = hasCoords
     ? `${latNum >= 0 ? latNum.toFixed(4) + '°N' : Math.abs(latNum).toFixed(4) + '°S'}  ${lngNum >= 0 ? lngNum.toFixed(4) + '°E' : Math.abs(lngNum).toFixed(4) + '°W'}`
     : '—';
+
+  if (loadingEdit) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
+            style={styles.closeBtn}
+          >
+            <Text style={[styles.closeTxt, { color: accent }]}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>Edit Cry</Text>
+          <View style={{ width: 36 }} />
+        </View>
+        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -301,7 +407,7 @@ export default function LogCryScreen() {
           >
             <Text style={[styles.closeTxt, { color: accent }]}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Log a Cry</Text>
+          <Text style={styles.title}>{isEdit ? 'Edit Cry' : 'Log a Cry'}</Text>
           <View style={{ width: 36 }} />
         </View>
 
@@ -364,6 +470,59 @@ export default function LogCryScreen() {
             textAlignVertical="top"
           />
 
+          {/* ── Tags ── */}
+          <Text style={styles.sectionLabel}>
+            Tags <Text style={styles.optional}>(optional · max {MAX_TAGS})</Text>
+          </Text>
+          <View style={styles.tagGrid}>
+            {/* Custom tags first (selected, removable), then presets */}
+            {tags.filter(t => !PRESET_TAGS.includes(t)).map(t => (
+              <TouchableOpacity
+                key={t}
+                style={[styles.tagChip, { borderColor: accent, backgroundColor: accent + '22' }]}
+                onPress={() => toggleTag(t)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.tagChipTxt, { color: accent }]}>#{t}  ✕</Text>
+              </TouchableOpacity>
+            ))}
+            {PRESET_TAGS.map(t => {
+              const selected = tags.includes(t);
+              return (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.tagChip, selected && { borderColor: accent, backgroundColor: accent + '22' }]}
+                  onPress={() => toggleTag(t)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.tagChipTxt, selected && { color: accent }]}>#{t}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.tagInputRow}>
+            <TextInput
+              style={styles.tagInput}
+              value={tagInput}
+              onChangeText={setTagInput}
+              placeholder="Add your own tag…"
+              placeholderTextColor="#4a5568"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={MAX_TAG_LEN}
+              onSubmitEditing={addCustomTag}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={[styles.tagAddBtn, { borderColor: accent }, !normalizeTag(tagInput) && { opacity: 0.4 }]}
+              onPress={addCustomTag}
+              disabled={!normalizeTag(tagInput)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.tagAddTxt, { color: accent }]}>+ Add</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* ── Photo ── */}
           <Text style={styles.sectionLabel}>
             Photo <Text style={styles.optional}>(optional)</Text>
@@ -409,7 +568,9 @@ export default function LogCryScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.playIcon, { color: accent }]}>{isPlaying ? '⏹' : '▶'}</Text>
-                <Text style={[styles.playTxt, { color: accent }]}>{isPlaying ? 'Stop' : 'Play'} · {fmt(recordSecs)}</Text>
+                <Text style={[styles.playTxt, { color: accent }]}>
+                  {isPlaying ? 'Stop' : 'Play'}{recordSecs > 0 ? ` · ${fmt(recordSecs)}` : ''}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteAudioBtn} onPress={deleteAudio}>
                 <Text style={styles.deleteAudioTxt}>🗑</Text>
@@ -449,7 +610,7 @@ export default function LogCryScreen() {
           >
             {saving
               ? <ActivityIndicator color="#0d1117" />
-              : <Text style={styles.saveTxt}>Save cry</Text>
+              : <Text style={styles.saveTxt}>{isEdit ? 'Save changes' : 'Save cry'}</Text>
             }
           </PressableScale>
         </View>
@@ -508,6 +669,26 @@ const styles = StyleSheet.create({
     borderRadius: 12, padding: 14, color: '#e2e8f0', fontSize: 15,
     minHeight: 100, fontFamily: 'monospace',
   },
+
+  // Tags
+  tagGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tagChip: {
+    paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
+    backgroundColor: '#111827',
+  },
+  tagChipTxt: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
+  tagInputRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  tagInput: {
+    flex: 1, backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+    color: '#e2e8f0', fontSize: 14,
+  },
+  tagAddBtn: {
+    borderWidth: 1, borderRadius: 12, paddingHorizontal: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  tagAddTxt: { fontSize: 14, fontWeight: '600' },
 
   // Photo
   photoAdd: {

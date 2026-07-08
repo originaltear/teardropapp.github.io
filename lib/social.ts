@@ -38,9 +38,12 @@ export interface SocialCry {
   audio_uri: string | null;
   country: string | null;
   visibility: 'everyone' | 'followers' | 'close_friends' | 'only_me';
+  tags: string[] | null;
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
+  hug_count: number;
+  hugged_by_me: boolean;
   profile: { username: string; display_name: string; avatar_uri: string | null; selected_tears?: string[]; allow_comments?: boolean };
 }
 
@@ -87,7 +90,7 @@ export interface Comment {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'reply' | 'friend_request' | 'follow';
+  type: 'like' | 'comment' | 'reply' | 'hug' | 'friend_request' | 'follow';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -225,30 +228,39 @@ async function enrichCries(
 ): Promise<SocialCry[]> {
   if (cries.length === 0) return [];
   const cryIds = cries.map(c => c.id);
-  const [likesRes, commentsRes] = await Promise.all([
+  const [likesRes, commentsRes, hugsRes] = await Promise.all([
     supabase.from('likes').select('cry_id, user_id').in('cry_id', cryIds),
     supabase.from('comments').select('cry_id').in('cry_id', cryIds),
+    supabase.from('cry_hugs').select('cry_id, user_id').in('cry_id', cryIds),
   ]);
   const likeMap: Record<string, number> = {};
   const commentMap: Record<string, number> = {};
+  const hugMap: Record<string, number> = {};
   const myLikedSet = new Set<string>();
+  const myHuggedSet = new Set<string>();
   for (const l of likesRes.data ?? []) {
     likeMap[l.cry_id] = (likeMap[l.cry_id] ?? 0) + 1;
     if (l.user_id === userId) myLikedSet.add(l.cry_id);
   }
   for (const c of commentsRes.data ?? []) commentMap[c.cry_id] = (commentMap[c.cry_id] ?? 0) + 1;
+  for (const h of hugsRes.data ?? []) {
+    hugMap[h.cry_id] = (hugMap[h.cry_id] ?? 0) + 1;
+    if (h.user_id === userId) myHuggedSet.add(h.cry_id);
+  }
   return cries.map(c => ({
     ...c,
     like_count: likeMap[c.id] ?? 0,
     comment_count: commentMap[c.id] ?? 0,
     liked_by_me: myLikedSet.has(c.id),
+    hug_count: hugMap[c.id] ?? 0,
+    hugged_by_me: myHuggedSet.has(c.id),
     profile: c.profile || { username: 'unknown', display_name: 'Unknown', avatar_uri: null },
   })) as SocialCry[];
 }
 
 const CRY_SELECT = `
   id, user_id, created_at, latitude, longitude, emotion,
-  intensity, note, photo_uri, audio_uri, country, visibility,
+  intensity, note, photo_uri, audio_uri, country, visibility, tags,
   profile:profiles!cries_user_id_fkey(username, display_name, avatar_uri, is_public, selected_tears, allow_comments)
 `;
 
@@ -482,6 +494,32 @@ export async function unlikeCry(cryId: string): Promise<void> {
     .eq('cry_id', cryId);
   if (error) {
     console.warn('[unlikeCry] error:', error.message);
+    throw new Error(error.message);
+  }
+}
+
+// ─── Hugs ─────────────────────────────────────────────────────────────────────
+
+export async function hugCry(cryId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const { error } = await supabase.from('cry_hugs').insert({ user_id: session.user.id, cry_id: cryId });
+  // 23505 = unique_violation — user already hugged this cry (idempotent, not an error)
+  if (error && error.code !== '23505') {
+    console.warn('[hugCry] error:', error.message);
+    // Throw so optimistic UI can roll back (e.g. offline)
+    throw new Error(error.message);
+  }
+}
+
+export async function unhugCry(cryId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const { error } = await supabase.from('cry_hugs').delete()
+    .eq('user_id', session.user.id)
+    .eq('cry_id', cryId);
+  if (error) {
+    console.warn('[unhugCry] error:', error.message);
     throw new Error(error.message);
   }
 }

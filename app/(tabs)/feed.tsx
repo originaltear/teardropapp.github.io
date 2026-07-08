@@ -21,23 +21,26 @@ import { timeAgo, fullDateTime } from '../../lib/format';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
 import {
-  getSocialFeed, getMineFeed, FEED_PAGE_SIZE, likeCry, unlikeCry, getComments, addComment,
-  deleteComment, SocialCry, Comment,
+  getSocialFeed, getMineFeed, FEED_PAGE_SIZE, likeCry, unlikeCry, hugCry, unhugCry,
+  getComments, addComment, deleteComment, SocialCry, Comment,
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
 
 // ─── Detail modal with likes + comments ───────────────────────────────────────
 
-function DetailModal({ cry, myId, onClose, onLikeToggle }: {
+function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle }: {
   cry: SocialCry;
   myId: string | null;
   onClose: () => void;
   onLikeToggle: (cryId: string, liked: boolean) => void;
+  onHugToggle: (cryId: string, hugged: boolean) => void;
 }) {
   const { theme: { accent } } = useTheme();
   const emotion = emotionById(cry.emotion);
   const [liked, setLiked] = useState(cry.liked_by_me);
   const [likeCount, setLikeCount] = useState(cry.like_count);
+  const [hugged, setHugged] = useState(cry.hugged_by_me);
+  const [hugCount, setHugCount] = useState(cry.hug_count);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [commentText, setCommentText] = useState('');
@@ -75,6 +78,23 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
       setLiked(!next);
       setLikeCount(c => c + (next ? -1 : 1));
       onLikeToggle(cry.id, !next);
+    }
+  }
+
+  async function toggleHug() {
+    if (!myId) return;
+    tapLight();
+    const next = !hugged;
+    setHugged(next);
+    setHugCount(c => c + (next ? 1 : -1));
+    onHugToggle(cry.id, next);
+    try {
+      if (next) await hugCry(cry.id); else await unhugCry(cry.id);
+    } catch {
+      // Roll the optimistic update back (e.g. offline)
+      setHugged(!next);
+      setHugCount(c => c + (next ? -1 : 1));
+      onHugToggle(cry.id, !next);
     }
   }
 
@@ -138,25 +158,46 @@ function DetailModal({ cry, myId, onClose, onLikeToggle }: {
             </View>
             <Text style={styles.sheetDate}>{fullDateTime(cry.created_at)}</Text>
             <Drops intensity={cry.intensity} size={18} />
+            {cry.tags && cry.tags.length > 0 && (
+              <View style={styles.tagsRow}>
+                {cry.tags.map(t => <Text key={t} style={styles.tagPill}>#{t}</Text>)}
+              </View>
+            )}
             {cry.photo_uri ? <CryPhoto uri={cry.photo_uri} style={styles.photo} /> : null}
             {cry.note ? <View style={styles.noteBox}><Text style={styles.noteText}>{cry.note}</Text></View> : null}
             {cry.audio_uri ? <AudioPlayer uri={cry.audio_uri} /> : null}
 
-            {/* Like button */}
+            {/* Like + Hug buttons */}
             <View style={styles.likeRow}>
               {!isOwn && myId && (
-                <TouchableOpacity
-                  style={styles.likeBtn} onPress={toggleLike} activeOpacity={0.75}
-                  accessibilityRole="button" accessibilityLabel={liked ? 'Unlike this cry' : 'Like this cry'}
-                >
-                  <Text style={styles.likeIcon}>{liked ? '💧' : '🤍'}</Text>
-                  <Text style={[styles.likeTxt, liked && { color: accent }]}>
-                    {liked ? 'Liked' : 'Like'}
-                  </Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    style={styles.likeBtn} onPress={toggleLike} activeOpacity={0.75}
+                    accessibilityRole="button" accessibilityLabel={liked ? 'Unlike this cry' : 'Like this cry'}
+                  >
+                    <Text style={styles.likeIcon}>{liked ? '💧' : '🤍'}</Text>
+                    <Text style={[styles.likeTxt, liked && { color: accent }]}>
+                      {liked ? 'Liked' : 'Like'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.likeBtn} onPress={toggleHug} activeOpacity={0.75}
+                    accessibilityRole="button" accessibilityLabel={hugged ? 'Remove hug' : 'Send a hug'}
+                  >
+                    <Text style={styles.likeIcon}>🫂</Text>
+                    <Text style={[styles.likeTxt, hugged && { color: accent }]}>
+                      {hugged ? 'Hugged' : 'Hug'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
               )}
-              {likeCount > 0 && (
-                <Text style={styles.likeCount}>{likeCount} {likeCount === 1 ? 'like' : 'likes'}</Text>
+              {(likeCount > 0 || hugCount > 0) && (
+                <Text style={styles.likeCount}>
+                  {[
+                    likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}` : null,
+                    hugCount > 0 ? `${hugCount} ${hugCount === 1 ? 'hug' : 'hugs'}` : null,
+                  ].filter(Boolean).join(' · ')}
+                </Text>
               )}
             </View>
 
@@ -249,6 +290,11 @@ const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onS
           <Drops intensity={cry.intensity} size={11} />
         </View>
         {cry.note ? <Text style={styles.noteSnippet} numberOfLines={2}>{cry.note}</Text> : null}
+        {cry.tags && cry.tags.length > 0 && (
+          <Text style={styles.itemTags} numberOfLines={1}>
+            {cry.tags.map(t => `#${t}`).join('  ')}
+          </Text>
+        )}
         <View style={styles.itemMeta}>
           {(cry.photo_uri || cry.audio_uri) ? (
             <>
@@ -257,6 +303,7 @@ const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onS
             </>
           ) : null}
           {cry.like_count > 0 && <Text style={styles.metaTag}>💧 {cry.like_count}</Text>}
+          {cry.hug_count > 0 && <Text style={styles.metaTag}>🫂 {cry.hug_count}</Text>}
           {cry.comment_count > 0 && <Text style={styles.metaTag}>💬 {cry.comment_count}</Text>}
         </View>
       </View>
@@ -351,6 +398,16 @@ export default function FeedScreen() {
     ));
     if (selected?.id === cryId) {
       setSelected(prev => prev ? { ...prev, liked_by_me: liked, like_count: prev.like_count + (liked ? 1 : -1) } : null);
+    }
+  }
+
+  function handleHugToggle(cryId: string, hugged: boolean) {
+    setAllCries(prev => prev.map(c => c.id === cryId
+      ? { ...c, hugged_by_me: hugged, hug_count: c.hug_count + (hugged ? 1 : -1) }
+      : c
+    ));
+    if (selected?.id === cryId) {
+      setSelected(prev => prev ? { ...prev, hugged_by_me: hugged, hug_count: prev.hug_count + (hugged ? 1 : -1) } : null);
     }
   }
 
@@ -493,6 +550,7 @@ export default function FeedScreen() {
           myId={session?.user.id ?? null}
           onClose={() => setSelected(null)}
           onLikeToggle={handleLikeToggle}
+          onHugToggle={handleHugToggle}
         />
       )}
     </SafeAreaView>
@@ -573,8 +631,17 @@ const styles = StyleSheet.create({
   timeAgo: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
   emotionChip: { fontSize: 12, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
+  itemTags: { color: '#4a5568', fontSize: 12 },
   itemMeta: { flexDirection: 'row', gap: 8, marginTop: 2 },
   metaTag: { color: '#4a5568', fontSize: 12 },
+
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  tagPill: {
+    color: '#94a3b8', fontSize: 12, fontWeight: '500',
+    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
+    overflow: 'hidden',
+  },
 
   // Detail sheet
   backdrop: { flex: 1 },

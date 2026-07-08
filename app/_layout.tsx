@@ -135,7 +135,7 @@ function RootNav() {
     if (!data) return;
     clearBadge();
     const { type, cry_id } = data;
-    if ((type === 'like' || type === 'comment' || type === 'reply') && cry_id) {
+    if ((type === 'like' || type === 'comment' || type === 'reply' || type === 'hug') && cry_id) {
       navigateFromNotification(`/cry-detail?id=${cry_id}`);
     } else if (type === 'follow' || type === 'friend_request') {
       navigateFromNotification('/(tabs)/notifications');

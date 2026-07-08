@@ -26,6 +26,15 @@ export interface Cry {
   audioUri?: string;
   country?: string;
   visibility?: 'everyone' | 'followers' | 'close_friends' | 'only_me';
+  tags?: string[];
+}
+
+export function generateCryId(): string {
+  // RFC 4122 v4 UUID — required by Supabase uuid column type
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -86,6 +95,7 @@ const isLocalUri = (uri?: string): uri is string =>
 async function uploadCryMedia(
   cry: Cry,
   userId: string,
+  nameSuffix = '',
 ): Promise<{ photoUri?: string; audioUri?: string }> {
   const out: { photoUri?: string; audioUri?: string } = {};
 
@@ -94,7 +104,7 @@ async function uploadCryMedia(
     // feed load; the app never renders them larger than a card.
     const compressed = await compressForUpload(cry.photoUri);
     const url = await uploadLocalFile(
-      MEDIA_BUCKET, `${userId}/${cry.id}/photo.jpg`, compressed, 'image/jpeg',
+      MEDIA_BUCKET, `${userId}/${cry.id}/photo${nameSuffix}.jpg`, compressed, 'image/jpeg',
     );
     if (url) out.photoUri = url;
   }
@@ -104,7 +114,7 @@ async function uploadCryMedia(
     const ext = cry.audioUri.split('.').pop()?.toLowerCase() ?? 'm4a';
     const contentType = ext === 'm4a' || ext === 'mp4' ? 'audio/mp4' : `audio/${ext}`;
     const url = await uploadLocalFile(
-      MEDIA_BUCKET, `${userId}/${cry.id}/audio.${ext}`, cry.audioUri, contentType,
+      MEDIA_BUCKET, `${userId}/${cry.id}/audio${nameSuffix}.${ext}`, cry.audioUri, contentType,
     );
     if (url) out.audioUri = url;
   }
@@ -126,6 +136,7 @@ function toRow(cry: Cry, userId: string) {
     audio_uri:  cry.audioUri   ?? null,
     country:    cry.country    ?? null,
     visibility: cry.visibility ?? 'everyone',
+    tags:       cry.tags       ?? [],
   };
 }
 
@@ -168,7 +179,7 @@ export async function loadCries(): Promise<Cry[]> {
   if (session) {
     const { data, error } = await supabase
       .from('cries')
-      .select('id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, visibility')
+      .select('id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, visibility, tags')
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
@@ -185,6 +196,7 @@ export async function loadCries(): Promise<Cry[]> {
         audioUri:   r.audio_uri  ?? undefined,
         country:    r.country    ?? undefined,
         visibility: (r.visibility as Cry['visibility']) ?? 'everyone',
+        tags:       r.tags?.length ? r.tags : undefined,
       }));
 
       // Merge in local cries the server doesn't have yet (offline saves waiting
@@ -203,6 +215,72 @@ export async function loadCries(): Promise<Cry[]> {
 
   // Guest or offline → local
   return localLoad();
+}
+
+// ─── Update (edit) ────────────────────────────────────────────────────────────
+
+/**
+ * Persists edits to an existing cry. Coordinates, country and createdAt never
+ * change — only emotion/intensity/note/tags/visibility/media do.
+ * Throws when a logged-in server update fails so the edit screen can tell the
+ * user instead of silently dropping their changes.
+ */
+export async function updateCry(cry: Cry): Promise<void> {
+  // 1. Update the local copy if this cry is still in the guest/pending queue.
+  const all = await localLoad();
+  if (all.some(c => c.id === cry.id)) {
+    await localSave(all.map(c => (c.id === cry.id ? cry : c)));
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) return;          // guest → local only
+  if (!isValidUuid(cry.id)) return;           // legacy device-only entry
+  const userId = sessionData.session.user.id;
+
+  // 2. Upload any newly picked media under a fresh filename — reusing the old
+  //    name would let image caches keep showing the replaced photo.
+  const media = await uploadCryMedia(cry, userId, `_${Date.now()}`);
+  const synced: Cry = { ...cry, ...media };
+
+  const update: Record<string, any> = {
+    emotion:    synced.emotion,
+    intensity:  synced.intensity,
+    note:       synced.note ?? null,
+    visibility: synced.visibility ?? 'everyone',
+    tags:       synced.tags ?? [],
+  };
+  // Only touch media columns when the value is server-usable: undefined means
+  // "removed" (→ null), a remote URL means kept/replaced. A still-local URI
+  // means the upload failed — leave the old server file in place.
+  if (!isLocalUri(synced.photoUri)) update.photo_uri = synced.photoUri ?? null;
+  if (!isLocalUri(synced.audioUri)) update.audio_uri = synced.audioUri ?? null;
+
+  const { error } = await supabase
+    .from('cries')
+    .update(update)
+    .eq('id', cry.id)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.warn('[updateCry] Supabase update failed:', error.message);
+    throw new Error(error.message);
+  }
+
+  // 3. Best-effort: remove replaced/removed media files from Storage. Skipped
+  //    when an upload failed (a local URI would make old files look stale).
+  if (isLocalUri(synced.photoUri) || isLocalUri(synced.audioUri)) return;
+  (async () => {
+    try {
+      const folder = `${userId}/${cry.id}`;
+      const keep = [synced.photoUri, synced.audioUri].filter(Boolean) as string[];
+      const { data: files } = await supabase.storage.from(MEDIA_BUCKET).list(folder);
+      const stale = (files ?? []).filter(f => !keep.some(u => u.endsWith(`${folder}/${f.name}`)));
+      if (stale.length) {
+        await supabase.storage.from(MEDIA_BUCKET)
+          .remove(stale.map(f => `${folder}/${f.name}`));
+      }
+    } catch { /* non-fatal */ }
+  })();
 }
 
 // ─── UUID validation ──────────────────────────────────────────────────────────

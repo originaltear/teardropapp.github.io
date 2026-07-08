@@ -20,10 +20,11 @@ import { warning } from '../lib/haptics';
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
-function DetailModal({ cry, onClose, onDelete }: {
+function DetailModal({ cry, onClose, onDelete, onEdit }: {
   cry: Cry;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onEdit: () => void;
 }) {
   const emotion = emotionById(cry.emotion);
   const [deleting, setDeleting] = useState(false);
@@ -54,11 +55,16 @@ function DetailModal({ cry, onClose, onDelete }: {
       <SafeAreaView edges={['bottom']} style={s.sheet}>
         <View style={s.handle} />
         <View style={s.sheetTop}>
-          <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={s.deleteBtn}>
-            {deleting
-              ? <ActivityIndicator size="small" color="#ef4444" />
-              : <Text style={s.deleteTxt}>🗑 Delete</Text>}
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <TouchableOpacity onPress={onEdit} style={s.editBtn} accessibilityRole="button" accessibilityLabel="Edit this cry">
+              <Text style={s.editTxt}>✏️ Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={s.deleteBtn}>
+              {deleting
+                ? <ActivityIndicator size="small" color="#ef4444" />
+                : <Text style={s.deleteTxt}>🗑 Delete</Text>}
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
             <Text style={s.closeTxt}>✕</Text>
           </TouchableOpacity>
@@ -70,6 +76,11 @@ function DetailModal({ cry, onClose, onDelete }: {
           </View>
           <Text style={s.dateLabel}>{fullDateTime(cry.createdAt)}</Text>
           <Drops intensity={cry.intensity} />
+          {cry.tags && cry.tags.length > 0 && (
+            <View style={s.tagsRow}>
+              {cry.tags.map(t => <Text key={t} style={s.tagPill}>#{t}</Text>)}
+            </View>
+          )}
           {cry.photoUri ? <CryPhoto uri={cry.photoUri} style={s.photo} /> : null}
           {cry.note
             ? <View style={s.noteBox}><Text style={s.noteText}>{cry.note}</Text></View>
@@ -149,6 +160,11 @@ export default function MyCriesScreen() {
           cry={selected}
           onClose={() => setSelected(null)}
           onDelete={handleDelete}
+          onEdit={() => {
+            const id = selected.id;
+            setSelected(null);
+            router.push(`/log-cry?editId=${id}`);
+          }}
         />
       )}
     </SafeAreaView>
@@ -194,6 +210,15 @@ const s = StyleSheet.create({
   closeTxt: { color: '#4a5568', fontSize: 18 },
   deleteBtn: { paddingVertical: 4, paddingHorizontal: 8 },
   deleteTxt: { color: '#ef4444', fontSize: 14, fontWeight: '600' },
+  editBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  editTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tagPill: {
+    color: '#94a3b8', fontSize: 12, fontWeight: '500',
+    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
+    overflow: 'hidden',
+  },
   emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
   dateLabel: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },

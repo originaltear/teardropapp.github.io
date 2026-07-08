@@ -16,7 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import {
-  getCry, likeCry, unlikeCry, getComments, addComment, deleteComment,
+  getCry, likeCry, unlikeCry, hugCry, unhugCry, getComments, addComment, deleteComment,
   likeComment, unlikeComment,
   SocialCry, Comment, reportContent,
 } from '../lib/social';
@@ -40,6 +40,8 @@ export default function CryDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [hugged, setHugged] = useState(false);
+  const [hugCount, setHugCount] = useState(0);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [posting, setPosting] = useState(false);
@@ -59,6 +61,8 @@ export default function CryDetailScreen() {
           setCry(cryData);
           setLiked(cryData.liked_by_me);
           setLikeCount(cryData.like_count);
+          setHugged(cryData.hugged_by_me);
+          setHugCount(cryData.hug_count);
 
           const isOwner = cryData.user_id === session?.user.id;
           if (!isOwner) {
@@ -92,6 +96,20 @@ export default function CryDetailScreen() {
       // Roll the optimistic update back (e.g. offline)
       setLiked(!next);
       setLikeCount(c => c + (next ? -1 : 1));
+    }
+  }
+
+  async function toggleHug() {
+    if (!session || !cry) return;
+    const next = !hugged;
+    setHugged(next);
+    setHugCount(c => c + (next ? 1 : -1));
+    try {
+      if (next) await hugCry(cry.id); else await unhugCry(cry.id);
+    } catch {
+      // Roll the optimistic update back (e.g. offline)
+      setHugged(!next);
+      setHugCount(c => c + (next ? -1 : 1));
     }
   }
 
@@ -212,7 +230,17 @@ export default function CryDetailScreen() {
           <Text style={[s.backTxt, { color: accent }]}>←</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>Cry</Text>
-        {!isOwn && session && cry ? (
+        {isOwn && cry ? (
+          <TouchableOpacity
+            style={s.backBtn}
+            onPress={() => router.push(`/log-cry?editId=${cry.id}`)}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Edit this cry"
+          >
+            <Text style={{ fontSize: 17 }}>✏️</Text>
+          </TouchableOpacity>
+        ) : !isOwn && session && cry ? (
           <TouchableOpacity style={s.backBtn} onPress={handleReport} activeOpacity={0.7}>
             <Text style={s.menuTxt}>⋯</Text>
           </TouchableOpacity>
@@ -252,6 +280,14 @@ export default function CryDetailScreen() {
           <Text style={s.dateText}>{fullDateTime(cry.created_at)}</Text>
           <Drops intensity={cry.intensity} />
 
+          {cry.tags && cry.tags.length > 0 && (
+            <View style={s.tagsRow}>
+              {cry.tags.map(t => (
+                <Text key={t} style={s.tagPill}>#{t}</Text>
+              ))}
+            </View>
+          )}
+
           {cry.photo_uri
             ? <CryPhoto uri={cry.photo_uri} style={s.photo} />
             : null}
@@ -260,18 +296,34 @@ export default function CryDetailScreen() {
             : null}
           {cry.audio_uri ? <AudioPlayer uri={cry.audio_uri} /> : null}
 
-          {/* Like */}
+          {/* Like + Hug */}
           <View style={s.likeRow}>
             {!isOwn && session && (
-              <TouchableOpacity style={s.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
-                <Text style={{ fontSize: 16 }}>{liked ? '💧' : '🤍'}</Text>
-                <Text style={[s.likeTxt, liked && { color: accent }]}>
-                  {liked ? 'Liked' : 'Like'}
-                </Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity style={s.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
+                  <Text style={{ fontSize: 16 }}>{liked ? '💧' : '🤍'}</Text>
+                  <Text style={[s.likeTxt, liked && { color: accent }]}>
+                    {liked ? 'Liked' : 'Like'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={s.likeBtn} onPress={toggleHug} activeOpacity={0.75}
+                  accessibilityRole="button" accessibilityLabel={hugged ? 'Remove hug' : 'Send a hug'}
+                >
+                  <Text style={{ fontSize: 16 }}>🫂</Text>
+                  <Text style={[s.likeTxt, hugged && { color: accent }]}>
+                    {hugged ? 'Hugged' : 'Hug'}
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
-            {likeCount > 0 && (
-              <Text style={s.likeCount}>{likeCount} {likeCount === 1 ? 'like' : 'likes'}</Text>
+            {(likeCount > 0 || hugCount > 0) && (
+              <Text style={s.likeCount}>
+                {[
+                  likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}` : null,
+                  hugCount > 0 ? `${hugCount} ${hugCount === 1 ? 'hug' : 'hugs'}` : null,
+                ].filter(Boolean).join(' · ')}
+              </Text>
             )}
           </View>
 
@@ -429,6 +481,14 @@ const s = StyleSheet.create({
   },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
   dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tagPill: {
+    color: '#94a3b8', fontSize: 12, fontWeight: '500',
+    backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
+    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
+    overflow: 'hidden',
+  },
 
   photo: { width: '100%', height: 200, borderRadius: 14, backgroundColor: '#1f2937' },
   noteBox: {

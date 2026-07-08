@@ -23,7 +23,7 @@ import { tapLight } from '../../lib/haptics';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function notifIcon(type: Notification['type']) {
-  return { like: '💧', comment: '💬', reply: '↩️', friend_request: '👥', follow: '➕' }[type];
+  return { like: '💧', comment: '💬', reply: '↩️', hug: '🫂', friend_request: '👥', follow: '➕' }[type];
 }
 
 function notifText(n: Notification): string {
@@ -32,6 +32,7 @@ function notifText(n: Notification): string {
     case 'like':           return `${name} liked your cry`;
     case 'comment':        return `${name} commented on your cry`;
     case 'reply':          return `${name} replied to your comment`;
+    case 'hug':            return `${name} sent you a hug`;
     case 'friend_request': return `${name} sent you a friend request`;
     case 'follow':         return `${name} started following you`;
   }
@@ -174,7 +175,7 @@ export default function NotificationsScreen() {
   function handlePress(notif: Notification) {
     if (notif.type === 'friend_request') {
       router.push('/friends');
-    } else if ((notif.type === 'like' || notif.type === 'comment' || notif.type === 'reply') && notif.cry_id) {
+    } else if ((notif.type === 'like' || notif.type === 'comment' || notif.type === 'reply' || notif.type === 'hug') && notif.cry_id) {
       router.push(`/cry-detail?id=${notif.cry_id}`);
     }
   }

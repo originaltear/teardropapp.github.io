@@ -2,21 +2,15 @@
   "expo": {
     "name": "Teardrop",
     "slug": "teardrop",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "scheme": "teardrop",
     "orientation": "portrait",
-    "newArchEnabled": false,
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#070a14"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.originaltear.teardrop",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -33,7 +27,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "versionCode": 9,
+      "versionCode": 10,
       "package": "com.originaltear.teardrop",
       "googleServicesFile": "./google-services.json"
     },
@@ -42,6 +36,15 @@
     },
     "plugins": [
       "expo-router",
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#070a14"
+        }
+      ],
       "expo-apple-authentication",
       [
         "expo-location",
@@ -58,9 +61,12 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
-          "microphonePermission": "Teardrop uses your microphone to record voice notes for your cries."
+          "microphonePermission": "Teardrop uses your microphone to record voice notes for your cries.",
+          "recordAudioAndroid": true,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
         }
       ],
       "expo-web-browser",

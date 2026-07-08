@@ -61,7 +61,14 @@ Google login fails for Play Store installs.
 
 ## If you ever re-run `expo prebuild`
 
-That regenerates `android/` and wipes the signing wiring. Re-add the
-`keystore.properties` loading + `signingConfigs.release` block to
-`android/app/build.gradle`, or move signing into an Expo config plugin / EAS
-credentials.
+That regenerates `android/` and wipes two local changes — re-apply both:
+
+1. **Signing wiring** — re-add the `keystore.properties` loading +
+   `signingConfigs.release` block to `android/app/build.gradle` (guard it with
+   `keystorePropertiesFile.exists()` so fresh checkouts fall back to debug),
+   and copy `keystore.properties` back in (backup lives next to the keystore:
+   `Desktop/Teardrop-Release-Keystore/keystore.properties.backup`).
+2. **Gradle memory** — in `android/gradle.properties` bump
+   `org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1536m`.
+   The default 512m Metaspace makes RN 0.85+ (New Architecture) release builds
+   fail with cascading `Metaspace` errors.

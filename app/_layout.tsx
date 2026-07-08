@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { registerPushToken, clearBadge } from '../lib/notifications';
 import { checkForUpdate } from '../lib/update-check';
+import { setAudioModeAsync } from 'expo-audio';
 import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
@@ -66,6 +67,11 @@ function RootNav() {
   useEffect(() => {
     const t = setTimeout(checkForUpdate, 4000);
     return () => clearTimeout(t);
+  }, []);
+
+  // ── Audio session: voice notes must be audible with the iOS silent switch on
+  useEffect(() => {
+    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
   }, []);
 
   // ── Handle notification taps (background / quit state) ───────────────────

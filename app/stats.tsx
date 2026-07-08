@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../lib/storage';
 import { EMOTIONS, emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
@@ -603,7 +603,7 @@ const s = StyleSheet.create({
 
   // Lock overlay
   lockOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(13, 17, 23, 0.88)',
     borderRadius: 16,
     alignItems: 'center',

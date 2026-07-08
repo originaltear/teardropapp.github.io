@@ -5,7 +5,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, Image, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { loadCries, Cry } from '../../lib/storage';
 import { loadProfile, saveProfile, uploadAvatar, Profile, DEFAULT_PROFILE } from '../../lib/profile';
@@ -83,7 +83,7 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
 
   return (
     // No Modal wrapper — rendered inline with parent SafeAreaView
-    <View style={StyleSheet.absoluteFillObject}>
+    <View style={StyleSheet.absoluteFill}>
       <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView edges={['bottom']} style={ls.sheet}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
 });
 
 const ls = StyleSheet.create({
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#111827', maxHeight: '90%',

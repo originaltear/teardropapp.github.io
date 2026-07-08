@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
 
   // Modal backdrop
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
 

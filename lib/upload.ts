@@ -12,7 +12,7 @@ import { supabase } from './supabase';
 
 /** Decode a base64 string into raw bytes without any extra dependency. */
 function base64ToBytes(base64: string): Uint8Array {
-  const binary = global.atob(base64);
+  const binary = globalThis.atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;

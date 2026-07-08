@@ -2,38 +2,30 @@
  * AudioPlayer — play/stop a voice-note URI. Shared by the map, feed and
  * my-cries detail views (previously copy-pasted in all three).
  */
-import { useEffect, useRef, useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import { Audio } from 'expo-av';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useTheme } from '../lib/themes';
 
 export function AudioPlayer({ uri }: { uri: string }) {
   const { theme: { accent } } = useTheme();
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [playing, setPlaying] = useState(false);
-
-  // Stop playback when the player unmounts (sheet closed mid-listen) —
-  // unloading also releases the native audio session.
-  useEffect(() => () => { soundRef.current?.unloadAsync(); }, []);
+  // useAudioPlayer manages the native player's lifecycle — it is released
+  // automatically when this component unmounts (sheet closed mid-listen).
+  const player = useAudioPlayer({ uri });
+  const status = useAudioPlayerStatus(player);
+  const playing = status.playing;
 
   async function toggle() {
-    if (playing) {
-      await soundRef.current?.stopAsync();
-      setPlaying(false);
-      return;
-    }
     try {
-      await soundRef.current?.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri });
-      soundRef.current = sound;
-      setPlaying(true);
-      sound.setOnPlaybackStatusUpdate(s => {
-        if (s.isLoaded && s.didJustFinish) {
-          setPlaying(false);
-          sound.unloadAsync();
-        }
-      });
-      await sound.playAsync();
+      if (playing) {
+        player.pause();
+        await player.seekTo(0);
+        return;
+      }
+      // Restart from the top when the previous playback ran to the end
+      if (status.didJustFinish || (status.duration > 0 && status.currentTime >= status.duration)) {
+        await player.seekTo(0);
+      }
+      player.play();
     } catch {
       Alert.alert('Error', 'Could not play audio.');
     }

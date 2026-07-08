@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, AppState } from 'react-native';
+import { View, Text, AppState, type ColorValue } from 'react-native';
 import { useAuth } from '../../lib/auth';
 import { getUnreadCount } from '../../lib/social';
 import { useTheme } from '../../lib/themes';
@@ -9,11 +9,11 @@ import { selection } from '../../lib/haptics';
 const TAB_BAR_BG = '#111827';
 const INACTIVE = '#4a5568';
 
-function TabIcon({ emoji, color }: { emoji: string; color: string }) {
+function TabIcon({ emoji, color }: { emoji: string; color: ColorValue }) {
   return <Text style={{ fontSize: 20, color }}>{emoji}</Text>;
 }
 
-function NotifIcon({ color }: { color: string }) {
+function NotifIcon({ color }: { color: ColorValue }) {
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
   const [count, setCount] = useState(0);

@@ -8,7 +8,11 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
+import {
+  useAudioPlayer, useAudioPlayerStatus,
+  useAudioRecorder, useAudioRecorderState, RecordingPresets,
+  requestRecordingPermissionsAsync, setAudioModeAsync,
+} from 'expo-audio';
 import { EMOTIONS } from '../lib/emotions';
 import { saveCry, updateCry, loadCries, generateCryId, Cry } from '../lib/storage';
 import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
@@ -124,23 +128,27 @@ export default function LogCryScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   // ── Audio state ──
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  // expo-audio hooks manage the native recorder/player lifecycle — both are
+  // released automatically when this screen unmounts (mid-recording included).
   const [audioUri, setAudioUri] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [recordSecs, setRecordSecs] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Mirrors the `recording` state so the unmount cleanup can reach it — without
-  // this, dismissing the screen mid-recording left the mic session running.
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder);
+  const isRecording = recorderState.isRecording;
+  // Preview player — the source swaps whenever a note is recorded, replaced,
+  // or loaded from an existing cry in edit mode.
+  const player = useAudioPlayer(null);
+  const playerStatus = useAudioPlayerStatus(player);
+  const isPlaying = playerStatus.playing;
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      soundRef.current?.unloadAsync();
-      recordingRef.current?.stopAndUnloadAsync().catch(() => {});
-    };
+    if (audioUri) player.replace({ uri: audioUri });
+    // `player` is a stable reference across renders (managed by the hook)
+  }, [audioUri]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Leaving the screen must never keep the mic session claimed
+  useEffect(() => () => {
+    setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
   }, []);
 
   // ── Photo helpers ──
@@ -187,75 +195,57 @@ export default function LogCryScreen() {
 
   async function startRecording() {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
+      const { granted } = await requestRecordingPermissionsAsync();
+      if (!granted) {
         Alert.alert('Permission needed', 'Microphone access is required to record audio.');
         return;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording: rec } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
       tapMedium();
-      setRecording(rec);
-      recordingRef.current = rec;
-      setIsRecording(true);
-      setRecordSecs(0);
-      timerRef.current = setInterval(() => setRecordSecs(s => s + 1), 1000);
     } catch {
       Alert.alert('Error', 'Could not start recording. Please try again.');
     }
   }
 
   async function stopRecording() {
-    if (!recording) return;
     tapLight();
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    setIsRecording(false);
     try {
-      await recording.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      const uri = recording.getURI();
-      setAudioUri(uri ?? null);
+      // Capture the duration before stop resets the recorder state
+      const secs = Math.round((recorderState.durationMillis ?? 0) / 1000);
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      setRecordSecs(secs);
+      setAudioUri(recorder.uri ?? null);
     } catch {
       Alert.alert('Error', 'Could not stop recording.');
     }
-    setRecording(null);
-    recordingRef.current = null;
   }
 
   async function playAudio() {
     if (!audioUri) return;
-    if (soundRef.current) { await soundRef.current.unloadAsync(); soundRef.current = null; }
     try {
-      const { sound } = await Audio.Sound.createAsync({ uri: audioUri });
-      soundRef.current = sound;
-      setIsPlaying(true);
-      sound.setOnPlaybackStatusUpdate(s => {
-        if (s.isLoaded && s.didJustFinish) {
-          setIsPlaying(false);
-          sound.unloadAsync();
-        }
-      });
-      await sound.playAsync();
+      // Restart from the top when the previous playback ran to the end
+      if (playerStatus.didJustFinish
+        || (playerStatus.duration > 0 && playerStatus.currentTime >= playerStatus.duration)) {
+        await player.seekTo(0);
+      }
+      player.play();
     } catch {
       Alert.alert('Error', 'Could not play audio.');
     }
   }
 
   async function stopAudio() {
-    if (soundRef.current) {
-      await soundRef.current.stopAsync();
-      setIsPlaying(false);
-    }
+    player.pause();
+    await player.seekTo(0);
   }
 
   function deleteAudio() {
-    soundRef.current?.unloadAsync();
-    soundRef.current = null;
+    player.pause();
     setAudioUri(null);
     setRecordSecs(0);
-    setIsPlaying(false);
   }
 
   function fmt(secs: number) {
@@ -554,7 +544,9 @@ export default function LogCryScreen() {
           {isRecording && (
             <View style={styles.recordingActive}>
               <View style={styles.recordingDot} />
-              <Text style={styles.recordingTime}>{fmt(recordSecs)}</Text>
+              <Text style={styles.recordingTime}>
+                {fmt(Math.floor((recorderState.durationMillis ?? 0) / 1000))}
+              </Text>
               <TouchableOpacity style={styles.stopBtn} onPress={stopRecording}>
                 <Text style={styles.stopTxt}>⏹ Stop</Text>
               </TouchableOpacity>

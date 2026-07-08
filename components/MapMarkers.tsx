@@ -1,18 +1,20 @@
 /**
  * Map markers.
  *
- * Rendered as react-native-svg vectors inside a transparent marker view. The
- * app runs on the OLD React Native architecture (newArchEnabled=false) because
- * react-native-maps custom markers render broken (clipped squares / default
- * Google pins) under the New Architecture on Expo SDK 54.
+ * Rendered as react-native-svg vectors inside a transparent marker view.
+ *
+ * ⚠️ New Architecture note (SDK 56+): custom view markers have a history of
+ * rendering broken on Fabric (react-native-maps#5877 — invisible/clipped
+ * children). Two mitigations are applied here and MUST be device-tested after
+ * any react-native-maps upgrade:
+ *  - `collapsable={false}` on the child wrapper so Fabric's view flattening
+ *    can never optimise the marker content away.
+ *  - tracksViewChanges flips to false after first paint so each marker is
+ *    rasterised once and then left static (also avoids the Fabric flicker).
  *
  * Design:
  *  - Individual pin: dark teardrop body with an emotion-coloured outline + emoji.
  *  - Cluster: dark circle with the count and a Tear Blue (#6fe0e6) outline.
- *
- * Shapes are padded well inside the view bounds so nothing is clipped, and
- * tracksViewChanges flips to false after first paint so each marker is
- * rasterised once and then left static.
  */
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
@@ -62,7 +64,7 @@ export function EmotionPin({
       tracksViewChanges={tracks}
       zIndex={5}
     >
-      <View style={{ width: PIN_W, height: PIN_H }}>
+      <View style={{ width: PIN_W, height: PIN_H }} collapsable={false}>
         <Svg width={PIN_W} height={PIN_H} viewBox="0 0 42 56">
           {/* ground shadow */}
           <Ellipse cx={21} cy={51} rx={5.5} ry={1.8} fill="rgba(0,0,0,0.3)" />
@@ -110,7 +112,7 @@ export function ClusterPin({
       tracksViewChanges={tracks}
       zIndex={6}
     >
-      <View style={{ width: box, height: box }}>
+      <View style={{ width: box, height: box }} collapsable={false}>
         <Svg width={box} height={box}>
           {/* dark circle + Tear Blue outline */}
           <Circle cx={c} cy={c} r={r} fill={DARK} stroke={TEAR_BLUE} strokeWidth={2.5} />
@@ -142,7 +144,7 @@ export function LocationDot({
       tracksViewChanges={tracks}
       zIndex={1}            // sits under cry pins / clusters
     >
-      <View style={{ width: S, height: S }}>
+      <View style={{ width: S, height: S }} collapsable={false}>
         <Svg width={S} height={S}>
           <Circle cx={c} cy={c} r={9} fill={DARK} />
           <Circle cx={c} cy={c} r={7.5} fill="#ffffff" />

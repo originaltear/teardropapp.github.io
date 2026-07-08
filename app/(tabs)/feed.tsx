@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { tapLight, selection } from '../../lib/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { TearsBadge } from '../../components/TearsBadge';

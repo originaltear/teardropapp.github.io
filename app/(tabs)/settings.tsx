@@ -783,7 +783,9 @@ export default function SettingsScreen() {
       {/* ── Report a problem modal ── */}
       <Modal visible={showReport} transparent animationType="slide" onRequestClose={() => setShowReport(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowReport(false)} />
-        <KeyboardAvoidingView behavior="padding" automaticOffset>
+        {/* flex:1 so the absolutely-bottom-anchored sheet has a full-height
+            parent; box-none so taps in the empty area still hit the backdrop */}
+        <KeyboardAvoidingView behavior="padding" automaticOffset style={{ flex: 1 }} pointerEvents="box-none">
         <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
@@ -825,7 +827,7 @@ export default function SettingsScreen() {
       {/* Change username */}
       <Modal visible={showUsernameModal} transparent animationType="slide" onRequestClose={() => setShowUsernameModal(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
-        <KeyboardAvoidingView behavior="padding" automaticOffset>
+        <KeyboardAvoidingView behavior="padding" automaticOffset style={{ flex: 1 }} pointerEvents="box-none">
         <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />

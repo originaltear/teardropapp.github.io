@@ -2,7 +2,7 @@
  * Full-screen list of the current user's cries.
  * Navigated to from the Profile tab when tapping "Cries".
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   Modal, ScrollView, Alert, ActivityIndicator,
@@ -17,6 +17,11 @@ import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { timeAgo, fullDateTime } from '../lib/format';
 import { warning } from '../lib/haptics';
+
+/** A quick-logged cry: emotion + location only, no details added yet. */
+function isQuickLog(c: Cry): boolean {
+  return !c.note && !c.photoUri && !c.audioUri && !(c.tags && c.tags.length > 0);
+}
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
@@ -94,12 +99,24 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
+type CryFilter = 'all' | 'quick';
+
 export default function MyCriesScreen() {
   const router = useRouter();
   const [cries, setCries] = useState<Cry[]>([]);
   const [selected, setSelected] = useState<Cry | null>(null);
+  const [filter, setFilter] = useState<CryFilter>('all');
+  const [oldestFirst, setOldestFirst] = useState(false);
 
   useFocusEffect(useCallback(() => { loadCries().then(setCries); }, []));
+
+  const quickCount = useMemo(() => cries.filter(isQuickLog).length, [cries]);
+
+  const displayCries = useMemo(() => {
+    const list = filter === 'quick' ? cries.filter(isQuickLog) : cries;
+    // loadCries returns newest first — flip a copy when sorting oldest first
+    return oldestFirst ? [...list].reverse() : list;
+  }, [cries, filter, oldestFirst]);
 
   function handleDelete(id: string) {
     setCries(prev => prev.filter(c => c.id !== id));
@@ -113,11 +130,38 @@ export default function MyCriesScreen() {
           <Text style={s.backTxt}>←</Text>
         </TouchableOpacity>
         <Text style={s.title}>My Cries</Text>
-        <Text style={s.count}>{cries.length}</Text>
+        <Text style={s.count}>{displayCries.length}</Text>
+      </View>
+
+      {/* Filter + sort — quick logs are bare cries waiting for details */}
+      <View style={s.filterRow}>
+        <TouchableOpacity
+          style={[s.filterChip, filter === 'all' && s.filterChipActive]}
+          onPress={() => setFilter('all')}
+        >
+          <Text style={[s.filterChipTxt, filter === 'all' && s.filterChipTxtActive]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[s.filterChip, filter === 'quick' && s.filterChipActive]}
+          onPress={() => setFilter('quick')}
+        >
+          <Text style={[s.filterChipTxt, filter === 'quick' && s.filterChipTxtActive]}>
+            ⚡ Quick logs{quickCount > 0 ? ` (${quickCount})` : ''}
+          </Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }} />
+        <TouchableOpacity
+          style={s.sortBtn}
+          onPress={() => setOldestFirst(v => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={oldestFirst ? 'Sorted oldest first' : 'Sorted newest first'}
+        >
+          <Text style={s.sortTxt}>{oldestFirst ? '↑ Oldest' : '↓ Newest'}</Text>
+        </TouchableOpacity>
       </View>
 
       <FlatList
-        data={cries}
+        data={displayCries}
         keyExtractor={c => c.id}
         renderItem={({ item: cry }) => {
           const emotion = emotionById(cry.emotion);
@@ -140,6 +184,9 @@ export default function MyCriesScreen() {
                     {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
                   </View>
                 ) : null}
+                {isQuickLog(cry) && (
+                  <Text style={s.quickBadge}>⚡ quick log · tap to add details</Text>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -148,9 +195,13 @@ export default function MyCriesScreen() {
         contentContainerStyle={cries.length === 0 ? s.emptyWrap : undefined}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={{ fontSize: 48, opacity: 0.3 }}>💧</Text>
-            <Text style={s.emptyTxt}>No cries yet</Text>
-            <Text style={s.emptySub}>Go to the Map tab and tap + to log your first cry.</Text>
+            <Text style={{ fontSize: 48, opacity: 0.3 }}>{filter === 'quick' ? '⚡' : '💧'}</Text>
+            <Text style={s.emptyTxt}>{filter === 'quick' ? 'No quick logs' : 'No cries yet'}</Text>
+            <Text style={s.emptySub}>
+              {filter === 'quick'
+                ? 'Every cry has details — nice! Quick logs from the map land here.'
+                : 'Go to the Map tab and tap + to log your first cry.'}
+            </Text>
           </View>
         }
       />
@@ -182,6 +233,23 @@ const s = StyleSheet.create({
   backTxt: { color: '#6fe0e6', fontSize: 22 },
   title: { flex: 1, color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
   count: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
+
+  filterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: '#1f2937',
+  },
+  filterChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+    borderWidth: 1, borderColor: '#1f2937', backgroundColor: '#111827',
+  },
+  filterChipActive: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e610' },
+  filterChipTxt: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
+  filterChipTxtActive: { color: '#6fe0e6' },
+  sortBtn: { paddingHorizontal: 10, paddingVertical: 6 },
+  sortTxt: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+
+  quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
 
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   dot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

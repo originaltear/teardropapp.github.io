@@ -122,6 +122,26 @@ async function uploadCryMedia(
   return out;
 }
 
+const CRY_COLUMNS =
+  'id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, visibility, tags';
+
+function fromRow(r: any): Cry {
+  return {
+    id:         r.id,
+    createdAt:  r.created_at,
+    latitude:   r.latitude,
+    longitude:  r.longitude,
+    emotion:    r.emotion,
+    intensity:  r.intensity,
+    note:       r.note       ?? undefined,
+    photoUri:   r.photo_uri  ?? undefined,
+    audioUri:   r.audio_uri  ?? undefined,
+    country:    r.country    ?? undefined,
+    visibility: (r.visibility as Cry['visibility']) ?? 'everyone',
+    tags:       r.tags?.length ? r.tags : undefined,
+  };
+}
+
 function toRow(cry: Cry, userId: string) {
   return {
     id:         cry.id,
@@ -179,25 +199,12 @@ export async function loadCries(): Promise<Cry[]> {
   if (session) {
     const { data, error } = await supabase
       .from('cries')
-      .select('id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, visibility, tags')
+      .select(CRY_COLUMNS)
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const server: Cry[] = data.map(r => ({
-        id:         r.id,
-        createdAt:  r.created_at,
-        latitude:   r.latitude,
-        longitude:  r.longitude,
-        emotion:    r.emotion,
-        intensity:  r.intensity,
-        note:       r.note       ?? undefined,
-        photoUri:   r.photo_uri  ?? undefined,
-        audioUri:   r.audio_uri  ?? undefined,
-        country:    r.country    ?? undefined,
-        visibility: (r.visibility as Cry['visibility']) ?? 'everyone',
-        tags:       r.tags?.length ? r.tags : undefined,
-      }));
+      const server: Cry[] = data.map(fromRow);
 
       // Merge in local cries the server doesn't have yet (offline saves waiting
       // for sync + legacy device-only entries) so nothing ever disappears.
@@ -215,6 +222,30 @@ export async function loadCries(): Promise<Cry[]> {
 
   // Guest or offline → local
   return localLoad();
+}
+
+// ─── Single-cry fetch (edit screen) ──────────────────────────────────────────
+
+/**
+ * Loads one of the user's own cries by id without downloading the whole
+ * history. Pending/guest copies in local storage win — they may be newer
+ * than the server row (offline edits waiting to sync).
+ */
+export async function getOwnCry(id: string): Promise<Cry | null> {
+  const local = (await localLoad()).find(c => c.id === id);
+  if (local) return local;
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session || !isValidUuid(id)) return null;
+
+  const { data, error } = await supabase
+    .from('cries')
+    .select(CRY_COLUMNS)
+    .eq('id', id)
+    .eq('user_id', sessionData.session.user.id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return fromRow(data);
 }
 
 // ─── Update (edit) ────────────────────────────────────────────────────────────

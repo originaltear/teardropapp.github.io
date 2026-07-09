@@ -1,5 +1,4 @@
-// Platform-specific: iOS + Android (keyboard avoidance behavior)
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator,
@@ -15,10 +14,10 @@ import {
   requestRecordingPermissionsAsync, setAudioModeAsync,
 } from 'expo-audio';
 import { EMOTIONS } from '../lib/emotions';
-import { saveCry, updateCry, loadCries, generateCryId, Cry } from '../lib/storage';
+import { saveCry, updateCry, loadCries, getOwnCry, generateCryId, Cry } from '../lib/storage';
 import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
-import * as Location from 'expo-location';
-import { getProfileSettings } from '../lib/social';
+import { reverseCountry } from '../lib/geo';
+import { getDefaultCryVisibility } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAchievementToast } from '../components/AchievementToastProvider';
 import { useAuth } from '../lib/auth';
@@ -66,26 +65,15 @@ export default function LogCryScreen() {
   // must keep the cry's own visibility)
   useEffect(() => {
     if (isEdit) return;
-    getProfileSettings().then(s => {
-      if (s?.profile_visibility) {
-        // Map profile visibility → cry visibility (close_friends not available at profile level)
-        const map: Record<string, Visibility> = {
-          everyone: 'everyone',
-          followers: 'followers',
-          only_me: 'only_me',
-        };
-        setVisibility(map[s.profile_visibility] ?? 'everyone');
-      }
-    });
+    getDefaultCryVisibility().then(setVisibility);
   }, [isEdit]);
 
   // Edit mode: prefill every field from the existing cry
   useEffect(() => {
     if (!editId) return;
     let cancelled = false;
-    loadCries().then(cries => {
+    getOwnCry(editId).then(found => {
       if (cancelled) return;
-      const found = cries.find(c => c.id === editId);
       if (!found) {
         Alert.alert('Not found', 'This cry could not be loaded.');
         router.back();
@@ -299,19 +287,7 @@ export default function LogCryScreen() {
     if (!lat || !lng) return;
     setSaving(true);
 
-    // Reverse geocode to get country (best-effort, bounded — a hanging
-    // geocoder must never leave the Save button spinning)
-    let country: string | undefined;
-    try {
-      const geo = await Promise.race([
-        Location.reverseGeocodeAsync({
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lng),
-        }),
-        new Promise<null>(res => setTimeout(() => res(null), 3000)),
-      ]);
-      country = geo?.[0]?.country ?? undefined;
-    } catch { /* ignore geocoding failure */ }
+    const country = await reverseCountry(parseFloat(lat), parseFloat(lng));
 
     try {
       await saveCry({

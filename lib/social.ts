@@ -228,31 +228,31 @@ async function enrichCries(
 ): Promise<SocialCry[]> {
   if (cries.length === 0) return [];
   const cryIds = cries.map(c => c.id);
-  const [likesRes, commentsRes, hugsRes] = await Promise.all([
-    supabase.from('likes').select('cry_id, user_id').in('cry_id', cryIds),
-    supabase.from('comments').select('cry_id').in('cry_id', cryIds),
-    supabase.from('cry_hugs').select('cry_id, user_id').in('cry_id', cryIds),
+  // Counts come from the cry_engagement view (computed in the DB — the old
+  // raw-row counting silently capped at PostgREST's 1000-row limit). The
+  // caller's own likes/hugs are fetched separately and stay bounded at one
+  // row per cry.
+  const [engagementRes, myLikesRes, myHugsRes] = await Promise.all([
+    supabase.from('cry_engagement')
+      .select('cry_id, like_count, hug_count, comment_count')
+      .in('cry_id', cryIds),
+    userId
+      ? supabase.from('likes').select('cry_id').in('cry_id', cryIds).eq('user_id', userId)
+      : Promise.resolve({ data: [] as { cry_id: string }[] }),
+    userId
+      ? supabase.from('cry_hugs').select('cry_id').in('cry_id', cryIds).eq('user_id', userId)
+      : Promise.resolve({ data: [] as { cry_id: string }[] }),
   ]);
-  const likeMap: Record<string, number> = {};
-  const commentMap: Record<string, number> = {};
-  const hugMap: Record<string, number> = {};
-  const myLikedSet = new Set<string>();
-  const myHuggedSet = new Set<string>();
-  for (const l of likesRes.data ?? []) {
-    likeMap[l.cry_id] = (likeMap[l.cry_id] ?? 0) + 1;
-    if (l.user_id === userId) myLikedSet.add(l.cry_id);
-  }
-  for (const c of commentsRes.data ?? []) commentMap[c.cry_id] = (commentMap[c.cry_id] ?? 0) + 1;
-  for (const h of hugsRes.data ?? []) {
-    hugMap[h.cry_id] = (hugMap[h.cry_id] ?? 0) + 1;
-    if (h.user_id === userId) myHuggedSet.add(h.cry_id);
-  }
+  const engagement: Record<string, { like_count: number; hug_count: number; comment_count: number }> = {};
+  for (const e of engagementRes.data ?? []) engagement[e.cry_id] = e;
+  const myLikedSet = new Set((myLikesRes.data ?? []).map(l => l.cry_id));
+  const myHuggedSet = new Set((myHugsRes.data ?? []).map(h => h.cry_id));
   return cries.map(c => ({
     ...c,
-    like_count: likeMap[c.id] ?? 0,
-    comment_count: commentMap[c.id] ?? 0,
+    like_count: engagement[c.id]?.like_count ?? 0,
+    comment_count: engagement[c.id]?.comment_count ?? 0,
     liked_by_me: myLikedSet.has(c.id),
-    hug_count: hugMap[c.id] ?? 0,
+    hug_count: engagement[c.id]?.hug_count ?? 0,
     hugged_by_me: myHuggedSet.has(c.id),
     profile: c.profile || { username: 'unknown', display_name: 'Unknown', avatar_uri: null },
   })) as SocialCry[];
@@ -694,6 +694,18 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
       ...(data.notification_preferences ?? {}),
     },
   };
+}
+
+/**
+ * The user's default visibility for NEW cries, derived from their profile
+ * setting. close_friends doesn't exist at profile level, so the mapping is
+ * everyone/followers/only_me with 'everyone' as fallback. Shared by the full
+ * log screen and the quick-log sheet.
+ */
+export async function getDefaultCryVisibility(): Promise<'everyone' | 'followers' | 'only_me'> {
+  const s = await getProfileSettings();
+  const v = s?.profile_visibility;
+  return v === 'followers' || v === 'only_me' ? v : 'everyone';
 }
 
 export async function updateProfileSettings(settings: Partial<ProfileSettings>): Promise<void> {

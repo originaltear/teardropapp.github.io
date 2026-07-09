@@ -1,4 +1,3 @@
-// Platform-specific: iOS + Android (keyboard avoidance behavior)
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,

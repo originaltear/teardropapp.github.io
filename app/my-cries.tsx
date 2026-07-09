@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { loadCries, deleteCry, Cry } from '../lib/storage';
+import { isQuickLog } from '../lib/quick-log';
+import { TagPills } from '../components/TagPills';
 import { emotionById } from '../lib/emotions';
 import { useFocusEffect } from 'expo-router';
 import { Drops } from '../components/Drops';
@@ -17,11 +19,6 @@ import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { timeAgo, fullDateTime } from '../lib/format';
 import { warning } from '../lib/haptics';
-
-/** A quick-logged cry: emotion + location only, no details added yet. */
-function isQuickLog(c: Cry): boolean {
-  return !c.note && !c.photoUri && !c.audioUri && !(c.tags && c.tags.length > 0);
-}
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
@@ -81,11 +78,7 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
           </View>
           <Text style={s.dateLabel}>{fullDateTime(cry.createdAt)}</Text>
           <Drops intensity={cry.intensity} />
-          {cry.tags && cry.tags.length > 0 && (
-            <View style={s.tagsRow}>
-              {cry.tags.map(t => <Text key={t} style={s.tagPill}>#{t}</Text>)}
-            </View>
-          )}
+          <TagPills tags={cry.tags} />
           {cry.photoUri ? <CryPhoto uri={cry.photoUri} style={s.photo} /> : null}
           {cry.note
             ? <View style={s.noteBox}><Text style={s.noteText}>{cry.note}</Text></View>
@@ -280,13 +273,6 @@ const s = StyleSheet.create({
   deleteTxt: { color: '#ef4444', fontSize: 14, fontWeight: '600' },
   editBtn: { paddingVertical: 4, paddingHorizontal: 8 },
   editTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tagPill: {
-    color: '#94a3b8', fontSize: 12, fontWeight: '500',
-    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    overflow: 'hidden',
-  },
   emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
   dateLabel: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },

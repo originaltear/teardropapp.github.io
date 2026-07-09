@@ -1,4 +1,3 @@
-// Platform-specific: iOS + Android (keyboard avoidance behavior)
 /**
  * Full cry detail screen.
  * Opened from notifications (like/comment) or anywhere a cry_id is available.
@@ -23,6 +22,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
 import { Avatar } from '../components/Avatar';
+import { TagPills } from '../components/TagPills';
 import { Drops } from '../components/Drops';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
@@ -280,13 +280,7 @@ export default function CryDetailScreen() {
           <Text style={s.dateText}>{fullDateTime(cry.created_at)}</Text>
           <Drops intensity={cry.intensity} />
 
-          {cry.tags && cry.tags.length > 0 && (
-            <View style={s.tagsRow}>
-              {cry.tags.map(t => (
-                <Text key={t} style={s.tagPill}>#{t}</Text>
-              ))}
-            </View>
-          )}
+          <TagPills tags={cry.tags} />
 
           {cry.photo_uri
             ? <CryPhoto uri={cry.photo_uri} style={s.photo} />
@@ -481,14 +475,6 @@ const s = StyleSheet.create({
   },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
   dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
-
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tagPill: {
-    color: '#94a3b8', fontSize: 12, fontWeight: '500',
-    backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    overflow: 'hidden',
-  },
 
   photo: { width: '100%', height: 200, borderRadius: 14, backgroundColor: '#1f2937' },
   noteBox: {

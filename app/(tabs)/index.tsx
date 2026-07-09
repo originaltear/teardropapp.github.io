@@ -18,6 +18,7 @@ import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers
 import { useSplashGate } from '../../components/AppSplash';
 import { PressableScale } from '../../components/PressableScale';
 import { QuickLogSheet } from '../../components/QuickLogSheet';
+import { TagPills } from '../../components/TagPills';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
 import { AudioPlayer } from '../../components/AudioPlayer';
@@ -128,11 +129,7 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
       <Text style={styles.dateText}>{fullDateTime(cry.date)}</Text>
       <Drops intensity={cry.intensity} />
 
-      {cry.tags && cry.tags.length > 0 && (
-        <View style={styles.tagsRow}>
-          {cry.tags.map(t => <Text key={t} style={styles.tagPill}>#{t}</Text>)}
-        </View>
-      )}
+      <TagPills tags={cry.tags} />
 
       {cry.photoUri ? (
         <CryPhoto uri={cry.photoUri} style={styles.photo} />
@@ -671,13 +668,6 @@ const styles = StyleSheet.create({
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tagPill: {
-    color: '#94a3b8', fontSize: 12, fontWeight: '500',
-    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    overflow: 'hidden',
-  },
   // First-cry hint
   hintContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
   firstCryHint: {

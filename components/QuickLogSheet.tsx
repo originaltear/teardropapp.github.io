@@ -11,10 +11,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as Location from 'expo-location';
 import { EMOTIONS } from '../lib/emotions';
 import { saveCry, loadCries, generateCryId, Cry } from '../lib/storage';
-import { getProfileSettings } from '../lib/social';
+import { getDefaultCryVisibility } from '../lib/social';
+import { reverseCountry } from '../lib/geo';
 import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAchievementToast } from './AchievementToastProvider';
 import { useAuth } from '../lib/auth';
@@ -39,16 +39,7 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
   const visibilityRef = useRef<Cry['visibility']>('everyone');
   useEffect(() => {
     if (!visible) return;
-    getProfileSettings().then(s => {
-      if (s?.profile_visibility) {
-        const map: Record<string, Cry['visibility']> = {
-          everyone: 'everyone',
-          followers: 'followers',
-          only_me: 'only_me',
-        };
-        visibilityRef.current = map[s.profile_visibility] ?? 'everyone';
-      }
-    });
+    getDefaultCryVisibility().then(v => { visibilityRef.current = v; });
   }, [visible]);
 
   async function quickLog(emotionId: string) {
@@ -56,19 +47,7 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
     selection();
     setSavingId(emotionId);
 
-    // Reverse geocode to get country (best-effort, bounded like the full log
-    // screen — a hanging geocoder must never leave the sheet spinning)
-    let country: string | undefined;
-    try {
-      const geo = await Promise.race([
-        Location.reverseGeocodeAsync({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-        }),
-        new Promise<null>(res => setTimeout(() => res(null), 3000)),
-      ]);
-      country = geo?.[0]?.country ?? undefined;
-    } catch { /* ignore geocoding failure */ }
+    const country = await reverseCountry(coords.latitude, coords.longitude);
 
     const id = generateCryId();
     try {

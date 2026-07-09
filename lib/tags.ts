@@ -20,12 +20,13 @@ export const PRESET_TAGS = [
  * Returns null when nothing usable remains.
  */
 export function normalizeTag(raw: string): string | null {
-  const t = raw
+  const cleaned = raw
     .toLowerCase()
     .replace(/^#/, '')
     .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, MAX_TAG_LEN)
     .trim();
+  // Truncate by characters, not UTF-16 units — String.slice can cut an emoji
+  // in half and leave a corrupted lone surrogate in the saved tag.
+  const t = Array.from(cleaned).slice(0, MAX_TAG_LEN).join('').trim();
   return t.length > 0 ? t : null;
 }

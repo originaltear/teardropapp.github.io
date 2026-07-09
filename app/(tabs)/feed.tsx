@@ -1,4 +1,3 @@
-// Platform-specific: iOS + Android (keyboard avoidance behavior)
 import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
@@ -29,11 +28,8 @@ import {
   getComments, addComment, deleteComment, SocialCry, Comment,
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
-
-/** A quick-logged cry: emotion + location only, no details added yet. */
-function isQuickLogCry(c: SocialCry): boolean {
-  return !c.note && !c.photo_uri && !c.audio_uri && !(c.tags && c.tags.length > 0);
-}
+import { isQuickLogSocial } from '../../lib/quick-log';
+import { TagPills } from '../../components/TagPills';
 
 // ─── Detail modal with likes + comments ───────────────────────────────────────
 
@@ -176,11 +172,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle, onEdit }: 
             </View>
             <Text style={styles.sheetDate}>{fullDateTime(cry.created_at)}</Text>
             <Drops intensity={cry.intensity} size={18} />
-            {cry.tags && cry.tags.length > 0 && (
-              <View style={styles.tagsRow}>
-                {cry.tags.map(t => <Text key={t} style={styles.tagPill}>#{t}</Text>)}
-              </View>
-            )}
+            <TagPills tags={cry.tags} style={{ marginTop: 8 }} />
             {cry.photo_uri ? <CryPhoto uri={cry.photo_uri} style={styles.photo} /> : null}
             {cry.note ? <View style={styles.noteBox}><Text style={styles.noteText}>{cry.note}</Text></View> : null}
             {cry.audio_uri ? <AudioPlayer uri={cry.audio_uri} /> : null}
@@ -412,7 +404,7 @@ export default function FeedScreen() {
   const displayCries = tab === 'mine'
     ? allCries
         .filter(c => !mineEmotion || c.emotion === mineEmotion)
-        .filter(c => !mineQuickOnly || isQuickLogCry(c))
+        .filter(c => !mineQuickOnly || isQuickLogSocial(c))
     : allCries;
 
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
@@ -543,7 +535,7 @@ export default function FeedScreen() {
             <FeedItem
               cry={item}
               onSelect={handleSelect}
-              quickBadge={tab === 'mine' && isQuickLogCry(item)}
+              quickBadge={tab === 'mine' && isQuickLogSocial(item)}
             />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -695,13 +687,6 @@ const styles = StyleSheet.create({
   itemMeta: { flexDirection: 'row', gap: 8, marginTop: 2 },
   metaTag: { color: '#4a5568', fontSize: 12 },
 
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
-  tagPill: {
-    color: '#94a3b8', fontSize: 12, fontWeight: '500',
-    backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
-    borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
-    overflow: 'hidden',
-  },
 
   // Detail sheet
   backdrop: { flex: 1 },

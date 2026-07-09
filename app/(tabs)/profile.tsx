@@ -1,4 +1,3 @@
-// Platform-specific: iOS + Android (keyboard avoidance behavior)
 import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
@@ -83,11 +82,13 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
   }
 
   return (
-    // No Modal wrapper — rendered inline with parent SafeAreaView
-    <View style={StyleSheet.absoluteFill}>
-      <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
-      <SafeAreaView edges={['bottom']} style={ls.sheet}>
-        <KeyboardAvoidingView behavior="padding" automaticOffset>
+    // No Modal wrapper — rendered inline with parent SafeAreaView.
+    // In-flow bottom-sheet structure (backdrop flex:1 above, sheet below) —
+    // same keyboard-safe pattern as the feed detail and settings sheets.
+    <View style={[StyleSheet.absoluteFill, ls.overlay]}>
+      <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+      <KeyboardAvoidingView behavior="padding" automaticOffset>
+        <SafeAreaView edges={['bottom']} style={ls.sheet}>
           <View style={ls.handle} />
           <View style={ls.sheetHeader}>
             <TouchableOpacity onPress={onClose}><Text style={ls.cancel}>Cancel</Text></TouchableOpacity>
@@ -176,8 +177,8 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
               </>
             )}
           </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -413,9 +414,8 @@ const styles = StyleSheet.create({
 });
 
 const ls = StyleSheet.create({
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)' },
+  overlay: { backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#111827', maxHeight: '90%',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: '#1f2937',

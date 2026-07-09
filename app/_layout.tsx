@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { registerPushToken, clearBadge } from '../lib/notifications';
 import { checkForUpdate } from '../lib/update-check';
 import { setAudioModeAsync } from 'expo-audio';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
@@ -249,17 +250,19 @@ function ThemedApp() {
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
-      <AuthProvider>
-        <SplashGate>
-          <AchievementToastProvider>
-            <OnboardingGate>
-              <RootNav />
-            </OnboardingGate>
-          </AchievementToastProvider>
-        </SplashGate>
-      </AuthProvider>
-    </ThemeContext.Provider>
+    <KeyboardProvider>
+      <ThemeContext.Provider value={{ theme, setTheme }}>
+        <AuthProvider>
+          <SplashGate>
+            <AchievementToastProvider>
+              <OnboardingGate>
+                <RootNav />
+              </OnboardingGate>
+            </AchievementToastProvider>
+          </SplashGate>
+        </AuthProvider>
+      </ThemeContext.Provider>
+    </KeyboardProvider>
   );
 }
 

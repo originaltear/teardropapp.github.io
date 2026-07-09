@@ -3,9 +3,13 @@ import { useCallback, useRef, useState, useEffect, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
-  Modal, Alert, TextInput, KeyboardAvoidingView,
-  Platform, ScrollView, ActivityIndicator, RefreshControl, Animated,
+  Modal, Alert, TextInput,
+  ScrollView, ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
+// RN <Modal> is an Android Dialog with its own keyboard window that the
+// built-in KeyboardAvoidingView can't track under edge-to-edge — the
+// keyboard-controller variant with automaticOffset handles it correctly.
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { tapLight, selection } from '../../lib/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
@@ -132,7 +136,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle }: {
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.kvSheet}>
+      <KeyboardAvoidingView behavior="padding" automaticOffset style={styles.kvSheet}>
         <SafeAreaView edges={['bottom']} style={styles.sheet}>
           <View style={styles.handle} />
 

@@ -5,6 +5,7 @@ import {
   ActivityIndicator, Switch, TextInput, Modal, Share, Image,
   Platform, Linking,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
@@ -782,6 +783,7 @@ export default function SettingsScreen() {
       {/* ── Report a problem modal ── */}
       <Modal visible={showReport} transparent animationType="slide" onRequestClose={() => setShowReport(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowReport(false)} />
+        <KeyboardAvoidingView behavior="padding" automaticOffset>
         <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
@@ -817,11 +819,13 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Change username */}
       <Modal visible={showUsernameModal} transparent animationType="slide" onRequestClose={() => setShowUsernameModal(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
+        <KeyboardAvoidingView behavior="padding" automaticOffset>
         <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
@@ -869,6 +873,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+        </KeyboardAvoidingView>
       </Modal>
 
     </SafeAreaView>

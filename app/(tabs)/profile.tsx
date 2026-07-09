@@ -2,8 +2,9 @@
 import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, Image, Alert,
+  TextInput, Platform, Image, Alert,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -86,7 +87,7 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
     <View style={StyleSheet.absoluteFill}>
       <TouchableOpacity style={ls.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView edges={['bottom']} style={ls.sheet}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView behavior="padding" automaticOffset>
           <View style={ls.handle} />
           <View style={ls.sheetHeader}>
             <TouchableOpacity onPress={onClose}><Text style={ls.cancel}>Cancel</Text></TouchableOpacity>

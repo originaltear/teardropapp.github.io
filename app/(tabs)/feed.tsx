@@ -30,14 +30,21 @@ import {
 } from '../../lib/social';
 import { supabase } from '../../lib/supabase';
 
+/** A quick-logged cry: emotion + location only, no details added yet. */
+function isQuickLogCry(c: SocialCry): boolean {
+  return !c.note && !c.photo_uri && !c.audio_uri && !(c.tags && c.tags.length > 0);
+}
+
 // ─── Detail modal with likes + comments ───────────────────────────────────────
 
-function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle }: {
+function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle, onEdit }: {
   cry: SocialCry;
   myId: string | null;
   onClose: () => void;
   onLikeToggle: (cryId: string, liked: boolean) => void;
   onHugToggle: (cryId: string, hugged: boolean) => void;
+  /** Present for the user's own cries — opens the prefilled edit screen. */
+  onEdit?: () => void;
 }) {
   const { theme: { accent } } = useTheme();
   const emotion = emotionById(cry.emotion);
@@ -149,9 +156,16 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle }: {
                 <Text style={styles.sheetHandle}>@{cry.profile.username}</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeTxt}>✕</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {isOwn && onEdit && (
+                <TouchableOpacity onPress={onEdit} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Edit this cry">
+                  <Text style={{ fontSize: 15 }}>✏️</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <Text style={styles.closeTxt}>✕</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -262,7 +276,12 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle }: {
 
 // ─── Feed item ────────────────────────────────────────────────────────────────
 
-const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onSelect: (cry: SocialCry) => void }) {
+const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge }: {
+  cry: SocialCry;
+  onSelect: (cry: SocialCry) => void;
+  /** Shown on the Mine tab for cries that still have no details. */
+  quickBadge?: boolean;
+}) {
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
   const enter = useRef(new Animated.Value(0)).current;
@@ -298,6 +317,9 @@ const FeedItem = memo(function FeedItem({ cry, onSelect }: { cry: SocialCry; onS
           <Text style={styles.itemTags} numberOfLines={1}>
             {cry.tags.map(t => `#${t}`).join('  ')}
           </Text>
+        )}
+        {quickBadge && (
+          <Text style={styles.quickBadge}>⚡ quick log · tap to add details</Text>
         )}
         <View style={styles.itemMeta}>
           {(cry.photo_uri || cry.audio_uri) ? (
@@ -335,6 +357,7 @@ export default function FeedScreen() {
   // Mine tab filters
   const [mineEmotion, setMineEmotion] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [mineQuickOnly, setMineQuickOnly] = useState(false);
 
   async function loadFeed(isRefresh = false) {
     if (!session) return;
@@ -385,9 +408,11 @@ export default function FeedScreen() {
     loadFeed();
   }, [session, tab]));
 
-  // Filter mine tab by emotion
-  const displayCries = tab === 'mine' && mineEmotion
-    ? allCries.filter(c => c.emotion === mineEmotion)
+  // Filter mine tab by emotion and/or quick-log status
+  const displayCries = tab === 'mine'
+    ? allCries
+        .filter(c => !mineEmotion || c.emotion === mineEmotion)
+        .filter(c => !mineQuickOnly || isQuickLogCry(c))
     : allCries;
 
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
@@ -446,9 +471,11 @@ export default function FeedScreen() {
         </View>
       )}
 
-      {/* Mine-tab emotion dropdown */}
+      {/* Mine-tab filters: emotion dropdown + quick-log toggle */}
       {session && tab === 'mine' && (
         <View style={styles.filterWrap}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+          <View style={{ flex: 1 }}>
           <TouchableOpacity
             style={[styles.filterBar, filterOpen && styles.filterBarOpen]}
             onPress={() => setFilterOpen(v => !v)}
@@ -487,6 +514,19 @@ export default function FeedScreen() {
               ))}
             </View>
           )}
+          </View>
+
+          {/* Quick-log toggle — bare cries waiting for details */}
+          <TouchableOpacity
+            style={[styles.quickChip, mineQuickOnly && { borderColor: accent, backgroundColor: accent + '10' }]}
+            onPress={() => { selection(); setMineQuickOnly(v => !v); }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: mineQuickOnly }}
+            accessibilityLabel="Show only quick logs"
+          >
+            <Text style={[styles.quickChipTxt, mineQuickOnly && { color: accent }]}>⚡</Text>
+          </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -500,7 +540,11 @@ export default function FeedScreen() {
           keyExtractor={c => c.id}
           style={{ flex: 1 }}
           renderItem={({ item }) => (
-            <FeedItem cry={item} onSelect={handleSelect} />
+            <FeedItem
+              cry={item}
+              onSelect={handleSelect}
+              quickBadge={tab === 'mine' && isQuickLogCry(item)}
+            />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={displayCries.length === 0 ? styles.emptyContainer : styles.listContent}
@@ -555,6 +599,11 @@ export default function FeedScreen() {
           onClose={() => setSelected(null)}
           onLikeToggle={handleLikeToggle}
           onHugToggle={handleHugToggle}
+          onEdit={selected.user_id === session?.user.id ? () => {
+            const id = selected.id;
+            setSelected(null);
+            router.push(`/log-cry?editId=${id}`);
+          } : undefined}
         />
       )}
     </SafeAreaView>
@@ -636,6 +685,13 @@ const styles = StyleSheet.create({
   emotionChip: { fontSize: 12, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
   itemTags: { color: '#4a5568', fontSize: 12 },
+  quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
+  quickChip: {
+    width: 48, height: 48, borderRadius: 12,
+    backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quickChipTxt: { fontSize: 18, color: '#4a5568' },
   itemMeta: { flexDirection: 'row', gap: 8, marginTop: 2 },
   metaTag: { color: '#4a5568', fontSize: 12 },
 

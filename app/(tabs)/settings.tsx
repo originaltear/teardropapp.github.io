@@ -781,12 +781,14 @@ export default function SettingsScreen() {
       </Modal>
 
       {/* ── Report a problem modal ── */}
+      {/* Bottom-sheet structure mirrors the feed detail modal: everything in
+          normal flow (backdrop flex:1 above, sheet below) — the keyboard
+          padding can't move an absolutely-positioned child on Android. */}
       <Modal visible={showReport} transparent animationType="slide" onRequestClose={() => setShowReport(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowReport(false)} />
-        {/* flex:1 so the absolutely-bottom-anchored sheet has a full-height
-            parent; box-none so taps in the empty area still hit the backdrop */}
-        <KeyboardAvoidingView behavior="padding" automaticOffset style={{ flex: 1 }} pointerEvents="box-none">
-        <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
+        <View style={styles.sheetModalRoot}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowReport(false)} />
+        <KeyboardAvoidingView behavior="padding" automaticOffset>
+        <SafeAreaView edges={['bottom']}>
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
@@ -822,13 +824,15 @@ export default function SettingsScreen() {
           </View>
         </SafeAreaView>
         </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* Change username */}
       <Modal visible={showUsernameModal} transparent animationType="slide" onRequestClose={() => setShowUsernameModal(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
-        <KeyboardAvoidingView behavior="padding" automaticOffset style={{ flex: 1 }} pointerEvents="box-none">
-        <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
+        <View style={styles.sheetModalRoot}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
+        <KeyboardAvoidingView behavior="padding" automaticOffset>
+        <SafeAreaView edges={['bottom']}>
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
@@ -876,6 +880,7 @@ export default function SettingsScreen() {
           </View>
         </SafeAreaView>
         </KeyboardAvoidingView>
+        </View>
       </Modal>
 
     </SafeAreaView>
@@ -955,6 +960,7 @@ const styles = StyleSheet.create({
   themeCircle: { width: 18, height: 18, borderRadius: 9, marginRight: 4 },
 
   // Bottom sheet
+  sheetModalRoot: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheetContainer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
   },

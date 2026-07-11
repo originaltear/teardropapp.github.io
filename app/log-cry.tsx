@@ -149,11 +149,11 @@ export default function LogCryScreen() {
         Alert.alert('Permission needed', 'Camera access is required to take a photo.');
         return;
       }
+      // No forced crop — keep the photo exactly as taken (cards/detail views
+      // letterbox any aspect ratio fine, and upload compression handles size)
       const res = await ImagePicker.launchCameraAsync({
         mediaTypes: 'images',
         quality: 0.8,
-        allowsEditing: true,
-        aspect: [4, 3],
       });
       if (!res.canceled) setPhotoUri(res.assets[0].uri);
     } else {
@@ -165,8 +165,6 @@ export default function LogCryScreen() {
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: 'images',
         quality: 0.8,
-        allowsEditing: true,
-        aspect: [4, 3],
       });
       if (!res.canceled) setPhotoUri(res.assets[0].uri);
     }

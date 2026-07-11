@@ -9,9 +9,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { loadCries, deleteCry, updateCriesVisibility, Cry } from '../lib/storage';
+import { loadCries, deleteCry, deleteCries, updateCriesVisibility, Cry } from '../lib/storage';
 import { isQuickLog } from '../lib/quick-log';
 import { TagPills } from '../components/TagPills';
+import {
+  BulkActionsBar, promptBulkVisibility, promptBulkDelete,
+  visibilityLabel, type CryVisibility,
+} from '../components/BulkActionsBar';
 import { emotionById } from '../lib/emotions';
 import { useFocusEffect } from 'expo-router';
 import { Drops } from '../components/Drops';
@@ -94,14 +98,6 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
 
 type CryFilter = 'all' | 'quick';
 
-// Visibility choices for the bulk editor — mirrors the log screen's options.
-const BULK_VISIBILITY: { value: NonNullable<Cry['visibility']>; label: string }[] = [
-  { value: 'everyone',      label: '🌍 Everyone' },
-  { value: 'followers',     label: '👥 Friends' },
-  { value: 'close_friends', label: '🔒 Close friends' },
-  { value: 'only_me',       label: '🫥 Only me' },
-];
-
 export default function MyCriesScreen() {
   const router = useRouter();
   const [cries, setCries] = useState<Cry[]>([]);
@@ -150,22 +146,7 @@ export default function MyCriesScreen() {
     });
   }
 
-  function chooseBulkVisibility() {
-    const n = selectedIds.size;
-    Alert.alert(
-      'Who can see these cries?',
-      `${n} ${n === 1 ? 'cry' : 'cries'} selected`,
-      [
-        ...BULK_VISIBILITY.map(opt => ({
-          text: opt.label,
-          onPress: () => applyBulkVisibility(opt.value),
-        })),
-        { text: 'Cancel', style: 'cancel' as const },
-      ],
-    );
-  }
-
-  async function applyBulkVisibility(visibility: NonNullable<Cry['visibility']>) {
+  async function applyBulkVisibility(visibility: CryVisibility) {
     const ids = [...selectedIds];
     setApplying(true);
     const ok = await updateCriesVisibility(ids, visibility);
@@ -179,8 +160,23 @@ export default function MyCriesScreen() {
     const idSet = new Set(ids);
     setCries(prev => prev.map(c => (idSet.has(c.id) ? { ...c, visibility } : c)));
     exitSelectMode();
-    const label = BULK_VISIBILITY.find(o => o.value === visibility)?.label ?? visibility;
-    Alert.alert('Visibility updated', `${ids.length} ${ids.length === 1 ? 'cry is' : 'cries are'} now visible to: ${label}`);
+    Alert.alert('Visibility updated', `${ids.length} ${ids.length === 1 ? 'cry is' : 'cries are'} now visible to: ${visibilityLabel(visibility)}`);
+  }
+
+  async function applyBulkDelete() {
+    const ids = [...selectedIds];
+    setApplying(true);
+    const ok = await deleteCries(ids);
+    setApplying(false);
+    if (!ok) {
+      warning();
+      Alert.alert('Could not delete', 'Something went wrong deleting. Please try again.');
+      return;
+    }
+    success();
+    const idSet = new Set(ids);
+    setCries(prev => prev.filter(c => !idSet.has(c.id)));
+    exitSelectMode();
   }
 
   return (
@@ -291,23 +287,14 @@ export default function MyCriesScreen() {
         }
       />
 
-      {/* Bulk action bar — change visibility for everything selected */}
+      {/* Bulk action bar — visibility + delete for everything selected */}
       {selectMode && (
-        <View style={s.bulkBar}>
-          <Text style={s.bulkCount}>
-            {selectedIds.size} {selectedIds.size === 1 ? 'cry' : 'cries'} selected
-          </Text>
-          <TouchableOpacity
-            style={[s.bulkBtn, (selectedIds.size === 0 || applying) && { opacity: 0.4 }]}
-            onPress={chooseBulkVisibility}
-            disabled={selectedIds.size === 0 || applying}
-            activeOpacity={0.85}
-          >
-            {applying
-              ? <ActivityIndicator size="small" color="#0d1117" />
-              : <Text style={s.bulkBtnTxt}>🔒 Change visibility</Text>}
-          </TouchableOpacity>
-        </View>
+        <BulkActionsBar
+          count={selectedIds.size}
+          applying={applying}
+          onChangeVisibility={() => promptBulkVisibility(selectedIds.size, applyBulkVisibility)}
+          onDelete={() => promptBulkDelete(selectedIds.size, applyBulkDelete)}
+        />
       )}
 
       {selected && (
@@ -365,18 +352,6 @@ const s = StyleSheet.create({
   },
   checkCircleOn: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e6' },
   checkMark: { color: '#0d1117', fontSize: 13, fontWeight: '800', lineHeight: 15 },
-  bulkBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderTopWidth: 1, borderTopColor: '#1f2937', backgroundColor: '#111827',
-  },
-  bulkCount: { flex: 1, color: '#94a3b8', fontSize: 13, fontFamily: 'monospace' },
-  bulkBtn: {
-    backgroundColor: '#6fe0e6', borderRadius: 20,
-    paddingHorizontal: 18, paddingVertical: 10,
-    minWidth: 170, alignItems: 'center',
-  },
-  bulkBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   dot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

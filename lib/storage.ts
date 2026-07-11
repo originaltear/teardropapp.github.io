@@ -314,6 +314,45 @@ export async function updateCry(cry: Cry): Promise<void> {
   })();
 }
 
+// ─── Bulk visibility update ──────────────────────────────────────────────────
+
+/**
+ * Sets the visibility on many cries at once (My Cries bulk edit). One server
+ * roundtrip regardless of how many are selected. Returns false when the
+ * server update fails so the UI can tell the user instead of lying.
+ */
+export async function updateCriesVisibility(
+  ids: string[],
+  visibility: NonNullable<Cry['visibility']>,
+): Promise<boolean> {
+  if (ids.length === 0) return true;
+  const idSet = new Set(ids);
+
+  // Local copies first (guest cries + pending offline queue)
+  const all = await localLoad();
+  if (all.some(c => idSet.has(c.id))) {
+    await localSave(all.map(c => (idSet.has(c.id) ? { ...c, visibility } : c)));
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) return true;           // guest → local only
+
+  const serverIds = ids.filter(isValidUuid);
+  if (serverIds.length === 0) return true;          // legacy device-only entries
+
+  const { error } = await supabase
+    .from('cries')
+    .update({ visibility })
+    .in('id', serverIds)
+    .eq('user_id', sessionData.session.user.id);
+
+  if (error) {
+    console.warn('[updateCriesVisibility] failed:', error.message);
+    return false;
+  }
+  return true;
+}
+
 // ─── UUID validation ──────────────────────────────────────────────────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

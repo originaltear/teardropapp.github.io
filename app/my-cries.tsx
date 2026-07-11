@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { loadCries, deleteCry, Cry } from '../lib/storage';
+import { loadCries, deleteCry, updateCriesVisibility, Cry } from '../lib/storage';
 import { isQuickLog } from '../lib/quick-log';
 import { TagPills } from '../components/TagPills';
 import { emotionById } from '../lib/emotions';
@@ -18,7 +18,7 @@ import { Drops } from '../components/Drops';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { timeAgo, fullDateTime } from '../lib/format';
-import { warning } from '../lib/haptics';
+import { warning, success, selection } from '../lib/haptics';
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
@@ -94,12 +94,24 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
 
 type CryFilter = 'all' | 'quick';
 
+// Visibility choices for the bulk editor — mirrors the log screen's options.
+const BULK_VISIBILITY: { value: NonNullable<Cry['visibility']>; label: string }[] = [
+  { value: 'everyone',      label: '🌍 Everyone' },
+  { value: 'followers',     label: '👥 Friends' },
+  { value: 'close_friends', label: '🔒 Close friends' },
+  { value: 'only_me',       label: '🫥 Only me' },
+];
+
 export default function MyCriesScreen() {
   const router = useRouter();
   const [cries, setCries] = useState<Cry[]>([]);
   const [selected, setSelected] = useState<Cry | null>(null);
   const [filter, setFilter] = useState<CryFilter>('all');
   const [oldestFirst, setOldestFirst] = useState(false);
+  // Bulk-select mode: tap rows to mark them, then change visibility for all
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [applying, setApplying] = useState(false);
 
   useFocusEffect(useCallback(() => { loadCries().then(setCries); }, []));
 
@@ -116,6 +128,61 @@ export default function MyCriesScreen() {
     setSelected(null);
   }
 
+  // ── Bulk-select helpers ────────────────────────────────────────────────────
+
+  function enterSelectMode(initialId?: string) {
+    selection();
+    setSelectMode(true);
+    setSelectedIds(initialId ? new Set([initialId]) : new Set());
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelectId(id: string) {
+    selection();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function chooseBulkVisibility() {
+    const n = selectedIds.size;
+    Alert.alert(
+      'Who can see these cries?',
+      `${n} ${n === 1 ? 'cry' : 'cries'} selected`,
+      [
+        ...BULK_VISIBILITY.map(opt => ({
+          text: opt.label,
+          onPress: () => applyBulkVisibility(opt.value),
+        })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ],
+    );
+  }
+
+  async function applyBulkVisibility(visibility: NonNullable<Cry['visibility']>) {
+    const ids = [...selectedIds];
+    setApplying(true);
+    const ok = await updateCriesVisibility(ids, visibility);
+    setApplying(false);
+    if (!ok) {
+      warning();
+      Alert.alert('Could not update', 'Something went wrong changing visibility. Please try again.');
+      return;
+    }
+    success();
+    const idSet = new Set(ids);
+    setCries(prev => prev.map(c => (idSet.has(c.id) ? { ...c, visibility } : c)));
+    exitSelectMode();
+    const label = BULK_VISIBILITY.find(o => o.value === visibility)?.label ?? visibility;
+    Alert.alert('Visibility updated', `${ids.length} ${ids.length === 1 ? 'cry is' : 'cries are'} now visible to: ${label}`);
+  }
+
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
@@ -123,7 +190,20 @@ export default function MyCriesScreen() {
           <Text style={s.backTxt}>←</Text>
         </TouchableOpacity>
         <Text style={s.title}>My Cries</Text>
-        <Text style={s.count}>{displayCries.length}</Text>
+        {selectMode ? (
+          <TouchableOpacity onPress={exitSelectMode} hitSlop={8}>
+            <Text style={s.selectBtnTxt}>Cancel</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            {cries.length > 0 && (
+              <TouchableOpacity onPress={() => enterSelectMode()} hitSlop={8}>
+                <Text style={s.selectBtnTxt}>Select</Text>
+              </TouchableOpacity>
+            )}
+            <Text style={s.count}>{displayCries.length}</Text>
+          </>
+        )}
       </View>
 
       {/* Filter + sort — quick logs are bare cries waiting for details */}
@@ -159,8 +239,20 @@ export default function MyCriesScreen() {
         renderItem={({ item: cry }) => {
           const emotion = emotionById(cry.emotion);
           const color = emotion?.color ?? '#6fe0e6';
+          const checked = selectedIds.has(cry.id);
           return (
-            <TouchableOpacity style={s.row} onPress={() => setSelected(cry)} activeOpacity={0.75}>
+            <TouchableOpacity
+              style={[s.row, selectMode && checked && s.rowSelected]}
+              onPress={() => (selectMode ? toggleSelectId(cry.id) : setSelected(cry))}
+              onLongPress={() => { if (!selectMode) enterSelectMode(cry.id); }}
+              delayLongPress={350}
+              activeOpacity={0.75}
+            >
+              {selectMode && (
+                <View style={[s.checkCircle, checked && s.checkCircleOn]}>
+                  {checked && <Text style={s.checkMark}>✓</Text>}
+                </View>
+              )}
               <View style={[s.dot, { backgroundColor: color }]}>
                 <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
               </View>
@@ -198,6 +290,25 @@ export default function MyCriesScreen() {
           </View>
         }
       />
+
+      {/* Bulk action bar — change visibility for everything selected */}
+      {selectMode && (
+        <View style={s.bulkBar}>
+          <Text style={s.bulkCount}>
+            {selectedIds.size} {selectedIds.size === 1 ? 'cry' : 'cries'} selected
+          </Text>
+          <TouchableOpacity
+            style={[s.bulkBtn, (selectedIds.size === 0 || applying) && { opacity: 0.4 }]}
+            onPress={chooseBulkVisibility}
+            disabled={selectedIds.size === 0 || applying}
+            activeOpacity={0.85}
+          >
+            {applying
+              ? <ActivityIndicator size="small" color="#0d1117" />
+              : <Text style={s.bulkBtnTxt}>🔒 Change visibility</Text>}
+          </TouchableOpacity>
+        </View>
+      )}
 
       {selected && (
         <DetailModal
@@ -243,6 +354,29 @@ const s = StyleSheet.create({
   sortTxt: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
 
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
+
+  // Bulk select
+  selectBtnTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  rowSelected: { backgroundColor: '#6fe0e610' },
+  checkCircle: {
+    width: 22, height: 22, borderRadius: 11, alignSelf: 'center',
+    borderWidth: 2, borderColor: '#374151',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkCircleOn: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e6' },
+  checkMark: { color: '#0d1117', fontSize: 13, fontWeight: '800', lineHeight: 15 },
+  bulkBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderTopWidth: 1, borderTopColor: '#1f2937', backgroundColor: '#111827',
+  },
+  bulkCount: { flex: 1, color: '#94a3b8', fontSize: 13, fontFamily: 'monospace' },
+  bulkBtn: {
+    backgroundColor: '#6fe0e6', borderRadius: 20,
+    paddingHorizontal: 18, paddingVertical: 10,
+    minWidth: 170, alignItems: 'center',
+  },
+  bulkBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   dot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

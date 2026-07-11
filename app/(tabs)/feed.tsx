@@ -30,6 +30,12 @@ import {
 import { supabase } from '../../lib/supabase';
 import { isQuickLogSocial } from '../../lib/quick-log';
 import { TagPills } from '../../components/TagPills';
+import { updateCriesVisibility, deleteCries } from '../../lib/storage';
+import {
+  BulkActionsBar, promptBulkVisibility, promptBulkDelete,
+  visibilityLabel, type CryVisibility,
+} from '../../components/BulkActionsBar';
+import { success, warning } from '../../lib/haptics';
 
 // ─── Detail modal with likes + comments ───────────────────────────────────────
 
@@ -268,11 +274,15 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle, onEdit }: 
 
 // ─── Feed item ────────────────────────────────────────────────────────────────
 
-const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge }: {
+const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode, checked, onLongPress }: {
   cry: SocialCry;
   onSelect: (cry: SocialCry) => void;
   /** Shown on the Mine tab for cries that still have no details. */
   quickBadge?: boolean;
+  /** Mine-tab bulk edit: render a check circle and highlight when checked. */
+  selectMode?: boolean;
+  checked?: boolean;
+  onLongPress?: (cry: SocialCry) => void;
 }) {
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
@@ -285,7 +295,18 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge }: {
       opacity: enter,
       transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
     }}>
-    <TouchableOpacity style={styles.item} onPress={() => onSelect(cry)} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={[styles.item, selectMode && checked && styles.itemChecked]}
+      onPress={() => onSelect(cry)}
+      onLongPress={onLongPress ? () => onLongPress(cry) : undefined}
+      delayLongPress={350}
+      activeOpacity={0.75}
+    >
+      {selectMode && (
+        <View style={[styles.checkCircle, checked && styles.checkCircleOn]}>
+          {checked && <Text style={styles.checkMark}>✓</Text>}
+        </View>
+      )}
       <Avatar uri={cry.profile.avatar_uri} size={44} />
       <View style={styles.itemContent}>
         <View style={styles.itemTop}>
@@ -350,6 +371,10 @@ export default function FeedScreen() {
   const [mineEmotion, setMineEmotion] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [mineQuickOnly, setMineQuickOnly] = useState(false);
+  // Mine tab bulk edit (visibility/delete)
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [applying, setApplying] = useState(false);
 
   async function loadFeed(isRefresh = false) {
     if (!session) return;
@@ -389,12 +414,63 @@ export default function FeedScreen() {
 
   // Switching tab or account = genuinely unknown data — clear so the skeleton
   // shows instead of stale rows (and a logged-out user never sees the previous
-  // account's feed).
+  // account's feed). Bulk-select mode never survives a tab/account switch.
   useEffect(() => {
     setAllCries([]);
     setEndReached(false);
+    setSelectMode(false);
+    setSelectedIds(new Set());
     if (session) setLoading(true);
   }, [tab, session?.user.id]);
+
+  // ── Mine-tab bulk edit ─────────────────────────────────────────────────────
+
+  function toggleBulkId(id: string) {
+    selection();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  async function applyBulkVisibility(visibility: CryVisibility) {
+    const ids = [...selectedIds];
+    setApplying(true);
+    const ok = await updateCriesVisibility(ids, visibility);
+    setApplying(false);
+    if (!ok) {
+      warning();
+      Alert.alert('Could not update', 'Something went wrong changing visibility. Please try again.');
+      return;
+    }
+    success();
+    const idSet = new Set(ids);
+    setAllCries(prev => prev.map(c => (idSet.has(c.id) ? { ...c, visibility } : c)));
+    exitSelectMode();
+    Alert.alert('Visibility updated', `${ids.length} ${ids.length === 1 ? 'cry is' : 'cries are'} now visible to: ${visibilityLabel(visibility)}`);
+  }
+
+  async function applyBulkDelete() {
+    const ids = [...selectedIds];
+    setApplying(true);
+    const ok = await deleteCries(ids);
+    setApplying(false);
+    if (!ok) {
+      warning();
+      Alert.alert('Could not delete', 'Something went wrong deleting. Please try again.');
+      return;
+    }
+    success();
+    const idSet = new Set(ids);
+    setAllCries(prev => prev.filter(c => !idSet.has(c.id)));
+    exitSelectMode();
+  }
 
   useFocusEffect(useCallback(() => {
     loadFeed();
@@ -409,8 +485,19 @@ export default function FeedScreen() {
 
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
 
-  // Stable handler so memoized FeedItem rows don't re-render on every parent render
-  const handleSelect = useCallback((c: SocialCry) => setSelected(c), []);
+  // Row tap: toggles the checkbox in bulk-select mode, opens the sheet otherwise
+  const handleSelect = useCallback((c: SocialCry) => {
+    if (selectMode) toggleBulkId(c.id);
+    else setSelected(c);
+  }, [selectMode]);
+
+  const handleRowLongPress = useCallback((c: SocialCry) => {
+    if (!selectMode) {
+      selection();
+      setSelectMode(true);
+      setSelectedIds(new Set([c.id]));
+    }
+  }, [selectMode]);
 
   function handleLikeToggle(cryId: string, liked: boolean) {
     setAllCries(prev => prev.map(c => c.id === cryId
@@ -518,6 +605,17 @@ export default function FeedScreen() {
           >
             <Text style={[styles.quickChipTxt, mineQuickOnly && { color: accent }]}>⚡</Text>
           </TouchableOpacity>
+
+          {/* Bulk-select toggle (visibility/delete for several cries at once) */}
+          <TouchableOpacity
+            style={[styles.quickChip, selectMode && { borderColor: accent, backgroundColor: accent + '10' }]}
+            onPress={() => { selection(); selectMode ? exitSelectMode() : setSelectMode(true); }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: selectMode }}
+            accessibilityLabel={selectMode ? 'Exit select mode' : 'Select multiple cries'}
+          >
+            <Text style={[styles.quickChipTxt, selectMode && { color: accent }]}>☑</Text>
+          </TouchableOpacity>
           </View>
         </View>
       )}
@@ -536,6 +634,9 @@ export default function FeedScreen() {
               cry={item}
               onSelect={handleSelect}
               quickBadge={tab === 'mine' && isQuickLogSocial(item)}
+              selectMode={tab === 'mine' && selectMode}
+              checked={selectedIds.has(item.id)}
+              onLongPress={tab === 'mine' ? handleRowLongPress : undefined}
             />
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -581,6 +682,16 @@ export default function FeedScreen() {
               )}
             </View>
           }
+        />
+      )}
+
+      {/* Bulk action bar — visibility + delete for everything selected */}
+      {selectMode && tab === 'mine' && (
+        <BulkActionsBar
+          count={selectedIds.size}
+          applying={applying}
+          onChangeVisibility={() => promptBulkVisibility(selectedIds.size, applyBulkVisibility)}
+          onDelete={() => promptBulkDelete(selectedIds.size, applyBulkDelete)}
         />
       )}
 
@@ -678,6 +789,14 @@ const styles = StyleSheet.create({
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
   itemTags: { color: '#4a5568', fontSize: 12 },
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
+  itemChecked: { backgroundColor: '#6fe0e610' },
+  checkCircle: {
+    width: 22, height: 22, borderRadius: 11, alignSelf: 'center',
+    borderWidth: 2, borderColor: '#374151',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkCircleOn: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e6' },
+  checkMark: { color: '#0d1117', fontSize: 13, fontWeight: '800', lineHeight: 15 },
   quickChip: {
     width: 48, height: 48, borderRadius: 12,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',

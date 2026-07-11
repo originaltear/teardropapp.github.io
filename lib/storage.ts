@@ -353,6 +353,50 @@ export async function updateCriesVisibility(
   return true;
 }
 
+/**
+ * Deletes many cries at once (bulk edit). One server roundtrip for the rows;
+ * Storage media cleanup runs best-effort in the background like deleteCry.
+ * Returns false when the server delete fails.
+ */
+export async function deleteCries(ids: string[]): Promise<boolean> {
+  if (ids.length === 0) return true;
+  await localRemove(ids);
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) return true;           // guest → local only
+  const userId = sessionData.session.user.id;
+
+  const serverIds = ids.filter(isValidUuid);
+  if (serverIds.length === 0) return true;
+
+  const { error } = await supabase
+    .from('cries')
+    .delete()
+    .in('id', serverIds)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.warn('[deleteCries] failed:', error.message);
+    return false;
+  }
+
+  // Best-effort: remove uploaded media folders — never blocks the UI.
+  (async () => {
+    try {
+      for (const id of serverIds) {
+        const folder = `${userId}/${id}`;
+        const { data: files } = await supabase.storage.from(MEDIA_BUCKET).list(folder);
+        if (files?.length) {
+          await supabase.storage.from(MEDIA_BUCKET)
+            .remove(files.map(f => `${folder}/${f.name}`));
+        }
+      }
+    } catch { /* non-fatal */ }
+  })();
+
+  return true;
+}
+
 // ─── UUID validation ──────────────────────────────────────────────────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

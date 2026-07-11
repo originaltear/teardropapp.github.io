@@ -55,7 +55,7 @@ export function BulkActionsBar({ count, applying, onChangeVisibility, onDelete }
   const disabled = count === 0 || applying;
   return (
     <View style={s.bar}>
-      <Text style={s.count}>
+      <Text style={s.count} numberOfLines={1}>
         {count} {count === 1 ? 'cry' : 'cries'}
       </Text>
       <TouchableOpacity
@@ -66,7 +66,7 @@ export function BulkActionsBar({ count, applying, onChangeVisibility, onDelete }
         accessibilityRole="button"
         accessibilityLabel="Delete selected cries"
       >
-        <Text style={s.deleteTxt}>🗑 Delete</Text>
+        <Text style={s.deleteTxt} numberOfLines={1}>🗑 Delete</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[s.visBtn, disabled && { opacity: 0.4 }]}
@@ -78,7 +78,7 @@ export function BulkActionsBar({ count, applying, onChangeVisibility, onDelete }
       >
         {applying
           ? <ActivityIndicator size="small" color="#0d1117" />
-          : <Text style={s.visTxt}>🔒 Visibility</Text>}
+          : <Text style={s.visTxt} numberOfLines={1}>Change visibility</Text>}
       </TouchableOpacity>
     </View>
   );
@@ -90,7 +90,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
     borderTopWidth: 1, borderTopColor: '#1f2937', backgroundColor: '#111827',
   },
-  count: { flex: 1, color: '#94a3b8', fontSize: 13, fontFamily: 'monospace' },
+  count: { flex: 1, flexShrink: 1, color: '#94a3b8', fontSize: 13, fontFamily: 'monospace' },
   deleteBtn: {
     borderWidth: 1, borderColor: '#ef4444', borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 9,
@@ -99,7 +99,6 @@ const s = StyleSheet.create({
   visBtn: {
     backgroundColor: '#6fe0e6', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 10,
-    minWidth: 120, alignItems: 'center',
   },
   visTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 });

@@ -449,13 +449,13 @@ export default function MapScreen() {
                   activeOpacity={0.75}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? "Show friends' cries" : 'Show all cries'}
+                  accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? 'Show cries from people you follow' : 'Show all cries'}
                 >
                   <Text style={styles.segmentEmoji}>
                     {f === 'mine' ? '👤' : f === 'following' ? '👥' : '🌍'}
                   </Text>
                   <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
-                    {f === 'mine' ? 'Mine' : f === 'following' ? 'Friends' : 'All'}
+                    {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'All'}
                   </Text>
                 </TouchableOpacity>
               );
@@ -465,7 +465,7 @@ export default function MapScreen() {
       )}
 
       {/* First-cry nudge for new users with an empty map (own cries only —
-          the message makes no sense on the Friends/All filters) */}
+          the message makes no sense on the Following/All filters) */}
       {gpsReady && cries.length === 0 && mapFilter === 'mine' && (
         <SafeAreaView edges={['bottom']} style={styles.hintContainer} pointerEvents="none">
           <View style={styles.firstCryHint}>

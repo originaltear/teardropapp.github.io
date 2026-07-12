@@ -332,7 +332,7 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
           </Text>
         )}
         {quickBadge && (
-          <Text style={styles.quickBadge}>⚡ quick log · tap to add details</Text>
+          <Text style={styles.quickBadge}>✏️ no details yet · tap to add</Text>
         )}
         <View style={styles.itemMeta}>
           {(cry.photo_uri || cry.audio_uri) ? (

@@ -266,7 +266,7 @@ export default function MyCriesScreen() {
                   </View>
                 ) : null}
                 {isQuickLog(cry) && (
-                  <Text style={s.quickBadge}>⚡ quick log · tap to add details</Text>
+                  <Text style={s.quickBadge}>✏️ no details yet · tap to add</Text>
                 )}
               </View>
             </TouchableOpacity>

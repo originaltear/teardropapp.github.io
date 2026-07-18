@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator,
   Image, Alert,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -17,7 +17,7 @@ import { EMOTIONS } from '../lib/emotions';
 import { saveCry, updateCry, loadCries, getOwnCry, generateCryId, Cry } from '../lib/storage';
 import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
 import { reverseCountry } from '../lib/geo';
-import { getDefaultCryVisibility } from '../lib/social';
+import { getDefaultCryVisibility, getCloseFriends } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAchievementToast } from '../components/AchievementToastProvider';
 import { useAuth } from '../lib/auth';
@@ -60,6 +60,9 @@ export default function LogCryScreen() {
   // country, createdAt). Null while loading and in create mode.
   const [editingCry, setEditingCry] = useState<Cry | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(isEdit);
+  // Count of the user's close friends, shown as a hint when "Close friends"
+  // visibility is picked. null = still loading.
+  const [closeFriendCount, setCloseFriendCount] = useState<number | null>(null);
 
   // Load user's default visibility from profile (create mode only — an edit
   // must keep the cry's own visibility)
@@ -91,6 +94,17 @@ export default function LogCryScreen() {
     });
     return () => { cancelled = true; };
   }, [editId]);
+
+  // Keep the close-friends count fresh — refetched on focus so it reflects any
+  // edits made on the manage screen the user just returned from.
+  useFocusEffect(useCallback(() => {
+    if (!session) { setCloseFriendCount(0); return; }
+    let cancelled = false;
+    getCloseFriends()
+      .then(list => { if (!cancelled) setCloseFriendCount(list.length); })
+      .catch(() => { if (!cancelled) setCloseFriendCount(0); });
+    return () => { cancelled = true; };
+  }, [session]));
 
   // ── Tag helpers ──
 
@@ -567,6 +581,34 @@ export default function LogCryScreen() {
             })}
           </View>
 
+          {/* Close-friends hint: who's actually on the list + a shortcut to
+              manage it. Especially catches the "list is empty → nobody sees
+              this cry" case. */}
+          {visibility === 'close_friends' && (
+            <TouchableOpacity
+              style={styles.closeFriendsHint}
+              onPress={() => router.push('/close-friends')}
+              activeOpacity={0.7}
+              disabled={closeFriendCount === null}
+            >
+              <Text style={styles.closeFriendsHintTxt}>
+                {closeFriendCount === null ? (
+                  'Loading your close friends…'
+                ) : closeFriendCount === 0 ? (
+                  <>
+                    <Text style={{ color: '#eab308' }}>No close friends yet — only you will see this. </Text>
+                    <Text style={[styles.closeFriendsAction, { color: accent }]}>Add some →</Text>
+                  </>
+                ) : (
+                  <>
+                    {`${closeFriendCount} close ${closeFriendCount === 1 ? 'friend' : 'friends'} can see this · `}
+                    <Text style={[styles.closeFriendsAction, { color: accent }]}>Manage →</Text>
+                  </>
+                )}
+              </Text>
+            </TouchableOpacity>
+          )}
+
         </ScrollView>
 
         {/* Save button */}
@@ -728,6 +770,13 @@ const styles = StyleSheet.create({
   },
   visibilityIcon: { fontSize: 20 },
   visibilityLabel: { color: '#4a5568', fontSize: 10, fontFamily: 'monospace', textAlign: 'center' },
+  closeFriendsHint: {
+    marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
+    backgroundColor: '#111827', borderRadius: 10,
+    borderWidth: 1, borderColor: '#1f2937',
+  },
+  closeFriendsHintTxt: { color: '#94a3b8', fontSize: 12, lineHeight: 18 },
+  closeFriendsAction: { fontWeight: '600', fontSize: 12 },
 
   footer: { padding: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#1f2937' },
   saveBtn: {

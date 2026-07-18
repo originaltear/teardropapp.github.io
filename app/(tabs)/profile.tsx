@@ -333,7 +333,11 @@ export default function ProfileScreen() {
           <View style={styles.badgeList}>
             {recentAchievements.length === 0 ? (
               <View style={styles.emptyAch}>
-                <Text style={styles.emptyAchTxt}>Log your first cry to start earning achievements</Text>
+                <Text style={styles.emptyAchTxt}>
+                  {session
+                    ? 'Log your first cry to start earning achievements'
+                    : 'Sign in to start earning achievements'}
+                </Text>
               </View>
             ) : recentAchievements.map(a => {
               const def = ACHIEVEMENTS.find(x => x.id === a.id);

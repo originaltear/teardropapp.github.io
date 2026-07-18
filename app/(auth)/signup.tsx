@@ -23,6 +23,8 @@ export default function SignupScreen() {
   const { theme: { accent } } = useTheme();
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -34,6 +36,7 @@ export default function SignupScreen() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed) { setError('Please enter your email.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
@@ -182,17 +185,44 @@ export default function SignupScreen() {
             />
 
             <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="At least 6 characters"
+                placeholderTextColor="#4a5568"
+                secureTextEntry={!showPassword}
+                textContentType="newPassword"
+                returnKeyType="next"
+              />
+              <TouchableOpacity
+                style={styles.revealBtn}
+                onPress={() => setShowPassword(v => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.revealTxt, { color: accent }]}>{showPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.label, { marginTop: 16 }]}>Confirm password</Text>
             <TextInput
               style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="At least 6 characters"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Re-enter your password"
               placeholderTextColor="#4a5568"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               textContentType="newPassword"
               onSubmitEditing={handleSignup}
               returnKeyType="done"
             />
+
+            {confirmPassword.length > 0 && password !== confirmPassword ? (
+              <Text style={styles.mismatchTxt}>Passwords don't match yet</Text>
+            ) : null}
 
             {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
 
@@ -285,6 +315,14 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     color: '#e2e8f0', fontSize: 15,
   },
+  passwordRow: { justifyContent: 'center' },
+  passwordInput: { paddingRight: 68 },
+  revealBtn: {
+    position: 'absolute', right: 6, top: 0, bottom: 0,
+    paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  revealTxt: { fontSize: 13, fontWeight: '600' },
+  mismatchTxt: { color: '#eab308', fontSize: 12, marginTop: 6 },
   errorTxt: { color: '#ef6f6f', fontSize: 13, marginTop: 8, lineHeight: 18 },
 
   btn: {

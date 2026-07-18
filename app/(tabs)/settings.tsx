@@ -30,6 +30,11 @@ import { validateUsername, isUsernameTaken, updateUsername } from '../../lib/use
 import { useTheme, THEMES } from '../../lib/themes';
 import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
 
+// Hosted privacy policy (same target as the paywall's legal links). Google Play
+// requires an accessible privacy policy for apps that collect account data, so
+// it's surfaced in Settings as well as at purchase time.
+const PRIVACY_URL = 'https://originaltear.github.io/teardropapp.github.io/privacy-policy.html';
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionLabel({ text }: { text: string }) {
@@ -656,6 +661,15 @@ export default function SettingsScreen() {
               <Text style={styles.rowLabel}>Version</Text>
               <Text style={styles.rowValue}>{Constants.expoConfig?.version ?? '1.0.0'}</Text>
             </View>
+            <SettingsRow
+              label="Privacy Policy"
+              value="›"
+              onPress={() =>
+                Linking.openURL(PRIVACY_URL).catch(() =>
+                  Alert.alert('Could not open link', 'Please visit ' + PRIVACY_URL)
+                )
+              }
+            />
             <SettingsRow label="Report a problem" onPress={() => setShowReport(true)} />
           </SettingsGroup>
 

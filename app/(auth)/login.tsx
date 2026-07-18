@@ -28,6 +28,7 @@ export default function LoginScreen() {
   const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
   const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Gentle fade + rise of the logo when the screen first appears.
   const intro = useRef(new Animated.Value(0)).current;
@@ -128,17 +129,28 @@ export default function LoginScreen() {
             />
 
             <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              placeholderTextColor="#4a5568"
-              secureTextEntry
-              textContentType="password"
-              onSubmitEditing={handleLogin}
-              returnKeyType="done"
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                style={[styles.input, styles.passwordInput]}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#4a5568"
+                secureTextEntry={!showPassword}
+                textContentType="password"
+                onSubmitEditing={handleLogin}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={styles.revealBtn}
+                onPress={() => setShowPassword(v => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[styles.revealTxt, { color: accent }]}>{showPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
 
             {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
 
@@ -259,6 +271,13 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     color: '#e2e8f0', fontSize: 15,
   },
+  passwordRow: { justifyContent: 'center' },
+  passwordInput: { paddingRight: 68 },
+  revealBtn: {
+    position: 'absolute', right: 6, top: 0, bottom: 0,
+    paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center',
+  },
+  revealTxt: { fontSize: 13, fontWeight: '600' },
   errorTxt: { color: '#ef6f6f', fontSize: 13, marginTop: 8, lineHeight: 18 },
 
   primaryBtn: {

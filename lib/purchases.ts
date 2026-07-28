@@ -230,6 +230,7 @@ export async function purchasePlan(plan: PlanOption): Promise<PurchaseResult> {
           .from('profiles')
           .update({ is_premium: true })
           .eq('id', session.user.id);
+        _premiumCache = true;   // ads/premium gates react immediately
         await syncCrystalTear(session.user.id);
       }
     } catch (e) {
@@ -239,6 +240,9 @@ export async function purchasePlan(plan: PlanOption): Promise<PurchaseResult> {
   }
   try {
     await Purchases.purchasePackage(plan.pkg);
+    // Update the session cache right away — without this, a user who just
+    // bought Pro would keep seeing ads (and locked features) until restart.
+    _premiumCache = true;
     return 'success';
   } catch (e: any) {
     if (e.userCancelled) return 'cancelled';
@@ -250,7 +254,9 @@ export async function purchasePlan(plan: PlanOption): Promise<PurchaseResult> {
 export async function restorePurchases(): Promise<boolean> {
   try {
     const info = await Purchases.restorePurchases();
-    return ENTITLEMENT_ID in info.entitlements.active;
+    const hasPro = ENTITLEMENT_ID in info.entitlements.active;
+    if (hasPro) _premiumCache = true;   // same immediate-effect rule as purchase
+    return hasPro;
   } catch {
     return false;
   }

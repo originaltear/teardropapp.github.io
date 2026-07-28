@@ -127,7 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // When Chrome redirects to exp://192.168.x.x:8081?code=XXX, Android
     // routes the intent to Expo Go. We catch it here and exchange the code.
     const handleUrl = async ({ url }: { url: string }) => {
-      console.log('[auth] incoming URL:', url.substring(0, 120));
+      // Never log the URL itself — OAuth callbacks carry auth codes/tokens.
+      console.log('[auth] incoming deep link (contents redacted)');
 
       // PKCE flow: teardrop://?code=XXX
       if (url.includes('code=') && !url.includes('#')) {

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect, memo } from 'react';
+import { useCallback, useRef, useState, useEffect, useMemo, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
@@ -488,6 +488,22 @@ export default function FeedScreen() {
         .filter(c => !mineQuickOnly || isQuickLogSocial(c))
     : allCries;
 
+  // Intersperse an ad row every AD_EVERY cries (feed monetization). FeedBanner
+  // hides itself for Pro users, so those rows collapse to nothing for them. No ad
+  // is placed as the very last row.
+  type FeedRow = { kind: 'cry'; cry: SocialCry } | { kind: 'ad'; id: string };
+  const AD_EVERY = 8;
+  const feedRows = useMemo<FeedRow[]>(() => {
+    const rows: FeedRow[] = [];
+    displayCries.forEach((cry, i) => {
+      rows.push({ kind: 'cry', cry });
+      if ((i + 1) % AD_EVERY === 0 && i + 1 < displayCries.length) {
+        rows.push({ kind: 'ad', id: `ad-${cry.id}` });
+      }
+    });
+    return rows;
+  }, [displayCries]);
+
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
 
   // Row tap: toggles the checkbox in bulk-select mode, opens the sheet otherwise
@@ -631,19 +647,23 @@ export default function FeedScreen() {
         <ListSkeleton />
       ) : (
         <FlatList
-          data={displayCries}
-          keyExtractor={c => c.id}
+          data={feedRows}
+          keyExtractor={row => (row.kind === 'cry' ? row.cry.id : row.id)}
           style={{ flex: 1 }}
-          renderItem={({ item }) => (
-            <FeedItem
-              cry={item}
-              onSelect={handleSelect}
-              quickBadge={tab === 'mine' && isQuickLogSocial(item)}
-              selectMode={tab === 'mine' && selectMode}
-              checked={selectedIds.has(item.id)}
-              onLongPress={tab === 'mine' ? handleRowLongPress : undefined}
-            />
-          )}
+          renderItem={({ item }) =>
+            item.kind === 'ad' ? (
+              <FeedBanner />
+            ) : (
+              <FeedItem
+                cry={item.cry}
+                onSelect={handleSelect}
+                quickBadge={tab === 'mine' && isQuickLogSocial(item.cry)}
+                selectMode={tab === 'mine' && selectMode}
+                checked={selectedIds.has(item.cry.id)}
+                onLongPress={tab === 'mine' ? handleRowLongPress : undefined}
+              />
+            )
+          }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={displayCries.length === 0 ? styles.emptyContainer : styles.listContent}
           onEndReached={loadMore}
@@ -690,17 +710,14 @@ export default function FeedScreen() {
         />
       )}
 
-      {/* Bottom of the feed: the bulk action bar while selecting, otherwise the
-          ad banner (hidden for Pro users inside FeedBanner). */}
-      {selectMode && tab === 'mine' ? (
+      {/* Bulk action bar while selecting on the Mine tab. */}
+      {selectMode && tab === 'mine' && (
         <BulkActionsBar
           count={selectedIds.size}
           applying={applying}
           onChangeVisibility={() => promptBulkVisibility(selectedIds.size, applyBulkVisibility)}
           onDelete={() => promptBulkDelete(selectedIds.size, applyBulkDelete)}
         />
-      ) : (
-        <FeedBanner />
       )}
 
       {selected && (

@@ -16,6 +16,7 @@ import { loadCries, Cry } from '../lib/storage';
 import { EMOTIONS, emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import { checkPremium } from '../lib/purchases';
+import { FeedBanner } from '../components/FeedBanner';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
 
@@ -525,6 +526,7 @@ export default function StatsScreen() {
           )}
         </PremiumSection>
 
+        <FeedBanner />
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>

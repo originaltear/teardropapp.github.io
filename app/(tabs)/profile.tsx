@@ -18,6 +18,7 @@ import {
 } from '../../lib/achievements';
 import { TearsBadge } from '../../components/TearsBadge';
 import { useAchievementToast } from '../../components/AchievementToastProvider';
+import { FeedBanner } from '../../components/FeedBanner';
 import { supabase } from '../../lib/supabase';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -360,6 +361,8 @@ export default function ProfileScreen() {
             })}
           </View>
         </View>
+
+        <FeedBanner />
       </ScrollView>
 
       {editOpen && (

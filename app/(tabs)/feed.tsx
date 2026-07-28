@@ -51,6 +51,7 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle, onEdit }: 
   onEdit?: () => void;
 }) {
   const { theme: { accent } } = useTheme();
+  const router = useRouter();
   const emotion = emotionById(cry.emotion);
   const [liked, setLiked] = useState(cry.liked_by_me);
   const [likeCount, setLikeCount] = useState(cry.like_count);
@@ -153,13 +154,19 @@ function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle, onEdit }: 
 
           {/* Header */}
           <View style={styles.sheetHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              onPress={() => { onClose(); router.push(`/user-profile?id=${cry.user_id}`); }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`View @${cry.profile.username}'s profile`}
+            >
               <Avatar uri={cry.profile.avatar_uri} size={32} />
               <View>
                 <Text style={styles.sheetUser}>{cry.profile.display_name}</Text>
                 <Text style={styles.sheetHandle}>@{cry.profile.username}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               {isOwn && onEdit && (
                 <TouchableOpacity onPress={onEdit} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Edit this cry">
@@ -322,9 +329,10 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
           <Text style={styles.timeAgo}>{timeAgo(cry.created_at)}</Text>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-          <Text style={[styles.emotionChip, { color, backgroundColor: color + '22' }]}>
-            {emotion?.emoji} {emotion?.label ?? cry.emotion}
-          </Text>
+          <View style={[styles.emotionChip, { backgroundColor: color + '22' }]}>
+            <Text style={styles.emotionChipEmoji}>{emotion?.emoji}</Text>
+            <Text style={[styles.emotionChipLabel, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+          </View>
           <Drops intensity={cry.intensity} size={11} />
         </View>
         {cry.note ? <Text style={styles.noteSnippet} numberOfLines={2}>{cry.note}</Text> : null}
@@ -810,7 +818,9 @@ const styles = StyleSheet.create({
   itemUser: { color: '#e2e8f0', fontSize: 14, fontWeight: '600', flex: 1 },
   itemHandle: { color: '#4a5568', fontWeight: '400' },
   timeAgo: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
-  emotionChip: { fontSize: 12, fontWeight: '600', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  emotionChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  emotionChipEmoji: { fontSize: 12 },
+  emotionChipLabel: { fontSize: 12, fontWeight: '600' },
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
   itemTags: { color: '#4a5568', fontSize: 12 },
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },

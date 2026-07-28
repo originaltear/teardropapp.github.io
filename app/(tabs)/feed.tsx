@@ -492,7 +492,7 @@ export default function FeedScreen() {
   // hides itself for Pro users, so those rows collapse to nothing for them. No ad
   // is placed as the very last row.
   type FeedRow = { kind: 'cry'; cry: SocialCry } | { kind: 'ad'; id: string };
-  const AD_EVERY = 7;
+  const AD_EVERY = 8;
   const feedRows = useMemo<FeedRow[]>(() => {
     const rows: FeedRow[] = [];
     displayCries.forEach((cry, i) => {

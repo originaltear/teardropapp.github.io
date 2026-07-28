@@ -19,6 +19,11 @@ module.exports = ({ config }) => ({
   ...config,
   android: {
     ...config.android,
+    // On EAS builds google-services.json is provided via the GOOGLE_SERVICES_JSON
+    // file secret (the file itself is gitignored). Locally we fall back to the
+    // path declared in app.json.
+    googleServicesFile:
+      process.env.GOOGLE_SERVICES_JSON ?? (config.android && config.android.googleServicesFile),
     config: {
       ...(config.android && config.android.config),
       googleMaps: {

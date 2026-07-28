@@ -2,7 +2,7 @@
   "expo": {
     "name": "Teardrop",
     "slug": "teardrop",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "scheme": "teardrop",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.originaltear.teardrop",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -27,7 +27,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "versionCode": 10,
+      "versionCode": 11,
       "package": "com.originaltear.teardrop",
       "googleServicesFile": "./google-services.json"
     },
@@ -76,6 +76,22 @@
           "icon": "./assets/notification-icon.png",
           "color": "#0d1117",
           "defaultChannel": "default"
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-4733730200452740~3118315018",
+          "iosAppId": "ca-app-pub-4733730200452740~8965538066",
+          "delayAppMeasurementInit": true,
+          "optimizeInitialization": true,
+          "optimizeAdLoading": true
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This lets Teardrop show you more relevant ads. You can decline and still use every feature."
         }
       ]
     ],

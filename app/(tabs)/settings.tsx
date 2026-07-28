@@ -29,6 +29,7 @@ import type { UserIdentity } from '@supabase/supabase-js';
 import { validateUsername, isUsernameTaken, updateUsername } from '../../lib/username';
 import { useTheme, THEMES } from '../../lib/themes';
 import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
+import { isPrivacyOptionsRequired, showPrivacyOptions } from '../../lib/ads';
 
 // Hosted privacy policy (same target as the paywall's legal links). Google Play
 // requires an accessible privacy policy for apps that collect account data, so
@@ -123,6 +124,7 @@ export default function SettingsScreen() {
   const [isPremium, setIsPremium] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [hapticsOn, setHapticsOn] = useState(true);
+  const [adPrivacyAvailable, setAdPrivacyAvailable] = useState(false);
 
   // Privacy settings
   const [profileVisibility, setProfileVisibility] =
@@ -192,6 +194,8 @@ export default function SettingsScreen() {
   // ── Haptics preference (local, works for guests too) ──
   useEffect(() => {
     loadHapticsPref().then(setHapticsOn);
+    // Show the ad-consent entry point only where UMP requires it (EEA/US states).
+    isPrivacyOptionsRequired().then(setAdPrivacyAvailable).catch(() => {});
   }, []);
 
   // ── Real-time username availability check (modal) ──
@@ -670,6 +674,13 @@ export default function SettingsScreen() {
                 )
               }
             />
+            {adPrivacyAvailable && (
+              <SettingsRow
+                label="Ad privacy options"
+                value="›"
+                onPress={() => { showPrivacyOptions(); }}
+              />
+            )}
             <SettingsRow label="Report a problem" onPress={() => setShowReport(true)} />
           </SettingsGroup>
 

@@ -21,7 +21,6 @@ import { getDefaultCryVisibility, getCloseFriends } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAchievementToast } from '../components/AchievementToastProvider';
 import { useAuth } from '../lib/auth';
-import { showPostCryAd } from '../lib/ads';
 import { useTheme } from '../lib/themes';
 import { PressableScale } from '../components/PressableScale';
 import { tapLight, tapMedium, selection, success, warning } from '../lib/haptics';
@@ -337,9 +336,6 @@ export default function LogCryScreen() {
         .then(newOnes => { if (newOnes?.length) queueAchievements(newOnes); })
         .catch(() => { /* best-effort */ });
     }
-
-    // Show post-cry ad (skipped for premium users, placeholder until AppLovin is live)
-    showPostCryAd().catch(() => {});
 
     setSaving(false);
 

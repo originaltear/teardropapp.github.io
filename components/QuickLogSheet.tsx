@@ -19,7 +19,6 @@ import { checkAndSaveAchievements } from '../lib/achievements';
 import { useAchievementToast } from './AchievementToastProvider';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/themes';
-import { showPostCryAd } from '../lib/ads';
 import { selection, success, warning } from '../lib/haptics';
 
 export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
@@ -79,8 +78,6 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
         .then(newOnes => { if (newOnes?.length) queueAchievements(newOnes); })
         .catch(() => { /* best-effort */ });
     }
-
-    showPostCryAd().catch(() => {});
 
     setSavingId(null);
     onLogged();

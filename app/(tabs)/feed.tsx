@@ -30,6 +30,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { isQuickLogSocial } from '../../lib/quick-log';
 import { TagPills } from '../../components/TagPills';
+import { FeedBanner } from '../../components/FeedBanner';
+import { maybeShowFeedInterstitial } from '../../lib/ads';
 import { updateCriesVisibility, deleteCries } from '../../lib/storage';
 import {
   BulkActionsBar, promptBulkVisibility, promptBulkDelete,
@@ -474,6 +476,9 @@ export default function FeedScreen() {
 
   useFocusEffect(useCallback(() => {
     loadFeed();
+    // Light interstitial when the feed opens. Self-gated: skipped for Pro, for the
+    // first ~90s after launch, and to at most once per 3 min. Never after a cry.
+    maybeShowFeedInterstitial();
   }, [session, tab]));
 
   // Filter mine tab by emotion and/or quick-log status
@@ -685,14 +690,17 @@ export default function FeedScreen() {
         />
       )}
 
-      {/* Bulk action bar — visibility + delete for everything selected */}
-      {selectMode && tab === 'mine' && (
+      {/* Bottom of the feed: the bulk action bar while selecting, otherwise the
+          ad banner (hidden for Pro users inside FeedBanner). */}
+      {selectMode && tab === 'mine' ? (
         <BulkActionsBar
           count={selectedIds.size}
           applying={applying}
           onChangeVisibility={() => promptBulkVisibility(selectedIds.size, applyBulkVisibility)}
           onDelete={() => promptBulkDelete(selectedIds.size, applyBulkDelete)}
         />
+      ) : (
+        <FeedBanner />
       )}
 
       {selected && (

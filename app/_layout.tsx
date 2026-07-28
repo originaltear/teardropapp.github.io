@@ -10,6 +10,7 @@ import { checkForUpdate } from '../lib/update-check';
 import { setAudioModeAsync } from 'expo-audio';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { initPurchases, syncCrystalTear, invalidatePremiumCache } from '../lib/purchases';
+import { initAds } from '../lib/ads';
 import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef } from '../lib/themes';
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
 import { SplashGate } from '../components/AppSplash';
@@ -73,6 +74,12 @@ function RootNav() {
   // ── Audio session: voice notes must be audible with the iOS silent switch on
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+  }, []);
+
+  // ── Ads: iOS App Tracking Transparency + GDPR/UMP consent, then init AdMob.
+  //    Self-contained and best-effort; failures never block the app.
+  useEffect(() => {
+    initAds();
   }, []);
 
   // ── Handle notification taps (background / quit state) ───────────────────

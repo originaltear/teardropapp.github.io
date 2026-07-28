@@ -186,24 +186,13 @@ export async function respondToFriendRequest(
   requestId: string,
   action: 'accepted' | 'rejected'
 ): Promise<void> {
+  // On 'accepted', the trg_friend_request_accept DB trigger (SECURITY DEFINER)
+  // creates the mutual follow server-side. The old client-side double upsert
+  // could never work: follows INSERT RLS only permits follower_id = auth.uid(),
+  // so the requester→accepter direction silently failed.
   await supabase.from('friend_requests')
     .update({ status: action })
     .eq('id', requestId);
-
-  // If accepted, create a mutual follow
-  if (action === 'accepted') {
-    const { data } = await supabase
-      .from('friend_requests')
-      .select('from_user_id, to_user_id')
-      .eq('id', requestId)
-      .single();
-    if (data) {
-      await Promise.all([
-        supabase.from('follows').upsert({ follower_id: data.to_user_id, following_id: data.from_user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-        supabase.from('follows').upsert({ follower_id: data.from_user_id, following_id: data.to_user_id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true }),
-      ]);
-    }
-  }
 }
 
 export async function getPendingRequests(): Promise<FriendRequest[]> {

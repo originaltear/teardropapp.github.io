@@ -95,11 +95,6 @@ export function initPurchases(userId?: string) {
  */
 let _premiumCache: boolean | null = null;
 
-/** Immediate cached value — safe to call synchronously, defaults to false. */
-export function getPremiumCache(): boolean {
-  return _premiumCache ?? false;
-}
-
 /** Call on SIGNED_IN / SIGNED_OUT to force a fresh check next time. */
 export function invalidatePremiumCache(): void {
   _premiumCache = null;

@@ -440,6 +440,10 @@ export default function StatsScreen() {
           </View>
         )}
 
+        {/* Ad sits after the free content but before the premium wall, so
+            non-premium users (who stop scrolling at the wall) actually see it. */}
+        <FeedBanner />
+
         {/* ══════ PREMIUM SECTIONS ══════ */}
 
         {/* ── EMOTION BREAKDOWN 💎 ── */}
@@ -526,7 +530,6 @@ export default function StatsScreen() {
           )}
         </PremiumSection>
 
-        <FeedBanner />
         <View style={{ height: 32 }} />
       </ScrollView>
     </SafeAreaView>

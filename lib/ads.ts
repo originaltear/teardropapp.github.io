@@ -30,7 +30,7 @@ import { checkPremium } from './purchases';
 // paste the real IDs into REAL_* below, and flip USE_TEST_ADS to false. Until then
 // we serve Google's public TEST ads so no real impressions/clicks happen during
 // development (clicking your own live ads is a policy violation).
-const USE_TEST_ADS = true;
+const USE_TEST_ADS = false;
 
 const REAL_INTERSTITIAL = Platform.select({
   android: 'ca-app-pub-4733730200452740/5237814538', // Feed Interstitial (Android)

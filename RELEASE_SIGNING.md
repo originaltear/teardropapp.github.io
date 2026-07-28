@@ -61,7 +61,7 @@ Google login fails for Play Store installs.
 
 ## If you ever re-run `expo prebuild`
 
-That regenerates `android/` and wipes two local changes — re-apply both:
+That regenerates `android/` and wipes three local changes — re-apply all:
 
 1. **Signing wiring** — re-add the `keystore.properties` loading +
    `signingConfigs.release` block to `android/app/build.gradle` (guard it with
@@ -72,3 +72,21 @@ That regenerates `android/` and wipes two local changes — re-apply both:
    `org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1536m`.
    The default 512m Metaspace makes RN 0.85+ (New Architecture) release builds
    fail with cascading `Metaspace` errors.
+3. **Kotlin compiler force** — in `android/build.gradle`, inside the `buildscript`
+   block, force the Kotlin compiler up so it can read the AdMob / Play Services
+   SDK (compiled with Kotlin 2.3.0; RN 0.85 pins the compiler to 2.1.0):
+   ```gradle
+   buildscript {
+     repositories { google(); mavenCentral() }
+     configurations.classpath {
+       resolutionStrategy { force 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.0' }
+     }
+     dependencies { ... }
+   }
+   ```
+   Without this, `:react-native-google-mobile-ads:compileReleaseKotlin` fails with
+   "Module was compiled with an incompatible version of Kotlin". The
+   `expo-build-properties` plugin's `android.kotlinVersion: "2.3.0"` (in app.json)
+   only bumps the stdlib, not the compiler — this force is still required.
+   **TODO:** move this into a custom Expo config plugin so it survives prebuild
+   (needed for EAS builds, which run prebuild automatically).

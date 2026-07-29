@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-  useWindowDimensions, Alert, Animated,
+  useWindowDimensions, Alert, Animated, Pressable, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -35,6 +35,9 @@ const BG = '#070a14';
 const INK = '#e8eef7';
 const MUTED = '#8fa3b0';
 const DEFAULT_ACCENT = '#6fe0e6';
+
+/** How long each card holds before advancing itself. */
+const CARD_DURATION_MS = 5200;
 
 // ─── Small building blocks ────────────────────────────────────────────────────
 
@@ -181,9 +184,16 @@ export default function WrappedScreen() {
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [sharing, setSharing] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   const shareRef = useRef<View>(null);
+  const listRef = useRef<FlatList<any>>(null);
   const year = currentWrappedYear();
+
+  // Fill of the current progress segment. JS-driven (not the native driver) so
+  // stopAnimation can hand back the exact value when the user holds to pause.
+  const progress = useRef(new Animated.Value(0)).current;
+  const pausedAt = useRef(0);
 
   useFocusEffect(useCallback(() => {
     let cancelled = false;
@@ -239,7 +249,7 @@ export default function WrappedScreen() {
     list.push({
       key: 'intro',
       render: active => (
-        <WrappedCard active={active} accent={accent} eyebrow={`${year} · Teardrop`}>
+        <WrappedCard active={active} accent={accent} eyebrow={`${year} · Teardrop`} variant="center">
           <Text style={s.introTitle}>Your Year{'\n'}in Tears</Text>
           <Text style={s.introSub}>A look back at everything you felt.</Text>
         </WrappedCard>
@@ -251,7 +261,7 @@ export default function WrappedScreen() {
       render: active => (
         <WrappedCard
           active={active} accent={accent} eyebrow="This year you logged"
-          caption={totalComment(data.total, seed)}
+          caption={totalComment(data.total, seed)} variant="center"
         >
           <BigNumber value={data.total} color={accent} active={active} />
           <Text style={s.heroUnit}>{data.total === 1 ? 'cry' : 'cries'}</Text>
@@ -264,8 +274,8 @@ export default function WrappedScreen() {
         key: 'emotion',
         render: active => (
           <WrappedCard
-            active={active} accent={accent} eyebrow="Your defining emotion"
-            caption={emotionComment(data.topEmotion!.id, seed)}
+            active={active} accent={data.topEmotion!.color} eyebrow="Your defining emotion"
+            caption={emotionComment(data.topEmotion!.id, seed)} variant="flood"
           >
             <PopIn active={active}>
               <Text style={s.emotionBig}>{data.topEmotion!.emoji}</Text>
@@ -365,7 +375,7 @@ export default function WrappedScreen() {
         render: active => (
           <WrappedCard
             active={active} accent={accent} eyebrow="Where it happened"
-            caption={geoComment(data.countries.length, seed)}
+            caption={geoComment(data.countries.length, seed)} variant="center"
           >
             <BigNumber value={data.countries.length} color={accent} active={active} />
             <Text style={s.heroUnit}>
@@ -387,7 +397,7 @@ export default function WrappedScreen() {
         render: active => (
           <WrappedCard
             active={active} accent={accent} eyebrow="Your longest streak"
-            caption={streakComment(data.longestStreak, seed)}
+            caption={streakComment(data.longestStreak, seed)} variant="flood"
           >
             <BigNumber value={data.longestStreak} color={accent} active={active} />
             <Text style={s.heroUnit}>days in a row</Text>
@@ -402,7 +412,7 @@ export default function WrappedScreen() {
         render: active => (
           <WrappedCard
             active={active} accent={accent} eyebrow="You were not alone"
-            caption="People showed up for you this year."
+            caption="People showed up for you this year." variant="center"
           >
             <View style={s.receivedRow}>
               <ReceivedStat value={extras.hugsReceived} label="🫂 hugs" color={accent} active={active} delay={380} />
@@ -419,7 +429,7 @@ export default function WrappedScreen() {
       render: active => (
         <WrappedCard
           active={active} accent={accent} eyebrow="That was your year"
-          caption={closingComment(seed)}
+          caption={closingComment(seed)} variant="center"
         >
           <Text style={s.introTitle}>{year}</Text>
           <TouchableOpacity
@@ -440,6 +450,43 @@ export default function WrappedScreen() {
 
     return list;
   }, [data, extras, accent, sharing, year, seed]);
+
+  // ── Story playback ──
+  const lastIndex = cards.length - 1;
+
+  const goTo = useCallback((next: number) => {
+    if (next < 0 || next > lastIndex) return;
+    listRef.current?.scrollToIndex({ index: next, animated: true });
+    setIndex(next);
+    selection();
+  }, [lastIndex]);
+
+  // A new card always starts its timer from scratch.
+  useEffect(() => {
+    progress.setValue(0);
+    pausedAt.current = 0;
+  }, [index, progress]);
+
+  // Fill the segment, then advance. Holding pauses and keeps the position, so
+  // letting go resumes rather than restarting. The last card never auto-advances
+  // — it holds on the share button.
+  useEffect(() => {
+    if (loading || !data.hasEnough || index >= lastIndex) return;
+
+    if (paused) {
+      progress.stopAnimation(v => { pausedAt.current = v; });
+      return;
+    }
+
+    const anim = Animated.timing(progress, {
+      toValue: 1,
+      duration: CARD_DURATION_MS * (1 - pausedAt.current),
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+    anim.start(({ finished }) => { if (finished) goTo(index + 1); });
+    return () => anim.stop();
+  }, [index, paused, loading, data.hasEnough, lastIndex, goTo, progress]);
 
   // ── Render ──
 
@@ -471,26 +518,66 @@ export default function WrappedScreen() {
   return (
     <View style={s.fill}>
       <FlatList
+        ref={listRef}
         data={cards}
         keyExtractor={c => c.key}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         onMomentumScrollEnd={e => {
           const i = Math.round(e.nativeEvent.contentOffset.x / width);
           if (i !== index) { setIndex(i); selection(); }
         }}
-        renderItem={({ item, index: i }) => <>{item.render(i === index)}</>}
+        renderItem={({ item, index: i }) => (
+          <View style={{ width }}>
+            {item.render(i === index)}
+            {/* Tap left/right to move, hold to pause. Lives inside the row so
+                the horizontal scroll can still steal the gesture on a drag —
+                an overlay outside the list would kill swiping. Skipped on the
+                last card so the share button stays tappable. */}
+            {i !== lastIndex && (
+              <View style={s.tapRow}>
+                <Pressable
+                  style={s.tapZoneBack}
+                  onPress={() => goTo(i - 1)}
+                  onLongPress={() => setPaused(true)}
+                  onPressOut={() => setPaused(false)}
+                  delayLongPress={220}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous"
+                />
+                <Pressable
+                  style={s.tapZoneNext}
+                  onPress={() => goTo(i + 1)}
+                  onLongPress={() => setPaused(true)}
+                  onPressOut={() => setPaused(false)}
+                  delayLongPress={220}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next"
+                />
+              </View>
+            )}
+          </View>
+        )}
       />
 
       {/* Progress segments */}
       <SafeAreaView edges={['top']} style={s.progressWrap} pointerEvents="box-none">
         <View style={s.progressRow}>
           {cards.map((c, i) => (
-            <View
-              key={c.key}
-              style={[s.segment, { backgroundColor: i <= index ? accent : '#1c2733' }]}
-            />
+            <View key={c.key} style={s.segment}>
+              <Animated.View
+                style={[
+                  s.segmentFill,
+                  {
+                    backgroundColor: accent,
+                    transformOrigin: 'left',
+                    transform: [{ scaleX: i === index ? progress : i < index ? 1 : 0 }],
+                  },
+                ]}
+              />
+            </View>
           ))}
         </View>
         <TouchableOpacity
@@ -551,7 +638,12 @@ const s = StyleSheet.create({
 
   progressWrap: { position: 'absolute', top: 0, left: 0, right: 0 },
   progressRow: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10 },
-  segment: { flex: 1, height: 3, borderRadius: 2 },
+  segment: { flex: 1, height: 3, borderRadius: 2, backgroundColor: '#22303d', overflow: 'hidden' },
+  segmentFill: { width: '100%', height: '100%', borderRadius: 2 },
+
+  tapRow: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row' },
+  tapZoneBack: { flex: 1 },
+  tapZoneNext: { flex: 2 },
   closeBtn: { alignSelf: 'flex-end', padding: 14 },
   closeTxt: { color: MUTED, fontSize: 20 },
 

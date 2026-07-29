@@ -1,7 +1,8 @@
 /**
- * Feed banner — an anchored adaptive AdMob banner shown at the bottom of the
- * feed for non-premium users. Renders nothing for Pro users (or while the
- * premium check is in flight, so there's no flash of empty ad space).
+ * Ad banner used in the feed (between cries) and at the bottom of the profile,
+ * stats and calendar screens. Renders nothing for Pro users, while the premium
+ * check is in flight, or when the ad fails to fill — an empty reserved slot
+ * would otherwise leave a visible hole in the layout.
  */
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -11,6 +12,7 @@ import { checkPremium } from '../lib/purchases';
 
 export function FeedBanner() {
   const [show, setShow] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -20,11 +22,20 @@ export function FeedBanner() {
     return () => { mounted = false; };
   }, []);
 
-  if (!show) return null;
+  if (!show || failed) return null;
 
   return (
     <View style={styles.wrap}>
-      <BannerAd unitId={BANNER_UNIT_ID} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />
+      <BannerAd
+        unitId={BANNER_UNIT_ID}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        onAdFailedToLoad={error => {
+          // No fill is normal for a new app/unit — collapse the slot rather than
+          // leaving an empty gap between cries.
+          console.warn('[ads] banner failed to load:', error?.message ?? error);
+          setFailed(true);
+        }}
+      />
     </View>
   );
 }

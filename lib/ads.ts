@@ -90,19 +90,42 @@ export async function initAds(): Promise<void> {
 let interstitial: InterstitialAd | null = null;
 let interstitialLoaded = false;
 
+// A failed load used to be terminal: interstitialLoaded stayed false and nothing
+// ever re-requested, so one no-fill (common for a young app) silently disabled
+// interstitials for the rest of the session. Retry a few times with backoff.
+const INTERSTITIAL_RETRY_BASE_MS = 60_000;
+const MAX_INTERSTITIAL_RETRIES = 3;
+let interstitialRetries = 0;
+
 function preloadInterstitial() {
   try {
     const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID);
     interstitial = ad;
     interstitialLoaded = false;
 
-    const unsub = ad.addAdEventListener(AdEventType.LOADED, () => { interstitialLoaded = true; });
+    // Each preload creates a fresh instance; ignore events from superseded ones
+    // so a late callback can't clobber the current ad's state.
+    const isCurrent = () => interstitial === ad;
+
+    ad.addAdEventListener(AdEventType.LOADED, () => {
+      if (!isCurrent()) return;
+      interstitialLoaded = true;
+      interstitialRetries = 0;
+    });
     ad.addAdEventListener(AdEventType.CLOSED, () => {
+      if (!isCurrent()) return;
       interstitialLoaded = false;
-      unsub();
       preloadInterstitial(); // queue the next one for later
     });
-    ad.addAdEventListener(AdEventType.ERROR, () => { interstitialLoaded = false; });
+    ad.addAdEventListener(AdEventType.ERROR, (error: any) => {
+      if (!isCurrent()) return;
+      interstitialLoaded = false;
+      console.warn('[ads] interstitial failed to load:', error?.message ?? error);
+      if (interstitialRetries < MAX_INTERSTITIAL_RETRIES) {
+        interstitialRetries += 1;
+        setTimeout(preloadInterstitial, INTERSTITIAL_RETRY_BASE_MS * interstitialRetries);
+      }
+    });
 
     ad.load();
   } catch (e) {

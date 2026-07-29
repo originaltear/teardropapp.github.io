@@ -7,10 +7,10 @@
  * Ships dark — nothing links here until `app_config.wrapped_enabled` is turned
  * on (see lib/wrapped.ts), so the December launch needs no new build.
  */
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-  useWindowDimensions, Alert, Platform,
+  useWindowDimensions, Alert, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -38,18 +38,131 @@ const DEFAULT_ACCENT = '#6fe0e6';
 
 // ─── Small building blocks ────────────────────────────────────────────────────
 
-function BigNumber({ children, color }: { children: React.ReactNode; color?: string }) {
-  return <Text style={[s.bigNumber, color ? { color } : null]}>{children}</Text>;
+/**
+ * Counts from 0 up to `target` once the card becomes active. Driven by rAF and
+ * plain state because the value is *text* — the native driver can't animate
+ * glyphs, only transforms/opacity. Cheap: one card is active at a time.
+ */
+function useCountUp(target: number, active: boolean, delay = 380, duration = 1100) {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    if (!active) { setValue(0); return; }
+    let raf = 0;
+    let start = 0;
+    const step = (now: number) => {
+      if (!start) start = now;
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);   // easeOutCubic — fast, then settles
+      setValue(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    const timer = setTimeout(() => { raf = requestAnimationFrame(step); }, delay);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, [target, active, delay, duration]);
+
+  return value;
 }
 
-function Bar({ pct, color, label, value }: { pct: number; color: string; label: string; value: string }) {
+function BigNumber({ value, color, active }: { value: number; color?: string; active: boolean }) {
+  const shown = useCountUp(value, active);
+  return <Text style={[s.bigNumber, color ? { color } : null]}>{shown}</Text>;
+}
+
+/** Springs in from nothing — used for the one big emoji on emotion/time cards. */
+function PopIn({ children, active, delay = 300 }: { children: React.ReactNode; active: boolean; delay?: number }) {
+  const scale = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) { scale.setValue(0); return; }
+    const t = setTimeout(() => {
+      Animated.spring(scale, {
+        toValue: 1, friction: 5, tension: 90, useNativeDriver: true,
+      }).start();
+    }, delay);
+    return () => clearTimeout(t);
+  }, [active, delay, scale]);
+
+  return <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>;
+}
+
+/** Horizontal bar that grows out from its left edge. */
+function Bar({ pct, color, label, value, active, index = 0 }: {
+  pct: number; color: string; label: string; value: string; active: boolean; index?: number;
+}) {
+  const grow = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) { grow.setValue(0); return; }
+    Animated.timing(grow, {
+      toValue: 1,
+      duration: 620,
+      delay: 380 + index * 90,   // cascade down the list
+      useNativeDriver: true,
+    }).start();
+  }, [active, grow, index]);
+
   return (
     <View style={s.barRow}>
       <Text style={s.barLabel} numberOfLines={1}>{label}</Text>
       <View style={s.barTrack}>
-        <View style={[s.barFill, { width: `${Math.max(pct, 2)}%`, backgroundColor: color }]} />
+        <Animated.View
+          style={[
+            s.barFill,
+            {
+              width: `${Math.max(pct, 2)}%`,
+              backgroundColor: color,
+              transform: [{ scaleX: grow }],
+              transformOrigin: 'left',
+            },
+          ]}
+        />
       </View>
       <Text style={s.barValue}>{value}</Text>
+    </View>
+  );
+}
+
+/** Vertical bar for the month chart — grows up from the baseline. */
+function MonthBar({ height, color, active, index }: {
+  height: number; color: string; active: boolean; index: number;
+}) {
+  const grow = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) { grow.setValue(0); return; }
+    Animated.timing(grow, {
+      toValue: 1,
+      duration: 520,
+      delay: 360 + index * 45,
+      useNativeDriver: true,
+    }).start();
+  }, [active, grow, index]);
+
+  return (
+    <Animated.View
+      style={[
+        s.monthBar,
+        {
+          height,
+          backgroundColor: color,
+          transform: [{ scaleY: grow }],
+          transformOrigin: 'bottom',
+        },
+      ]}
+    />
+  );
+}
+
+/** One counting stat in the "you were not alone" row. */
+function ReceivedStat({ value, label, color, active, delay }: {
+  value: number; label: string; color: string; active: boolean; delay: number;
+}) {
+  const shown = useCountUp(value, active, delay, 900);
+  return (
+    <View style={s.receivedItem}>
+      <Text style={[s.receivedValue, { color }]}>{shown}</Text>
+      <Text style={s.receivedLabel}>{label}</Text>
     </View>
   );
 }
@@ -140,7 +253,7 @@ export default function WrappedScreen() {
           active={active} accent={accent} eyebrow="This year you logged"
           caption={totalComment(data.total, seed)}
         >
-          <BigNumber color={accent}>{data.total}</BigNumber>
+          <BigNumber value={data.total} color={accent} active={active} />
           <Text style={s.heroUnit}>{data.total === 1 ? 'cry' : 'cries'}</Text>
         </WrappedCard>
       ),
@@ -154,7 +267,9 @@ export default function WrappedScreen() {
             active={active} accent={accent} eyebrow="Your defining emotion"
             caption={emotionComment(data.topEmotion!.id, seed)}
           >
-            <Text style={s.emotionBig}>{data.topEmotion!.emoji}</Text>
+            <PopIn active={active}>
+              <Text style={s.emotionBig}>{data.topEmotion!.emoji}</Text>
+            </PopIn>
             <Text style={[s.emotionName, { color: data.topEmotion!.color }]}>
               {data.topEmotion!.label}
             </Text>
@@ -175,7 +290,9 @@ export default function WrappedScreen() {
             active={active} accent={accent} eyebrow="Your hour"
             caption={timeComment(d.id, seed)}
           >
-            <Text style={s.emotionBig}>{d.emoji}</Text>
+            <PopIn active={active}>
+              <Text style={s.emotionBig}>{d.emoji}</Text>
+            </PopIn>
             <Text style={[s.emotionName, { color: accent }]}>{d.label}</Text>
             <Text style={s.heroUnit}>
               {d.pct}% of your cries
@@ -197,9 +314,11 @@ export default function WrappedScreen() {
             caption={`${data.spectrum.length} different feelings this year.`}
           >
             <View style={s.bars}>
-              {data.spectrum.slice(0, 6).map(e => (
+              {data.spectrum.slice(0, 6).map((e, i) => (
                 <Bar
                   key={e.id}
+                  index={i}
+                  active={active}
                   pct={data.spectrum[0].count > 0 ? (e.count / data.spectrum[0].count) * 100 : 0}
                   color={e.color}
                   label={`${e.emoji} ${e.label}`}
@@ -223,16 +342,13 @@ export default function WrappedScreen() {
           >
             <Text style={[s.emotionName, { color: accent }]}>{data.busiestMonth!.label}</Text>
             <View style={s.monthChart}>
-              {data.monthly.map(m => (
+              {data.monthly.map((m, i) => (
                 <View key={m.label} style={s.monthCol}>
-                  <View
-                    style={[
-                      s.monthBar,
-                      {
-                        height: Math.max((m.value / max) * 110, 3),
-                        backgroundColor: m.label === data.busiestMonth!.label ? accent : '#1c2733',
-                      },
-                    ]}
+                  <MonthBar
+                    index={i}
+                    active={active}
+                    height={Math.max((m.value / max) * 110, 3)}
+                    color={m.label === data.busiestMonth!.label ? accent : '#1c2733'}
                   />
                   <Text style={s.monthLabel}>{m.short[0]}</Text>
                 </View>
@@ -251,7 +367,7 @@ export default function WrappedScreen() {
             active={active} accent={accent} eyebrow="Where it happened"
             caption={geoComment(data.countries.length, seed)}
           >
-            <BigNumber color={accent}>{data.countries.length}</BigNumber>
+            <BigNumber value={data.countries.length} color={accent} active={active} />
             <Text style={s.heroUnit}>
               {data.countries.length === 1 ? 'country' : 'countries'}
             </Text>
@@ -273,7 +389,7 @@ export default function WrappedScreen() {
             active={active} accent={accent} eyebrow="Your longest streak"
             caption={streakComment(data.longestStreak, seed)}
           >
-            <BigNumber color={accent}>{data.longestStreak}</BigNumber>
+            <BigNumber value={data.longestStreak} color={accent} active={active} />
             <Text style={s.heroUnit}>days in a row</Text>
           </WrappedCard>
         ),
@@ -289,18 +405,9 @@ export default function WrappedScreen() {
             caption="People showed up for you this year."
           >
             <View style={s.receivedRow}>
-              <View style={s.receivedItem}>
-                <Text style={[s.receivedValue, { color: accent }]}>{extras.hugsReceived}</Text>
-                <Text style={s.receivedLabel}>🫂 hugs</Text>
-              </View>
-              <View style={s.receivedItem}>
-                <Text style={[s.receivedValue, { color: accent }]}>{extras.likesReceived}</Text>
-                <Text style={s.receivedLabel}>💧 drops</Text>
-              </View>
-              <View style={s.receivedItem}>
-                <Text style={[s.receivedValue, { color: accent }]}>{extras.achievementsUnlocked}</Text>
-                <Text style={s.receivedLabel}>🏆 unlocked</Text>
-              </View>
+              <ReceivedStat value={extras.hugsReceived} label="🫂 hugs" color={accent} active={active} delay={380} />
+              <ReceivedStat value={extras.likesReceived} label="💧 drops" color={accent} active={active} delay={500} />
+              <ReceivedStat value={extras.achievementsUnlocked} label="🏆 unlocked" color={accent} active={active} delay={620} />
             </View>
           </WrappedCard>
         ),

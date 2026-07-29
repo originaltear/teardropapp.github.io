@@ -84,6 +84,19 @@ export interface WrappedExtras {
   achievementsUnlocked: number;
 }
 
+/**
+ * Where the user placed against everyone else. Both percentiles are null until
+ * enough people share the scope for the number to mean anything (and to stay
+ * non-identifying) — see the get_wrapped_rank migration.
+ */
+export interface WrappedRank {
+  country: string | null;
+  /** "Top N%" globally — lower is rarer. Null when the sample is too small. */
+  globalTopPct: number | null;
+  /** "Top N%" within their own country. Null when the sample is too small. */
+  countryTopPct: number | null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const localDay = (iso: string) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -286,6 +299,27 @@ export async function getWrappedExtras(year: number): Promise<WrappedExtras> {
   } catch (e) {
     console.warn('[wrapped] extras failed:', e);
     return zero;
+  }
+}
+
+/**
+ * The user's percentile for the year, from the get_wrapped_rank RPC. Returns
+ * nulls (rather than throwing) whenever the data is missing or the sample is
+ * too small, so the caller can just skip the card.
+ */
+export async function getWrappedRank(year: number): Promise<WrappedRank> {
+  const empty: WrappedRank = { country: null, globalTopPct: null, countryTopPct: null };
+  try {
+    const { data, error } = await supabase.rpc('get_wrapped_rank', { p_year: year });
+    if (error || !data) return empty;
+    return {
+      country: data.country ?? null,
+      globalTopPct: data.global_top_pct ?? null,
+      countryTopPct: data.country_top_pct ?? null,
+    };
+  } catch (e) {
+    console.warn('[wrapped] rank failed:', e);
+    return empty;
   }
 }
 

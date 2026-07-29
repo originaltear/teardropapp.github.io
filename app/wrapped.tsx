@@ -20,8 +20,8 @@ import * as Sharing from 'expo-sharing';
 import { loadCries, type Cry } from '../lib/storage';
 import { useAuth } from '../lib/auth';
 import {
-  computeWrapped, getWrappedExtras, currentWrappedYear,
-  type WrappedData, type WrappedExtras,
+  computeWrapped, getWrappedExtras, getWrappedRank, currentWrappedYear,
+  type WrappedData, type WrappedExtras, type WrappedRank,
 } from '../lib/wrapped';
 import {
   totalComment, emotionComment, timeComment,
@@ -29,6 +29,7 @@ import {
 } from '../lib/wrapped-comments';
 import { WrappedCard } from '../components/WrappedCard';
 import { WrappedShareCard } from '../components/WrappedShareCard';
+import { WrappedConfetti } from '../components/WrappedConfetti';
 import { success, selection } from '../lib/haptics';
 
 const BG = '#070a14';
@@ -181,6 +182,9 @@ export default function WrappedScreen() {
   const [extras, setExtras] = useState<WrappedExtras>({
     hugsReceived: 0, likesReceived: 0, achievementsUnlocked: 0,
   });
+  const [rank, setRank] = useState<WrappedRank>({
+    country: null, globalTopPct: null, countryTopPct: null,
+  });
   const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [sharing, setSharing] = useState(false);
@@ -200,10 +204,13 @@ export default function WrappedScreen() {
     (async () => {
       setLoading(true);
       try {
-        const [c, e] = await Promise.all([loadCries(), getWrappedExtras(year)]);
+        const [c, e, r] = await Promise.all([
+          loadCries(), getWrappedExtras(year), getWrappedRank(year),
+        ]);
         if (cancelled) return;
         setCries(c);
         setExtras(e);
+        setRank(r);
       } catch (err) {
         console.warn('[wrapped] load failed:', err);
       } finally {
@@ -406,6 +413,37 @@ export default function WrappedScreen() {
       });
     }
 
+    // Percentile card — only once enough people share the scope for the number
+    // to be meaningful (the RPC returns null below its thresholds).
+    if (rank.countryTopPct !== null || rank.globalTopPct !== null) {
+      const primary = rank.countryTopPct ?? rank.globalTopPct!;
+      const inCountry = rank.countryTopPct !== null;
+      list.push({
+        key: 'rank',
+        render: active => (
+          <WrappedCard
+            active={active} accent={accent} eyebrow="Compared to everyone else"
+            variant="center"
+            caption={
+              inCountry && rank.globalTopPct !== null
+                ? `And top ${rank.globalTopPct}% worldwide.`
+                : 'You are not as alone in this as it feels.'
+            }
+          >
+            <Text style={s.rankLead}>You are in the</Text>
+            <View style={s.rankRow}>
+              <Text style={[s.rankTop, { color: accent }]}>top</Text>
+              <BigNumber value={primary} color={accent} active={active} />
+              <Text style={[s.rankTop, { color: accent }]}>%</Text>
+            </View>
+            <Text style={s.heroUnit}>
+              {inCountry ? `of criers in ${rank.country}` : 'of criers worldwide'}
+            </Text>
+          </WrappedCard>
+        ),
+      });
+    }
+
     if (extras.hugsReceived + extras.likesReceived + extras.achievementsUnlocked > 0) {
       list.push({
         key: 'received',
@@ -431,6 +469,11 @@ export default function WrappedScreen() {
           active={active} accent={accent} eyebrow="That was your year"
           caption={closingComment(seed)} variant="center"
         >
+          {/* Teardrops in this year's own emotion colours rain over the finale */}
+          <WrappedConfetti
+            run={active}
+            colors={data.spectrum.slice(0, 5).map(e => e.color)}
+          />
           <Text style={s.introTitle}>{year}</Text>
           <TouchableOpacity
             style={[s.shareBtn, { backgroundColor: accent }, sharing && { opacity: 0.6 }]}
@@ -449,7 +492,7 @@ export default function WrappedScreen() {
     });
 
     return list;
-  }, [data, extras, accent, sharing, year, seed]);
+  }, [data, extras, rank, accent, sharing, year, seed]);
 
   // ── Story playback ──
   const lastIndex = cards.length - 1;
@@ -624,6 +667,10 @@ const s = StyleSheet.create({
 
   countryList: { marginTop: 14, gap: 4 },
   countryItem: { color: MUTED, fontSize: 15 },
+
+  rankLead: { color: MUTED, fontSize: 19, textAlign: 'center' },
+  rankRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  rankTop: { fontSize: 34, fontWeight: '800', letterSpacing: -1 },
 
   receivedRow: { flexDirection: 'row', gap: 22, marginTop: 6 },
   receivedItem: { gap: 4 },

@@ -170,6 +170,8 @@ function RootNav() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="paywall"  options={{ presentation: 'modal' }} />
+      {/* Story-style recap — full screen so the cards fill the display */}
+      <Stack.Screen name="wrapped"  options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="log-cry"  options={{ presentation: 'modal' }} />
       <Stack.Screen name="friends"       options={{ presentation: 'modal' }} />
       <Stack.Screen name="user-profile"  options={{ presentation: 'modal' }} />

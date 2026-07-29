@@ -19,6 +19,7 @@ import {
 import { TearsBadge } from '../../components/TearsBadge';
 import { useAchievementToast } from '../../components/AchievementToastProvider';
 import { FeedBanner } from '../../components/FeedBanner';
+import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { supabase } from '../../lib/supabase';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -196,6 +197,9 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
   const [recentAchievements, setRecentAchievements] = useState<{ id: string; unlocked_at: string }[]>([]);
   const [earnedTears, setEarnedTears] = useState<string[]>([]);
+  // "Your Year in Tears" ships dark — this stays false until the remote flag
+  // (app_config.wrapped_enabled) is turned on, so nothing links to it early.
+  const [wrappedOn, setWrappedOn] = useState(false);
   const [selectedTears, setSelectedTearsState] = useState<string[]>([]);
   const { queueAchievements } = useAchievementToast();
 
@@ -214,6 +218,7 @@ export default function ProfileScreen() {
     }
 
     loadProfile().then(setProfile);
+    isWrappedEnabled().then(setWrappedOn).catch(() => {});
 
     if (session) {
       getProfileStats(session.user.id).then(setStats);
@@ -323,6 +328,24 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* "Your Year in Tears" — only rendered once the remote flag is on */}
+        {wrappedOn && (
+          <TouchableOpacity
+            style={styles.wrappedBanner}
+            onPress={() => router.push('/wrapped')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Open your ${currentWrappedYear()} year in tears`}
+          >
+            <Text style={styles.wrappedEmoji}>🎁</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.wrappedTitle}>Your {currentWrappedYear()} in Tears</Text>
+              <Text style={styles.wrappedSub}>Your year, wrapped up. Tap to open.</Text>
+            </View>
+            <Text style={styles.wrappedChevron}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Recent Achievements */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -407,6 +430,18 @@ const styles = StyleSheet.create({
   statLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
   statTappable: { color: '#6fe0e6' },
   statDivider: { width: 1, height: 30, backgroundColor: '#1f2937' },
+  wrappedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginBottom: 18,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 16, borderWidth: 1,
+    borderColor: '#6fe0e655', backgroundColor: '#6fe0e614',
+  },
+  wrappedEmoji: { fontSize: 26 },
+  wrappedTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
+  wrappedSub: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
+  wrappedChevron: { color: '#6fe0e6', fontSize: 22, fontWeight: '600' },
+
   section: { marginHorizontal: 20 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },

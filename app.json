@@ -78,6 +78,7 @@
         }
       ],
       "expo-web-browser",
+      "expo-sharing",
       [
         "expo-notifications",
         {

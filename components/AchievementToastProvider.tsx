@@ -9,6 +9,7 @@
  */
 import React, { createContext, useContext, useCallback, useState, useEffect } from 'react';
 import { AchievementToast } from './AchievementToast';
+import { maybeAskForReview } from '../lib/review';
 import type { Achievement } from '../lib/achievements';
 
 interface AchievementToastCtx {
@@ -43,6 +44,18 @@ export function AchievementToastProvider({ children }: { children: React.ReactNo
       setQueue(prev => prev.slice(1));
     }
   }, [current, queue]);
+
+  // Once the celebration is over and nothing else is waiting, this is the
+  // app's natural high point — the one moment worth asking for a review.
+  // maybeAskForReview() decides whether it's actually due.
+  const [celebrated, setCelebrated] = useState(false);
+  useEffect(() => {
+    if (current) { setCelebrated(true); return; }
+    if (!celebrated || queue.length > 0) return;
+    setCelebrated(false);
+    const t = setTimeout(() => { maybeAskForReview(); }, 1200);
+    return () => clearTimeout(t);
+  }, [current, queue.length, celebrated]);
 
   return (
     <Ctx.Provider value={{ queueAchievements }}>

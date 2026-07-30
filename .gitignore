@@ -51,3 +51,8 @@ keystore.properties
 
 # Local build log artifact
 build-log.txt
+
+# Local tooling config - not part of the project
+CLAUDE.md
+AGENTS.md
+.claude/

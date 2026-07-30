@@ -12,6 +12,7 @@ import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../../lib/storage';
 import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
+import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { useAuth } from '../../lib/auth';
 import { TearsBadge } from '../../components/TearsBadge';
 import { EmotionPin, ClusterPin, LocationDot } from '../../components/MapMarkers';
@@ -197,6 +198,8 @@ export default function MapScreen() {
   const [selectedCry, setSelectedCry] = useState<Cry | SocialCry | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [mapFilter, setMapFilter] = useState<MapFilter>('mine');
+  // Recap entry point — stays hidden until app_config.wrapped_enabled is on.
+  const [wrappedOn, setWrappedOn] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   // Current visible region — drives which clusters are computed
   const [region, setRegion] = useState<Region | null>(null);
@@ -265,7 +268,10 @@ export default function MapScreen() {
     }
   }, [session, mapFilter]);
 
-  useFocusEffect(useCallback(() => { reloadCries(); }, [reloadCries]));
+  useFocusEffect(useCallback(() => {
+    reloadCries();
+    isWrappedEnabled().then(setWrappedOn).catch(() => {});
+  }, [reloadCries]));
 
   function requireCoords(): boolean {
     if (!gpsCoords) {
@@ -426,9 +432,25 @@ export default function MapScreen() {
         })}
       </MapView>
 
-      {/* Header title */}
-      <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="none">
-        <Text style={[styles.headerTitle, { color: accent }]}>💧 Teardrop</Text>
+      {/* Header — title, plus the recap entry once it's switched on */}
+      <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="box-none">
+        <View style={styles.headerRow}>
+          <Text style={[styles.headerTitle, { color: accent }]}>💧 Teardrop</Text>
+          {wrappedOn && (
+            <TouchableOpacity
+              style={[styles.wrappedPill, { borderColor: accent + '66', backgroundColor: accent + '1a' }]}
+              onPress={() => router.push('/wrapped')}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Open your ${currentWrappedYear()} year in tears`}
+            >
+              <Text style={styles.wrappedPillEmoji}>🎁</Text>
+              <Text style={[styles.wrappedPillTxt, { color: accent }]}>
+                Your {currentWrappedYear()}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </SafeAreaView>
 
       {/* Segmented filter — centered, floating above FAB */}
@@ -604,11 +626,21 @@ const styles = StyleSheet.create({
   },
   settingsBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 
-  headerTitle: {
-    color: '#6fe0e6', fontSize: 18, fontWeight: '700', letterSpacing: 1,
+  headerRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8,
     backgroundColor: 'rgba(13,17,23,0.7)',
   },
+  headerTitle: {
+    color: '#6fe0e6', fontSize: 18, fontWeight: '700', letterSpacing: 1,
+  },
+  wrappedPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 999, borderWidth: 1,
+  },
+  wrappedPillEmoji: { fontSize: 14 },
+  wrappedPillTxt: { fontSize: 13, fontWeight: '700' },
 
   fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
   quickFab: {

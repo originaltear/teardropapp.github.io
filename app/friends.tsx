@@ -12,6 +12,7 @@ import {
   UserResult, FriendRequest,
 } from '../lib/social';
 import { tapLight } from '../lib/haptics';
+import { inviteAFriend } from '../lib/invite';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -204,6 +205,19 @@ export default function FriendsScreen() {
             {searching && <ActivityIndicator size="small" color={accent} />}
           </View>
 
+          {/* Search only reaches people who are already here, so this is the
+              only way anyone new arrives. */}
+          <TouchableOpacity
+            style={[styles.inviteRow, { borderColor: accent + '55' }]}
+            onPress={() => { tapLight(); inviteAFriend(); }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Invite a friend to Teardrop"
+          >
+            <Text style={styles.inviteIcon}>💌</Text>
+            <Text style={[styles.inviteTxt, { color: accent }]}>Invite a friend</Text>
+          </TouchableOpacity>
+
           <FlatList
             data={results}
             keyExtractor={u => u.id}
@@ -215,6 +229,18 @@ export default function FriendsScreen() {
                 <View style={styles.empty}>
                   <Text style={styles.emptyEmoji}>🔍</Text>
                   <Text style={styles.emptyTxt}>No users found for "@{query}"</Text>
+                  {/* Someone searching for a friend who isn't here is the whole
+                      reason to have an invite at all. */}
+                  <TouchableOpacity
+                    onPress={() => { tapLight(); inviteAFriend(); }}
+                    activeOpacity={0.7}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                  >
+                    <Text style={[styles.emptyAction, { color: accent }]}>
+                      Not on Teardrop yet? Invite them
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               ) : !query ? (
                 <View style={styles.empty}>
@@ -295,4 +321,14 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 10, padding: 40 },
   emptyEmoji: { fontSize: 40, opacity: 0.5 },
   emptyTxt: { color: '#4a5568', fontSize: 14, textAlign: 'center' },
+  emptyAction: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 2 },
+
+  inviteRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginHorizontal: 16, marginBottom: 4,
+    paddingVertical: 11, borderRadius: 12,
+    borderWidth: 1, borderStyle: 'dashed',
+  },
+  inviteIcon: { fontSize: 15 },
+  inviteTxt: { fontSize: 14, fontWeight: '600' },
 });

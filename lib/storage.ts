@@ -279,6 +279,9 @@ export async function updateCry(cry: Cry): Promise<void> {
     note:       synced.note ?? null,
     visibility: synced.visibility ?? 'everyone',
     tags:       synced.tags ?? [],
+    // The edit screen can move a cry back in time, so this is user data, not a
+    // server timestamp — the feed and the year recap both order on it.
+    created_at: synced.createdAt,
   };
   // Only touch media columns when the value is server-usable: undefined means
   // "removed" (→ null), a remote URL means kept/replaced. A still-local URI

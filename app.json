@@ -46,6 +46,29 @@
       ],
       "expo-asset",
       [
+        "@react-native-community/datetimepicker",
+        {
+          "android": {
+            "datePicker": {
+              "colorAccent": { "light": "#6fe0e6", "dark": "#6fe0e6" },
+              "colorControlActivated": { "light": "#6fe0e6", "dark": "#6fe0e6" },
+              "textColorPrimary": { "light": "#e2e8f0", "dark": "#e2e8f0" },
+              "textColorSecondary": { "light": "#94a3b8", "dark": "#94a3b8" },
+              "textColorPrimaryInverse": { "light": "#0d1117", "dark": "#0d1117" },
+              "textColorSecondaryInverse": { "light": "#0d1117", "dark": "#0d1117" },
+              "windowBackground": { "light": "#111827", "dark": "#111827" }
+            },
+            "timePicker": {
+              "background": { "light": "#111827", "dark": "#111827" },
+              "headerBackground": { "light": "#6fe0e6", "dark": "#6fe0e6" },
+              "numbersTextColor": { "light": "#e2e8f0", "dark": "#e2e8f0" },
+              "numbersSelectorColor": { "light": "#6fe0e6", "dark": "#6fe0e6" },
+              "numbersBackgroundColor": { "light": "#1f2937", "dark": "#1f2937" }
+            }
+          }
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",

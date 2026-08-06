@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator,
-  Image, Alert,
+  Image, Alert, Platform,
 } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +31,18 @@ type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 // Names for the 1–5 intensity scale so the drops carry meaning.
 const INTENSITY_LABELS = ['', 'Barely', 'Mild', 'Moderate', 'Heavy', 'Overwhelming'];
 
+/** "Today · 14:30", "Yesterday · 09:05", else "5 June 2026 · 14:30". */
+function whenLabel(d: Date): string {
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+  // Measured from midnight rather than in whole days, so a cry logged at
+  // exactly 00:00 today still reads as today.
+  const since = midnight.getTime() - d.getTime();
+  if (since <= 0) return `Today · ${time}`;
+  if (since <= 86_400_000) return `Yesterday · ${time}`;
+  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · ${time}`;
+}
+
 const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] = [
   { value: 'everyone',      icon: '🌍', label: 'Everyone' },
   { value: 'followers',     icon: '👥', label: 'Friends' },
@@ -50,6 +63,10 @@ export default function LogCryScreen() {
   const isEdit = !!editId;
   const [emotion, setEmotion] = useState<string | null>(null);
   const [intensity, setIntensity] = useState(3);
+  // When the cry actually happened. Defaults to now, but people often log after
+  // the fact ("I forgot to add yesterday's"), so it can be moved back.
+  const [when, setWhen] = useState(() => new Date());
+  const [picker, setPicker] = useState<'date' | 'time' | null>(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('everyone');
@@ -89,6 +106,7 @@ export default function LogCryScreen() {
       setTags(found.tags ?? []);
       setPhotoUri(found.photoUri ?? null);
       setAudioUri(found.audioUri ?? null);
+      setWhen(new Date(found.createdAt));
       setLoadingEdit(false);
     });
     return () => { cancelled = true; };
@@ -104,6 +122,34 @@ export default function LogCryScreen() {
       .catch(() => { if (!cancelled) setCloseFriendCount(0); });
     return () => { cancelled = true; };
   }, [session]));
+
+  // ── When it happened ──
+
+  /** You can log a cry late, but never one that hasn't happened yet. */
+  function capToNow(d: Date): Date {
+    const now = new Date();
+    return d.getTime() > now.getTime() ? now : d;
+  }
+
+  function onPickerChange(event: DateTimePickerEvent, picked?: Date) {
+    // Android dismisses its own dialog; iOS keeps the spinner until we close it.
+    if (Platform.OS === 'android') setPicker(null);
+    if (event.type !== 'set' || !picked) return;
+
+    // iOS shows date and time in a single spinner, so there's nothing to merge.
+    if (Platform.OS !== 'android') { setWhen(capToNow(picked)); return; }
+
+    // Android has no combined dialog: take the day, then chain into the time.
+    const next = new Date(when);
+    if (picker === 'date') {
+      next.setFullYear(picked.getFullYear(), picked.getMonth(), picked.getDate());
+      setWhen(capToNow(next));
+      setPicker('time');
+    } else {
+      next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+      setWhen(capToNow(next));
+    }
+  }
 
   // ── Tag helpers ──
 
@@ -266,6 +312,7 @@ export default function LogCryScreen() {
       try {
         await updateCry({
           ...editingCry,
+          createdAt: when.toISOString(),
           emotion,
           intensity,
           note: note.trim() || undefined,
@@ -303,7 +350,7 @@ export default function LogCryScreen() {
     try {
       await saveCry({
         id: generateCryId(),
-        createdAt: new Date().toISOString(),
+        createdAt: when.toISOString(),
         latitude: parseFloat(lat),
         longitude: parseFloat(lng),
         emotion,
@@ -394,6 +441,46 @@ export default function LogCryScreen() {
             <Text style={styles.locationPin}>📍</Text>
             <Text style={styles.locationText}>{locationStr}</Text>
           </View>
+
+          {/* When it happened */}
+          <TouchableOpacity
+            style={styles.locationRow}
+            onPress={() => { tapLight(); setPicker('date'); }}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={`Happened ${whenLabel(when)}. Tap to change.`}
+          >
+            <Text style={styles.locationPin}>🕒</Text>
+            <Text style={[styles.locationText, { flex: 1 }]}>{whenLabel(when)}</Text>
+            <Text style={[styles.whenChange, { color: accent }]}>Change</Text>
+          </TouchableOpacity>
+          {!isEdit && when.toDateString() !== new Date().toDateString() && (
+            <Text style={styles.whenHint}>The pin still lands where you are now.</Text>
+          )}
+
+          {picker && (Platform.OS === 'android' ? (
+            <DateTimePicker
+              value={when}
+              mode={picker}
+              is24Hour
+              maximumDate={new Date()}
+              onChange={onPickerChange}
+            />
+          ) : (
+            <View style={styles.iosPicker}>
+              <DateTimePicker
+                value={when}
+                mode="datetime"
+                display="spinner"
+                maximumDate={new Date()}
+                textColor="#e2e8f0"
+                onChange={onPickerChange}
+              />
+              <TouchableOpacity onPress={() => { tapLight(); setPicker(null); }} hitSlop={10}>
+                <Text style={[styles.whenChange, { color: accent, textAlign: 'center' }]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
 
           {/* Emotion picker */}
           <Text style={styles.sectionLabel}>How did it feel?</Text>
@@ -649,6 +736,16 @@ const styles = StyleSheet.create({
   locationPin: { fontSize: 16 },
   locationText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
 
+  whenChange: { fontSize: 12, fontWeight: '700' },
+  whenHint: {
+    color: '#4a5568', fontSize: 11, fontStyle: 'italic',
+    marginTop: -2, marginBottom: 4, paddingHorizontal: 4,
+  },
+  iosPicker: {
+    backgroundColor: '#111827', borderRadius: 10, marginTop: 4, paddingBottom: 10,
+    borderWidth: 1, borderColor: '#1f2937',
+  },
+
   sectionLabel: {
     color: '#94a3b8', fontSize: 12, fontFamily: 'monospace',
     letterSpacing: 1, textTransform: 'uppercase',
@@ -661,6 +758,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1, borderColor: '#1f2937',
+    // Content-width chips wrapped 3/3/3/1 and left "Idk" orphaned on its own
+    // row. Ten emotions divide evenly into two columns instead.
+    flexBasis: '48%', flexGrow: 1,
   },
   emotionEmoji: { fontSize: 16 },
   emotionLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },

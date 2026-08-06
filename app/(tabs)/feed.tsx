@@ -2,13 +2,8 @@ import { useCallback, useRef, useState, useEffect, useMemo, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
-  Modal, Alert, TextInput,
-  ScrollView, ActivityIndicator, RefreshControl, Animated,
+  Alert, ActivityIndicator, RefreshControl, Animated,
 } from 'react-native';
-// RN <Modal> is an Android Dialog with its own keyboard window that the
-// built-in KeyboardAvoidingView can't track under edge-to-edge — the
-// keyboard-controller variant with automaticOffset handles it correctly.
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { tapLight, selection } from '../../lib/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
@@ -17,17 +12,11 @@ import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { TearsBadge } from '../../components/TearsBadge';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
-import { AudioPlayer } from '../../components/AudioPlayer';
-import { CryPhoto } from '../../components/CryPhoto';
 import { ListSkeleton } from '../../components/Skeleton';
-import { timeAgo, fullDateTime } from '../../lib/format';
+import { timeAgo } from '../../lib/format';
 import { useAuth } from '../../lib/auth';
 import { AuthGateModal } from '../../components/AuthGateModal';
-import {
-  getSocialFeed, getMineFeed, FEED_PAGE_SIZE, likeCry, unlikeCry, hugCry, unhugCry,
-  getComments, addComment, deleteComment, SocialCry, Comment,
-} from '../../lib/social';
-import { supabase } from '../../lib/supabase';
+import { getSocialFeed, getMineFeed, FEED_PAGE_SIZE, SocialCry } from '../../lib/social';
 import { isQuickLogSocial } from '../../lib/quick-log';
 import { TagPills } from '../../components/TagPills';
 import { FeedBanner } from '../../components/FeedBanner';
@@ -39,251 +28,9 @@ import {
 } from '../../components/BulkActionsBar';
 import { success, warning } from '../../lib/haptics';
 
-// ─── Detail modal with likes + comments ───────────────────────────────────────
-
-function DetailModal({ cry, myId, onClose, onLikeToggle, onHugToggle, onEdit }: {
-  cry: SocialCry;
-  myId: string | null;
-  onClose: () => void;
-  onLikeToggle: (cryId: string, liked: boolean) => void;
-  onHugToggle: (cryId: string, hugged: boolean) => void;
-  /** Present for the user's own cries — opens the prefilled edit screen. */
-  onEdit?: () => void;
-}) {
-  const { theme: { accent } } = useTheme();
-  const router = useRouter();
-  const emotion = emotionById(cry.emotion);
-  const [liked, setLiked] = useState(cry.liked_by_me);
-  const [likeCount, setLikeCount] = useState(cry.like_count);
-  const [hugged, setHugged] = useState(cry.hugged_by_me);
-  const [hugCount, setHugCount] = useState(cry.hug_count);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(true);
-  const [commentText, setCommentText] = useState('');
-  const [posting, setPosting] = useState(false);
-  const [commentsDisabled, setCommentsDisabled] = useState(false);
-  const isOwn = myId === cry.user_id;
-
-  useFocusEffect(useCallback(() => {
-    getComments(cry.id).then(c => { setComments(c); setLoadingComments(false); });
-
-    // Check if owner has disabled comments (direct query — not relying on profile join)
-    if (!isOwn) {
-      supabase
-        .from('profiles')
-        .select('allow_comments')
-        .eq('id', cry.user_id)
-        .single()
-        .then(({ data }) => {
-          if (data?.allow_comments === false) setCommentsDisabled(true);
-        });
-    }
-  }, [cry.id]));
-
-  async function toggleLike() {
-    if (!myId) return;
-    tapLight();
-    const next = !liked;
-    setLiked(next);
-    setLikeCount(c => c + (next ? 1 : -1));
-    onLikeToggle(cry.id, next);
-    try {
-      if (next) await likeCry(cry.id); else await unlikeCry(cry.id);
-    } catch {
-      // Roll the optimistic update back (e.g. offline)
-      setLiked(!next);
-      setLikeCount(c => c + (next ? -1 : 1));
-      onLikeToggle(cry.id, !next);
-    }
-  }
-
-  async function toggleHug() {
-    if (!myId) return;
-    tapLight();
-    const next = !hugged;
-    setHugged(next);
-    setHugCount(c => c + (next ? 1 : -1));
-    onHugToggle(cry.id, next);
-    try {
-      if (next) await hugCry(cry.id); else await unhugCry(cry.id);
-    } catch {
-      // Roll the optimistic update back (e.g. offline)
-      setHugged(!next);
-      setHugCount(c => c + (next ? -1 : 1));
-      onHugToggle(cry.id, !next);
-    }
-  }
-
-  function confirmDeleteComment(c: Comment) {
-    Alert.alert('Delete comment', 'Delete this comment?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          await deleteComment(c.id);
-          setComments(prev => prev.filter(x => x.id !== c.id));
-        },
-      },
-    ]);
-  }
-
-  async function submitComment() {
-    if (!commentText.trim() || !myId) return;
-    setPosting(true);
-    try {
-      const c = await addComment(cry.id, commentText.trim());
-      if (c) setComments(prev => [...prev, c]);
-      setCommentText('');
-      tapLight();
-    } catch (e: any) {
-      if (e?.code === 'COMMENTS_DISABLED') {
-        setCommentsDisabled(true);
-      } else {
-        Alert.alert('Error', 'Could not post comment. Please try again.');
-      }
-    }
-    setPosting(false);
-  }
-
-  return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
-      <KeyboardAvoidingView behavior="padding" automaticOffset style={styles.kvSheet}>
-        <SafeAreaView edges={['bottom']} style={styles.sheet}>
-          <View style={styles.handle} />
-
-          {/* Header */}
-          <View style={styles.sheetHeader}>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
-              onPress={() => { onClose(); router.push(`/user-profile?id=${cry.user_id}`); }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`View @${cry.profile.username}'s profile`}
-            >
-              <Avatar uri={cry.profile.avatar_uri} size={32} />
-              <View>
-                <Text style={styles.sheetUser}>{cry.profile.display_name}</Text>
-                <Text style={styles.sheetHandle}>@{cry.profile.username}</Text>
-              </View>
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {isOwn && onEdit && (
-                <TouchableOpacity onPress={onEdit} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Edit this cry">
-                  <Text style={{ fontSize: 15 }}>✏️</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Text style={styles.closeTxt}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Emotion + drops */}
-            <View style={[styles.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22', alignSelf: 'flex-start', marginTop: 8 }]}>
-              <Text style={styles.badgeEmoji}>{emotion?.emoji ?? '💧'}</Text>
-              <Text style={[styles.badgeLabel, { color: emotion?.color ?? '#6fe0e6' }]}>{emotion?.label ?? cry.emotion}</Text>
-            </View>
-            <Text style={styles.sheetDate}>{fullDateTime(cry.created_at)}</Text>
-            <Drops intensity={cry.intensity} size={18} />
-            <TagPills tags={cry.tags} style={{ marginTop: 8 }} />
-            {cry.photo_uri ? <CryPhoto uri={cry.photo_uri} style={styles.photo} /> : null}
-            {cry.note ? <View style={styles.noteBox}><Text style={styles.noteText}>{cry.note}</Text></View> : null}
-            {cry.audio_uri ? <AudioPlayer uri={cry.audio_uri} /> : null}
-
-            {/* Like + Hug buttons */}
-            <View style={styles.likeRow}>
-              {!isOwn && myId && (
-                <>
-                  <TouchableOpacity
-                    style={styles.likeBtn} onPress={toggleLike} activeOpacity={0.75}
-                    accessibilityRole="button" accessibilityLabel={liked ? 'Unlike this cry' : 'Like this cry'}
-                  >
-                    <Text style={styles.likeIcon}>{liked ? '💧' : '🤍'}</Text>
-                    <Text style={[styles.likeTxt, liked && { color: accent }]}>
-                      {liked ? 'Liked' : 'Like'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.likeBtn} onPress={toggleHug} activeOpacity={0.75}
-                    accessibilityRole="button" accessibilityLabel={hugged ? 'Remove hug' : 'Send a hug'}
-                  >
-                    <Text style={styles.likeIcon}>🫂</Text>
-                    <Text style={[styles.likeTxt, hugged && { color: accent }]}>
-                      {hugged ? 'Hugged' : 'Hug'}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-              {(likeCount > 0 || hugCount > 0) && (
-                <Text style={styles.likeCount}>
-                  {[
-                    likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}` : null,
-                    hugCount > 0 ? `${hugCount} ${hugCount === 1 ? 'hug' : 'hugs'}` : null,
-                  ].filter(Boolean).join(' · ')}
-                </Text>
-              )}
-            </View>
-
-            {/* Comments */}
-            <Text style={styles.commentsHeader}>Comments</Text>
-            {commentsDisabled ? (
-              <Text style={styles.noComments}>💬  Comments have been turned off</Text>
-            ) : loadingComments ? (
-              <ActivityIndicator color={accent} style={{ marginVertical: 12 }} />
-            ) : comments.length === 0 ? (
-              <Text style={styles.noComments}>No comments yet</Text>
-            ) : (
-              comments.map(c => (
-                <View key={c.id} style={styles.commentRow}>
-                  <Avatar uri={c.profile.avatar_uri} size={28} />
-                  <TouchableOpacity
-                    style={styles.commentBubble}
-                    activeOpacity={c.user_id === myId ? 0.7 : 1}
-                    onLongPress={c.user_id === myId ? () => confirmDeleteComment(c) : undefined}
-                    delayLongPress={400}
-                    accessibilityHint={c.user_id === myId ? 'Hold to delete your comment' : undefined}
-                  >
-                    <Text style={[styles.commentUser, { color: accent }]}>{c.profile.display_name}</Text>
-                    <Text style={styles.commentText}>{c.content}</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            )}
-            <View style={{ height: 80 }} />
-          </ScrollView>
-
-          {/* Comment input — hidden entirely when comments are disabled */}
-          {myId && !commentsDisabled && (
-            <View style={styles.commentInput}>
-              <TextInput
-                style={styles.commentField}
-                value={commentText}
-                onChangeText={setCommentText}
-                placeholder="Add a comment…"
-                placeholderTextColor="#4a5568"
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity
-                style={[styles.sendBtn, { backgroundColor: accent }, (!commentText.trim() || posting) && { opacity: 0.4 }]}
-                onPress={submitComment}
-                disabled={!commentText.trim() || posting}
-              >
-                {posting ? <ActivityIndicator size="small" color="#0d1117" /> : <Text style={styles.sendTxt}>↑</Text>}
-              </TouchableOpacity>
-            </View>
-          )}
-        </SafeAreaView>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
 // ─── Feed item ────────────────────────────────────────────────────────────────
 
-const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode, checked, onLongPress }: {
+const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode, checked, onLongPress, hideAuthor }: {
   cry: SocialCry;
   onSelect: (cry: SocialCry) => void;
   /** Shown on the Mine tab for cries that still have no details. */
@@ -292,6 +39,8 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
   selectMode?: boolean;
   checked?: boolean;
   onLongPress?: (cry: SocialCry) => void;
+  /** Your own feed: every row would repeat your name and avatar, so drop both. */
+  hideAuthor?: boolean;
 }) {
   const emotion = emotionById(cry.emotion);
   const color = emotion?.color ?? '#6fe0e6';
@@ -305,7 +54,14 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
       transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
     }}>
     <TouchableOpacity
-      style={[styles.item, selectMode && checked && styles.itemChecked]}
+      style={[
+        styles.item,
+        // The emotion colour is the app's whole vocabulary, but it only lived in
+        // a small chip, so every row read the same while scrolling. This edge
+        // makes a feed of ten cries look like ten different feelings.
+        { borderLeftColor: color },
+        selectMode && checked && styles.itemChecked,
+      ]}
       onPress={() => onSelect(cry)}
       onLongPress={onLongPress ? () => onLongPress(cry) : undefined}
       delayLongPress={350}
@@ -316,25 +72,39 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
           {checked && <Text style={styles.checkMark}>✓</Text>}
         </View>
       )}
-      <Avatar uri={cry.profile.avatar_uri} size={44} />
-      <View style={styles.itemContent}>
+      {!hideAuthor && <Avatar uri={cry.profile.avatar_uri} size={44} />}
+      <View style={[styles.itemContent, hideAuthor && styles.itemContentBare]}>
         <View style={styles.itemTop}>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-            <Text style={styles.itemUser}>{cry.profile.display_name}</Text>
-            <Text style={styles.itemHandle}>@{cry.profile.username}</Text>
-            {cry.profile.selected_tears && cry.profile.selected_tears.length > 0 && (
-              <TearsBadge tears={cry.profile.selected_tears} />
-            )}
-          </View>
+          {hideAuthor ? (
+            // Without the author line the chip moves up to head the row, and the
+            // drops ride alongside it rather than taking a line of their own.
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={[styles.emotionChip, { backgroundColor: color + '22' }]}>
+                <Text style={styles.emotionChipEmoji}>{emotion?.emoji}</Text>
+                <Text style={[styles.emotionChipLabel, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+              </View>
+              <Drops intensity={cry.intensity} size={11} />
+            </View>
+          ) : (
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+              <Text style={styles.itemUser}>{cry.profile.display_name}</Text>
+              <Text style={styles.itemHandle}>@{cry.profile.username}</Text>
+              {cry.profile.selected_tears && cry.profile.selected_tears.length > 0 && (
+                <TearsBadge tears={cry.profile.selected_tears} />
+              )}
+            </View>
+          )}
           <Text style={styles.timeAgo}>{timeAgo(cry.created_at)}</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-          <View style={[styles.emotionChip, { backgroundColor: color + '22' }]}>
-            <Text style={styles.emotionChipEmoji}>{emotion?.emoji}</Text>
-            <Text style={[styles.emotionChipLabel, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+        {!hideAuthor && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <View style={[styles.emotionChip, { backgroundColor: color + '22' }]}>
+              <Text style={styles.emotionChipEmoji}>{emotion?.emoji}</Text>
+              <Text style={[styles.emotionChipLabel, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+            </View>
+            <Drops intensity={cry.intensity} size={11} />
           </View>
-          <Drops intensity={cry.intensity} size={11} />
-        </View>
+        )}
         {cry.note ? <Text style={styles.noteSnippet} numberOfLines={2}>{cry.note}</Text> : null}
         {cry.tags && cry.tags.length > 0 && (
           <Text style={styles.itemTags} numberOfLines={1}>
@@ -370,7 +140,10 @@ export default function FeedScreen() {
   const router = useRouter();
   const { theme: { accent } } = useTheme();
   const [allCries, setAllCries] = useState<SocialCry[]>([]);
-  const [selected, setSelected] = useState<SocialCry | null>(null);
+  // Opening a cry now leaves the tab, so coming back re-fires the focus effect.
+  // Without this the feed interstitial would get a fresh chance every time
+  // someone reads a cry and hits back — far more often than intended.
+  const skipNextInterstitial = useRef(false);
   const [authGate, setAuthGate] = useState(false);
   const [tab, setTab] = useState<FeedTab>('following');
   const [loading, setLoading] = useState(false);
@@ -485,8 +258,10 @@ export default function FeedScreen() {
   useFocusEffect(useCallback(() => {
     loadFeed();
     // Light interstitial when the feed opens. Self-gated: skipped for Pro, for the
-    // first ~90s after launch, and to at most once per 3 min. Never after a cry.
-    maybeShowFeedInterstitial();
+    // first ~90s after launch, and to at most once per 3 min. Never after a cry,
+    // and never on the way back from reading one.
+    if (skipNextInterstitial.current) skipNextInterstitial.current = false;
+    else maybeShowFeedInterstitial();
   }, [session, tab]));
 
   // Filter mine tab by emotion and/or quick-log status
@@ -514,10 +289,14 @@ export default function FeedScreen() {
 
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
 
-  // Row tap: toggles the checkbox in bulk-select mode, opens the sheet otherwise
+  // Row tap: toggles the checkbox in bulk-select mode, opens the cry otherwise.
+  // Detail is a pushed screen rather than a sheet on purpose: an RN <Modal> is an
+  // Android Dialog with its own window, and a dialog window's soft-input mode
+  // can't be set from JS, so the comment field ended up under the keyboard.
   const handleSelect = useCallback((c: SocialCry) => {
-    if (selectMode) toggleBulkId(c.id);
-    else setSelected(c);
+    if (selectMode) { toggleBulkId(c.id); return; }
+    skipNextInterstitial.current = true;
+    router.push(`/cry-detail?id=${c.id}`);
   }, [selectMode]);
 
   const handleRowLongPress = useCallback((c: SocialCry) => {
@@ -527,26 +306,6 @@ export default function FeedScreen() {
       setSelectedIds(new Set([c.id]));
     }
   }, [selectMode]);
-
-  function handleLikeToggle(cryId: string, liked: boolean) {
-    setAllCries(prev => prev.map(c => c.id === cryId
-      ? { ...c, liked_by_me: liked, like_count: c.like_count + (liked ? 1 : -1) }
-      : c
-    ));
-    if (selected?.id === cryId) {
-      setSelected(prev => prev ? { ...prev, liked_by_me: liked, like_count: prev.like_count + (liked ? 1 : -1) } : null);
-    }
-  }
-
-  function handleHugToggle(cryId: string, hugged: boolean) {
-    setAllCries(prev => prev.map(c => c.id === cryId
-      ? { ...c, hugged_by_me: hugged, hug_count: c.hug_count + (hugged ? 1 : -1) }
-      : c
-    ));
-    if (selected?.id === cryId) {
-      setSelected(prev => prev ? { ...prev, hugged_by_me: hugged, hug_count: prev.hug_count + (hugged ? 1 : -1) } : null);
-    }
-  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -669,10 +428,15 @@ export default function FeedScreen() {
                 selectMode={tab === 'mine' && selectMode}
                 checked={selectedIds.has(item.cry.id)}
                 onLongPress={tab === 'mine' ? handleRowLongPress : undefined}
+                hideAuthor={tab === 'mine'}
               />
             )
           }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          // The inset lines up with the avatar's right edge, so on the Mine tab
+          // (which has no avatar) it has to pull back to the text instead.
+          ItemSeparatorComponent={() => (
+            <View style={[styles.separator, tab === 'mine' && styles.separatorBare]} />
+          )}
           contentContainerStyle={displayCries.length === 0 ? styles.emptyContainer : styles.listContent}
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
@@ -725,21 +489,6 @@ export default function FeedScreen() {
           applying={applying}
           onChangeVisibility={() => promptBulkVisibility(selectedIds.size, applyBulkVisibility)}
           onDelete={() => promptBulkDelete(selectedIds.size, applyBulkDelete)}
-        />
-      )}
-
-      {selected && (
-        <DetailModal
-          cry={selected}
-          myId={session?.user.id ?? null}
-          onClose={() => setSelected(null)}
-          onLikeToggle={handleLikeToggle}
-          onHugToggle={handleHugToggle}
-          onEdit={selected.user_id === session?.user.id ? () => {
-            const id = selected.id;
-            setSelected(null);
-            router.push(`/log-cry?editId=${id}`);
-          } : undefined}
         />
       )}
     </SafeAreaView>
@@ -800,6 +549,7 @@ const styles = StyleSheet.create({
 
   listContent: { paddingVertical: 8 },
   separator: { height: 1, backgroundColor: '#1f2937', marginLeft: 68 },
+  separatorBare: { marginLeft: 19 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
@@ -811,13 +561,22 @@ const styles = StyleSheet.create({
   },
   emptyBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
 
-  item: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
+  item: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    paddingLeft: 13, paddingRight: 16, paddingVertical: 14,
+    borderLeftWidth: 3,   // colour is set per row from the emotion
+  },
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
   itemContent: { flex: 1, gap: 4 },
-  itemTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  // The avatar used to supply the left indent; without it the text would sit
+  // right on top of the emotion edge.
+  itemContentBare: { paddingLeft: 6 },
+  // The name block is flex:1, so without a gap it grows flush against the
+  // timestamp and long handles end up touching the date.
+  itemTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   itemUser: { color: '#e2e8f0', fontSize: 14, fontWeight: '600', flex: 1 },
   itemHandle: { color: '#4a5568', fontWeight: '400' },
-  timeAgo: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
+  timeAgo: { color: '#374151', fontSize: 11, fontFamily: 'monospace', flexShrink: 0 },
   emotionChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   emotionChipEmoji: { fontSize: 12 },
   emotionChipLabel: { fontSize: 12, fontWeight: '600' },
@@ -840,63 +599,4 @@ const styles = StyleSheet.create({
   quickChipTxt: { fontSize: 18, color: '#4a5568' },
   itemMeta: { flexDirection: 'row', gap: 8, marginTop: 2 },
   metaTag: { color: '#4a5568', fontSize: 12 },
-
-
-  // Detail sheet
-  backdrop: { flex: 1 },
-  kvSheet: { maxHeight: '92%' },
-  sheet: {
-    backgroundColor: '#111827', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderColor: '#1f2937',
-  },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#374151', alignSelf: 'center', marginBottom: 12 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  sheetUser: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  sheetHandle: { color: '#4a5568', fontSize: 12 },
-  closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4a5568', fontSize: 18 },
-  emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  badgeEmoji: { fontSize: 18 },
-  badgeLabel: { fontSize: 15, fontWeight: '700' },
-  sheetDate: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace', marginVertical: 6 },
-  photo: { width: '100%', height: 180, borderRadius: 12, backgroundColor: '#0d1117', marginTop: 8 },
-  noteBox: { backgroundColor: '#0d1117', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#1f2937', marginTop: 8 },
-  noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
-  audioPlayer: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#0d1117', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#6fe0e6', marginTop: 8,
-  },
-  audioIcon: { fontSize: 16, color: '#6fe0e6' },
-  audioLabel: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
-
-  likeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14 },
-  likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#1f2937' },
-  likeIcon: { fontSize: 16 },
-  likeTxt: { color: '#4a5568', fontSize: 14, fontWeight: '600' },
-  likeCount: { color: '#4a5568', fontSize: 13 },
-
-  commentsHeader: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 16, marginBottom: 8 },
-  noComments: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
-  commentRow: { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' },
-  commentBubble: { flex: 1, backgroundColor: '#0d1117', borderRadius: 10, padding: 10 },
-  commentUser: { color: '#6fe0e6', fontSize: 12, fontWeight: '600', marginBottom: 2 },
-  commentText: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
-
-  commentInput: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingTop: 10, paddingBottom: 8, borderTopWidth: 1, borderTopColor: '#1f2937',
-  },
-  commentField: {
-    flex: 1, backgroundColor: '#0d1117', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 8,
-    color: '#e2e8f0', fontSize: 14, maxHeight: 80,
-    borderWidth: 1, borderColor: '#1f2937',
-  },
-  sendBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
-  },
-  sendTxt: { color: '#0d1117', fontSize: 18, fontWeight: '700' },
 });

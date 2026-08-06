@@ -173,6 +173,11 @@ function RootNav() {
       {/* Story-style recap — full screen so the cards fill the display */}
       <Stack.Screen name="wrapped"  options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="log-cry"  options={{ presentation: 'modal' }} />
+      {/* Reached from the feed and from like/comment notifications. A real screen
+          rather than an RN <Modal>: a Modal is an Android Dialog with its own
+          window, whose soft-input mode JS can't set, which left the comment
+          field trapped under the keyboard. */}
+      <Stack.Screen name="cry-detail" options={{ presentation: 'modal' }} />
       <Stack.Screen name="friends"       options={{ presentation: 'modal' }} />
       <Stack.Screen name="user-profile"  options={{ presentation: 'modal' }} />
       <Stack.Screen name="my-cries"      options={{ presentation: 'modal' }} />

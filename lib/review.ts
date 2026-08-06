@@ -26,8 +26,13 @@ import { loadCries } from './storage';
 const COUNT_KEY = 'teardrop_review_asked_count';
 const LAST_KEY = 'teardrop_review_last_asked';
 
-/** Don't ask someone who hasn't really used the app yet. */
-const MIN_CRIES = 5;
+/**
+ * Don't ask someone who hasn't really used the app yet — but keep it low.
+ * Crying isn't a daily habit: someone who logs once a month would wait most of
+ * a year to reach a higher bar, and by then they've long since decided how they
+ * feel about the app.
+ */
+const MIN_CRIES = 3;
 /** Never nag: at most this many asks, ever. */
 const MAX_ASKS = 3;
 /** …and never twice inside this window. */

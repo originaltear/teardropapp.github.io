@@ -34,7 +34,7 @@ import { isPrivacyOptionsRequired, showPrivacyOptions } from '../../lib/ads';
 // Hosted privacy policy (same target as the paywall's legal links). Google Play
 // requires an accessible privacy policy for apps that collect account data, so
 // it's surfaced in Settings as well as at purchase time.
-const PRIVACY_URL = 'https://originaltear.github.io/teardropapp.github.io/privacy-policy.html';
+const PRIVACY_URL = 'https://teardropapp.com/privacy-policy.html';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

@@ -25,9 +25,9 @@ const STORE_NAME = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
 
 // Required by App Store Review Guideline 3.1.2: the paywall must link to the
 // Terms of Use (EULA) and Privacy Policy. Apple's standard EULA is used as the
-// Terms of Use; the Privacy Policy is hosted on GitHub Pages.
+// Terms of Use; the Privacy Policy is hosted on the marketing site.
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
-const PRIVACY_URL = 'https://originaltear.github.io/teardropapp.github.io/privacy-policy.html';
+const PRIVACY_URL = 'https://teardropapp.com/privacy-policy.html';
 
 const PERKS = [
   { icon: '🚫', label: 'Ad-free experience' },

@@ -20,6 +20,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
+import { requestPermission } from './permission-queue';
 
 // ─── Global handler (shown while app is foregrounded) ─────────────────────────
 
@@ -63,7 +64,11 @@ export async function registerPushToken(): Promise<void> {
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
     if (existing !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
+      // Queued so it can't sit on top of the location or tracking prompts
+      // (see lib/permission-queue.ts).
+      const { status } = await requestPermission(() =>
+        Notifications.requestPermissionsAsync()
+      );
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {

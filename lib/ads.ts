@@ -24,6 +24,7 @@ import mobileAds, {
 } from 'react-native-google-mobile-ads';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { checkPremium } from './purchases';
+import { requestPermission } from './permission-queue';
 
 // ─── Ad unit IDs ──────────────────────────────────────────────────────────────
 // TODO(before 1.0.5 release): create the ad units in AdMob (each app → Ad units),
@@ -57,8 +58,16 @@ export async function initAds(): Promise<void> {
   try {
     // 1. iOS App Tracking Transparency — must be requested before showing ads or
     //    Apple rejects under Guideline 5.1.2. No-op on Android.
+    //
+    //    Queued, not called directly: iOS refuses to draw this prompt while any
+    //    other permission dialog is pending, and returns as if the user had
+    //    answered. That is what got 1.0.6 rejected — the reviewer never saw it,
+    //    because notifications and location were being requested at the same
+    //    moment. See lib/permission-queue.ts.
     if (Platform.OS === 'ios') {
-      try { await requestTrackingPermissionsAsync(); } catch { /* user can decline */ }
+      try {
+        await requestPermission(() => requestTrackingPermissionsAsync());
+      } catch { /* user can decline, or the prompt was already answered */ }
     }
 
     // 2. UMP consent (GDPR). Refresh consent info, then show the form only when

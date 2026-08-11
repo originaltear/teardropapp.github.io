@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../../lib/storage';
+import { requestPermission } from '../../lib/permission-queue';
 import { emotionById } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
@@ -221,7 +222,12 @@ export default function MapScreen() {
 
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        // Queued so it can't collide with the tracking or notification prompts
+        // (see lib/permission-queue.ts). The map is what the user came for, so
+        // this is the one that should reach them first.
+        const { status } = await requestPermission(() =>
+          Location.requestForegroundPermissionsAsync()
+        );
         if (status !== 'granted') { setPermissionDenied(true); return; }
 
         // 1. Last known position is instant (no GPS round-trip) — get the map

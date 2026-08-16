@@ -146,6 +146,23 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
       )}
 
       {cry.audioUri ? <AudioPlayer uri={cry.audioUri} /> : null}
+
+      {/* Someone else's cry could be read from the map but not responded to.
+          On a public profile that is exactly where a stranger might say
+          something kind, so the card now leads to the thread. Own cries skip
+          it: there is nothing to open that the card isn't already showing. */}
+      {hasProfile && (
+        <TouchableOpacity
+          style={styles.fullCryBtn}
+          onPress={() => { onClose(); router.push(`/cry-detail?id=${cry.id}`); }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Open the full cry, with comments and reactions"
+        >
+          <Text style={styles.fullCryTxt}>See full cry</Text>
+          <Text style={styles.fullCryArrow}>›</Text>
+        </TouchableOpacity>
+      )}
     </>
   );
 }
@@ -341,6 +358,47 @@ export default function MapScreen() {
     } catch { /* ignore */ }
   }, [superIndex]);
 
+  /**
+   * Fly back to wherever the phone is. Reads live GPS rather than the region
+   * the map opened on, since that may be hours and several countries old.
+   * Falls back to the last known fix so a slow lock doesn't leave the button
+   * feeling broken.
+   */
+  const recentreOnMe = useCallback(async () => {
+    tapLight();
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location is off',
+          'Turn on location for Teardrop to centre the map on where you are.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Open settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return;
+      }
+
+      const fix =
+        (await Location.getLastKnownPositionAsync().catch(() => null)) ??
+        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
+      if (!fix) return;
+
+      mapRef.current?.animateToRegion(
+        {
+          latitude: fix.coords.latitude,
+          longitude: fix.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        },
+        450,
+      );
+    } catch {
+      // A missing fix is not worth an error dialog; the map simply stays put.
+    }
+  }, []);
+
   // "Zoom in" from the sheet — spread the cluster out to where it breaks apart.
   const zoomToCluster = useCallback((clusterId: number, lng: number, lat: number) => {
     setClusterView(null);
@@ -503,6 +561,17 @@ export default function MapScreen() {
       )}
 
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
+        {/* Once you have panned across the world looking at other people's
+            cries there is otherwise no way back to yourself. */}
+        <PressableScale
+          style={[styles.quickFab, { borderColor: accent }]}
+          onPress={recentreOnMe}
+          scaleTo={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Centre the map on my location"
+        >
+          <Text style={styles.quickFabIcon}>◎</Text>
+        </PressableScale>
         <PressableScale
           style={[styles.quickFab, { borderColor: accent }]}
           onPress={() => { tapLight(); if (requireCoords()) setQuickLogOpen(true); }}
@@ -706,6 +775,13 @@ const styles = StyleSheet.create({
   },
   noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  fullCryBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    marginTop: 14, paddingVertical: 12,
+    borderRadius: 12, borderWidth: 1, borderColor: '#1f2937',
+  },
+  fullCryTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  fullCryArrow: { color: '#4a5568', fontSize: 16 },
   // First-cry hint
   hintContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
   firstCryHint: {

@@ -592,7 +592,12 @@ export default function LogCryScreen() {
           </Text>
           {photoUri ? (
             <View style={styles.photoContainer}>
-              <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="cover" />
+              {/* contain, not cover: this is the last look before the photo is
+                  attached, so it should show what was actually taken. The file
+                  is never cropped, but a filled preview made it look as though
+                  it had been. Thumbnails elsewhere stay on cover, since a grid
+                  of mixed aspect ratios reads as a mess. */}
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="contain" />
               <TouchableOpacity style={styles.photoRemove} onPress={() => setPhotoUri(null)}>
                 <Text style={styles.photoRemoveTxt}>✕</Text>
               </TouchableOpacity>

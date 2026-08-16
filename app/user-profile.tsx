@@ -169,6 +169,8 @@ export default function UserProfileScreen() {
     );
   }
 
+  const canSeeFollowLists = !!profile.is_public || isOwnProfile;
+
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
@@ -195,15 +197,25 @@ export default function UserProfileScreen() {
             <Text style={s.statLabel}>Cries</Text>
           </View>
           <View style={s.statDivider} />
-          <View style={s.statCell}>
+          {/* Follow lists open only on accounts that are public (or your own) —
+              the same gate the cries below use. */}
+          <TouchableOpacity
+            style={s.statCell}
+            disabled={!canSeeFollowLists}
+            onPress={() => router.push(`/follow-list?userId=${id}&type=following`)}
+          >
             <Text style={s.statValue}>{stats.following_count}</Text>
-            <Text style={s.statLabel}>Following</Text>
-          </View>
+            <Text style={[s.statLabel, canSeeFollowLists && { color: accent }]}>Following</Text>
+          </TouchableOpacity>
           <View style={s.statDivider} />
-          <View style={s.statCell}>
+          <TouchableOpacity
+            style={s.statCell}
+            disabled={!canSeeFollowLists}
+            onPress={() => router.push(`/follow-list?userId=${id}&type=followers`)}
+          >
             <Text style={s.statValue}>{stats.follower_count}</Text>
-            <Text style={s.statLabel}>Followers</Text>
-          </View>
+            <Text style={[s.statLabel, canSeeFollowLists && { color: accent }]}>Followers</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Follow + Block buttons */}

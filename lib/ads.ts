@@ -13,7 +13,7 @@
  *     premium status and a frequency cap.
  *  3. <FeedBanner /> renders a banner for non-premium users.
  */
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import mobileAds, {
   MaxAdContentRating,
   InterstitialAd,
@@ -87,8 +87,10 @@ export async function initAds(): Promise<void> {
     });
     await mobileAds().initialize();
 
-    // 4. Warm up the first interstitial so it's ready when a break comes.
+    // 4. Warm up the first interstitial so it's ready when a break comes, and
+    //    give it another go each time the user comes back to the app.
     preloadInterstitial();
+    watchForegroundForRetry();
   } catch (e) {
     console.warn('[ads] init failed (ads disabled this session):', e);
   }
@@ -102,9 +104,27 @@ let interstitialLoaded = false;
 // A failed load used to be terminal: interstitialLoaded stayed false and nothing
 // ever re-requested, so one no-fill (common for a young app) silently disabled
 // interstitials for the rest of the session. Retry a few times with backoff.
+//
+// The counter only reset on a successful load, which left the same hole one step
+// further along: with fill in the low tens of percent, three no-fills in a row is
+// ordinary, and after those the session was done asking. It now also resets when
+// an ad is closed and whenever the app returns to the foreground, since coming
+// back is exactly when the inventory situation may have changed.
 const INTERSTITIAL_RETRY_BASE_MS = 60_000;
 const MAX_INTERSTITIAL_RETRIES = 3;
 let interstitialRetries = 0;
+
+let foregroundWatcherAttached = false;
+function watchForegroundForRetry() {
+  if (foregroundWatcherAttached) return;
+  foregroundWatcherAttached = true;
+  AppState.addEventListener('change', state => {
+    if (state !== 'active') return;
+    if (interstitialLoaded) return;
+    interstitialRetries = 0;
+    preloadInterstitial();
+  });
+}
 
 function preloadInterstitial() {
   try {
@@ -124,6 +144,7 @@ function preloadInterstitial() {
     ad.addAdEventListener(AdEventType.CLOSED, () => {
       if (!isCurrent()) return;
       interstitialLoaded = false;
+      interstitialRetries = 0; // a shown ad proves fill exists — start over clean
       preloadInterstitial(); // queue the next one for later
     });
     ad.addAdEventListener(AdEventType.ERROR, (error: any) => {

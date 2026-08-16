@@ -127,6 +127,20 @@ export default function CryDetailScreen() {
     ]);
   }
 
+  // Replies are flattened into a single level, so the thread itself can't show
+  // who a reply answers once more than two people are talking. Putting the
+  // handle in the text is what survives — it's the only record of the target.
+  function startReply(c: Comment) {
+    setReplyTo(c);
+    setCommentText(prev => `@${c.profile.username} ${prev.replace(/^@\w+\s+/, '')}`);
+  }
+
+  function cancelReply() {
+    const handle = replyTo ? `@${replyTo.profile.username} ` : '';
+    setReplyTo(null);
+    if (handle) setCommentText(prev => (prev.startsWith(handle) ? prev.slice(handle.length) : prev));
+  }
+
   async function submitComment() {
     if (!commentText.trim() || !session) return;
     setPosting(true);
@@ -338,7 +352,7 @@ export default function CryDetailScreen() {
                     isOwn={parent.user_id === session?.user.id}
                     canInteract={!!session}
                     onLike={() => toggleCommentLike(parent)}
-                    onReply={() => setReplyTo(parent)}
+                    onReply={() => startReply(parent)}
                     onDelete={() => confirmDeleteComment(parent)}
                   />
                   {comments
@@ -351,7 +365,7 @@ export default function CryDetailScreen() {
                           isOwn={reply.user_id === session?.user.id}
                           canInteract={!!session}
                           onLike={() => toggleCommentLike(reply)}
-                          onReply={() => setReplyTo(reply)}
+                          onReply={() => startReply(reply)}
                           onDelete={() => confirmDeleteComment(reply)}
                         />
                       </View>
@@ -370,7 +384,7 @@ export default function CryDetailScreen() {
               <Text style={s.replyingTxt} numberOfLines={1}>
                 Replying to <Text style={{ color: accent }}>@{replyTo.profile.username}</Text>
               </Text>
-              <TouchableOpacity onPress={() => setReplyTo(null)} hitSlop={8}>
+              <TouchableOpacity onPress={cancelReply} hitSlop={8}>
                 <Text style={s.replyingClose}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -509,7 +523,12 @@ const s = StyleSheet.create({
   commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
   commentActions: { flexDirection: 'row', gap: 16, marginTop: 4, marginLeft: 4 },
   commentAction: { color: '#4a5568', fontSize: 12, fontWeight: '600' },
-  replyIndent: { marginLeft: 40, marginTop: 8 },
+  // A thread line rather than indentation alone: with replies flattened to one
+  // level, plain indentation left it unclear where a thread started and ended.
+  replyIndent: {
+    marginLeft: 22, marginTop: 8, paddingLeft: 16,
+    borderLeftWidth: 2, borderLeftColor: '#1f2937',
+  },
 
   replyingBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

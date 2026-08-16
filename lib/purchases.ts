@@ -261,8 +261,13 @@ export async function restorePurchases(): Promise<boolean> {
 
 /**
  * Called at login and on app focus.
- * Adds 💎 to selected_tears if premium, removes it if not.
- * selected_tears has a max of 3 — if full, replaces the last non-premium tear.
+ * Adds 💎 to earned_tears if premium, removes it if not.
+ *
+ * It is only put on display automatically when the user has a free slot. It
+ * used to overwrite the third one when all three were taken, which silently
+ * threw away an achievement the user had chosen to show — and nothing put it
+ * back when premium lapsed, so they ended up displaying two where they had
+ * three. Buying something should never cost you something you earned.
  */
 export async function syncCrystalTear(userId: string): Promise<void> {
   try {
@@ -281,14 +286,11 @@ export async function syncCrystalTear(userId: string): Promise<void> {
       // Ensure 💎 is in earned_tears
       if (!earned.includes(CRYSTAL_TEAR)) earned = [CRYSTAL_TEAR, ...earned];
 
-      // Ensure 💎 is in selected_tears (max 3, replace last if full)
-      if (!selected.includes(CRYSTAL_TEAR)) {
-        if (selected.length < 3) {
-          selected = [CRYSTAL_TEAR, ...selected];
-        } else {
-          // Replace last entry with Crystal Tear
-          selected = [CRYSTAL_TEAR, ...selected.slice(0, 2)];
-        }
+      // Put it on display only when there's room — never at the cost of one
+      // the user earned. With all three slots taken they can swap it in
+      // themselves from the tear picker.
+      if (!selected.includes(CRYSTAL_TEAR) && selected.length < 3) {
+        selected = [CRYSTAL_TEAR, ...selected];
       }
     } else {
       // Not premium — remove Crystal Tear

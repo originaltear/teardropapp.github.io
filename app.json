@@ -125,6 +125,14 @@
         {
           "userTrackingPermission": "This lets Teardrop show you more relevant ads. You can decline and still use every feature."
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://de.sentry.io/",
+          "organization": "ishaq-ahmed",
+          "project": "teardrop"
+        }
       ]
     ],
     "extra": {

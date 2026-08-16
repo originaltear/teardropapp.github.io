@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
+import * as Sentry from '@sentry/react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
@@ -15,6 +16,28 @@ import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef }
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
 import { SplashGate } from '../components/AppSplash';
 import { ONBOARDING_KEY } from './onboarding';
+
+// ─── Crash reporting ──────────────────────────────────────────────────────────
+// Runs before anything else so an error during startup is still captured.
+//
+// Deliberately stricter than Sentry's documented defaults, because of what this
+// app holds: a cry can carry a note, a photo, a voice recording and a location.
+// None of that may ever leave the device for a third party.
+
+Sentry.init({
+  dsn: 'https://beb08ee71d5c277599cc36b303d81eb0@o4511861375041536.ingest.de.sentry.io/4511861389918288',
+
+  // The docs suggest true. We don't: it attaches IP addresses and user
+  // identifiers to every event, which the privacy policy doesn't cover.
+  sendDefaultPii: false,
+
+  // Errors are the point here. A fifth of traces is enough to spot a slow
+  // screen and leaves plenty of headroom in the free quota as usage grows.
+  tracesSampleRate: 0.2,
+
+  // Errors thrown while developing would drown the real ones from real phones.
+  enabled: !__DEV__,
+});
 
 // ─── Root navigation + providers ──────────────────────────────────────────────
 
@@ -149,7 +172,7 @@ function RootNav() {
     if (!data) return;
     clearBadge();
     const { type, cry_id } = data;
-    if ((type === 'like' || type === 'comment' || type === 'reply' || type === 'hug') && cry_id) {
+    if ((type === 'like' || type === 'comment' || type === 'reply' || type === 'comment_like' || type === 'hug') && cry_id) {
       navigateFromNotification(`/cry-detail?id=${cry_id}`);
     } else if (type === 'follow' || type === 'friend_request') {
       navigateFromNotification('/(tabs)/notifications');
@@ -280,9 +303,11 @@ function ThemedApp() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return <ThemedApp />;
 }
+
+export default Sentry.wrap(RootLayout);
 
 // ─── Crash fallback ───────────────────────────────────────────────────────────
 // expo-router renders this instead of a raw red/white screen if anything in the
@@ -290,6 +315,9 @@ export default function RootLayout() {
 
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   console.warn('[root] uncaught render error:', error?.message);
+  // expo-router swallows the throw by rendering this screen, so without an
+  // explicit capture the crash the user actually saw would never reach Sentry.
+  Sentry.captureException(error);
   return (
     <View style={eb.container}>
       <Text style={eb.emoji}>💧</Text>

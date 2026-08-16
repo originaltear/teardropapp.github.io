@@ -25,6 +25,7 @@ import { Avatar } from '../components/Avatar';
 import { TagPills } from '../components/TagPills';
 import { Drops } from '../components/Drops';
 import { ReportSheet } from '../components/ReportSheet';
+import { ReactorsSheet } from '../components/ReactorsSheet';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { fullDateTime } from '../lib/format';
@@ -49,6 +50,7 @@ export default function CryDetailScreen() {
   const [commentsDisabled, setCommentsDisabled] = useState(false);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reactorsOpen, setReactorsOpen] = useState(false);
   const [reportComment, setReportComment] = useState<Comment | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -337,12 +339,20 @@ export default function CryDetailScreen() {
               </>
             )}
             {(likeCount > 0 || hugCount > 0) && (
-              <Text style={s.likeCount}>
-                {[
-                  likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}` : null,
-                  hugCount > 0 ? `${hugCount} ${hugCount === 1 ? 'hug' : 'hugs'}` : null,
-                ].filter(Boolean).join(' · ')}
-              </Text>
+              <TouchableOpacity
+                onPress={() => setReactorsOpen(true)}
+                activeOpacity={0.6}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="See who reacted"
+              >
+                <Text style={s.likeCount}>
+                  {[
+                    likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}` : null,
+                    hugCount > 0 ? `${hugCount} ${hugCount === 1 ? 'hug' : 'hugs'}` : null,
+                  ].filter(Boolean).join(' · ')}
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -426,6 +436,13 @@ export default function CryDetailScreen() {
         )}
       </KeyboardAvoidingView>
 
+      {cry && (
+        <ReactorsSheet
+          cryId={cry.id}
+          visible={reactorsOpen}
+          onClose={() => setReactorsOpen(false)}
+        />
+      )}
       {cry && (
         <ReportSheet
           visible={reportOpen}

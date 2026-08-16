@@ -421,6 +421,72 @@ export async function unblockUser(targetId: string): Promise<void> {
     .eq('blocked_id', targetId);
 }
 
+// ─── Who reacted ──────────────────────────────────────────────────────────────
+
+export interface Reactor {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_uri: string | null;
+  /** A person can both like and hug the same cry, so these aren't exclusive. */
+  liked: boolean;
+  hugged: boolean;
+}
+
+/**
+ * The people behind the like and hug counts on a cry.
+ *
+ * Returns null when the owner has switched `show_reactions` off, which the
+ * caller should treat as "don't offer the list at all" rather than "the list
+ * is empty". Own cries always come back, since the setting is about other
+ * people looking.
+ *
+ * The counts stay visible either way. This is only ever about the names.
+ *
+ * RLS on `likes` and `cry_hugs` already restricts rows to cries the viewer is
+ * allowed to see, so this preference sits on top of a boundary that holds
+ * rather than being the boundary itself.
+ */
+export async function getCryReactors(cryId: string): Promise<Reactor[] | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const { data: cry } = await supabase
+    .from('cries')
+    .select('user_id, profile:profiles!cries_user_id_fkey(show_reactions)')
+    .eq('id', cryId)
+    .single();
+  if (!cry) return null;
+
+  const isOwner = !!session && cry.user_id === session.user.id;
+  if (!isOwner && (cry.profile as any)?.show_reactions === false) return null;
+
+  const [likesRes, hugsRes] = await Promise.all([
+    supabase.from('likes')
+      .select('profile:profiles!likes_user_id_fkey(id, username, display_name, avatar_uri)')
+      .eq('cry_id', cryId),
+    supabase.from('cry_hugs')
+      .select('profile:profiles!cry_hugs_user_id_fkey(id, username, display_name, avatar_uri)')
+      .eq('cry_id', cryId),
+  ]);
+
+  const byId = new Map<string, Reactor>();
+  const add = (row: any, kind: 'liked' | 'hugged') => {
+    const p = row?.profile;
+    if (!p?.id) return;
+    const existing = byId.get(p.id);
+    if (existing) { existing[kind] = true; return; }
+    byId.set(p.id, {
+      id: p.id, username: p.username, display_name: p.display_name,
+      avatar_uri: p.avatar_uri, liked: kind === 'liked', hugged: kind === 'hugged',
+    });
+  };
+
+  (likesRes.data ?? []).forEach(r => add(r, 'liked'));
+  (hugsRes.data ?? []).forEach(r => add(r, 'hugged'));
+
+  return [...byId.values()];
+}
+
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 /**

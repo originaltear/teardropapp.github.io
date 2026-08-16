@@ -16,7 +16,7 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 interface NotificationRow {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow';
+  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow' | 'report';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -145,6 +145,12 @@ Deno.serve(async (req: Request) => {
     case 'follow':
       title = `${actorName} started following you 👤`;
       body_text = 'Tap to see their profile';
+      break;
+    case 'report':
+      // Moderator-only. Deliberately urgent wording: the clock on Guideline
+      // 1.2 is 24 hours from the moment this is sent.
+      title = 'New report ⚑';
+      body_text = 'Someone reported content. Review within 24 hours.';
       break;
     case 'friend_request':
       title = `${actorName} sent you a friend request`;

@@ -172,7 +172,7 @@ function RootNav() {
     if (!data) return;
     clearBadge();
     const { type, cry_id } = data;
-    if ((type === 'like' || type === 'comment' || type === 'reply' || type === 'comment_like' || type === 'hug') && cry_id) {
+    if ((type === 'like' || type === 'comment' || type === 'reply' || type === 'comment_like' || type === 'hug' || type === 'report') && cry_id) {
       navigateFromNotification(`/cry-detail?id=${cry_id}`);
     } else if (type === 'follow' || type === 'friend_request') {
       navigateFromNotification('/(tabs)/notifications');

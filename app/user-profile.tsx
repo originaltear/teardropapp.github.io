@@ -19,8 +19,9 @@ import { Avatar } from '../components/Avatar';
 import { timeAgo } from '../lib/format';
 import {
   getProfileStats, followUser, unfollowUser,
-  getUserCries, blockUser, unblockUser, isUserBlocked, reportContent, SocialCry,
+  getUserCries, blockUser, unblockUser, isUserBlocked, SocialCry,
 } from '../lib/social';
+import { ReportSheet } from '../components/ReportSheet';
 
 interface PublicProfile {
   id: string;
@@ -29,6 +30,12 @@ interface PublicProfile {
   avatar_uri: string | null;
   bio: string | null;
   is_public: boolean;
+  /**
+   * The real setting. `is_public` is a derived boolean and only true for
+   * 'everyone', so on its own it cannot tell 'followers' apart from 'only_me'
+   * and this screen locked out the mutual follows who were meant to get in.
+   */
+  profile_visibility: 'everyone' | 'followers' | 'only_me' | null;
 }
 
 export default function UserProfileScreen() {
@@ -40,6 +47,8 @@ export default function UserProfileScreen() {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [stats, setStats] = useState({ cry_count: 0, follower_count: 0, following_count: 0 });
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followsMe, setFollowsMe] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [cries, setCries] = useState<SocialCry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +59,7 @@ export default function UserProfileScreen() {
       try {
         const [profileRes, statsRes, criesRes] = await Promise.all([
           supabase.from('profiles')
-            .select('id, username, display_name, avatar_uri, bio, is_public')
+            .select('id, username, display_name, avatar_uri, bio, is_public, profile_visibility')
             .eq('id', id).single(),
           getProfileStats(id),
           getUserCries(id),
@@ -60,12 +69,17 @@ export default function UserProfileScreen() {
         setCries(criesRes);
 
         if (session) {
-          const [followRes, blockRes] = await Promise.all([
+          // Both directions: 'followers' means mutual follows, so knowing that
+          // you follow them is only half the answer.
+          const [followRes, followsMeRes, blockRes] = await Promise.all([
             supabase.from('follows')
               .select('id').eq('follower_id', session.user.id).eq('following_id', id).maybeSingle(),
+            supabase.from('follows')
+              .select('id').eq('follower_id', id).eq('following_id', session.user.id).maybeSingle(),
             isUserBlocked(id),
           ]);
           setIsFollowing(!!followRes.data);
+          setFollowsMe(!!followsMeRes.data);
           setIsBlocked(blockRes);
         }
       } catch (e) {
@@ -91,29 +105,7 @@ export default function UserProfileScreen() {
 
   function handleReport() {
     if (!profile) return;
-    Alert.alert(
-      `Report @${profile.username}`,
-      'Why are you reporting this account?',
-      [
-        { text: 'Inappropriate content', onPress: () => submitUserReport('Inappropriate content') },
-        { text: 'Harassment', onPress: () => submitUserReport('Harassment') },
-        { text: 'Spam', onPress: () => submitUserReport('Spam') },
-        { text: 'Other', onPress: () => submitUserReport('Other') },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
-  }
-
-  async function submitUserReport(reason: string) {
-    if (!id) return;
-    const result = await reportContent('user', id, reason);
-    if (result === 'ok') {
-      Alert.alert('Reported', "Thanks for your report. We'll review it shortly.");
-    } else if (result === 'duplicate') {
-      Alert.alert('Already reported', "You've already reported this account.");
-    } else {
-      Alert.alert('Error', 'Could not submit report. Please try again.');
-    }
+    setReportOpen(true);
   }
 
   function handleBlock() {
@@ -169,7 +161,16 @@ export default function UserProfileScreen() {
     );
   }
 
-  const canSeeFollowLists = !!profile.is_public || isOwnProfile;
+  // The owner's actual choice, not the flattened boolean. 'followers' means
+  // mutual follows, so both directions have to hold. Anything unrecognised
+  // falls back to closed rather than open.
+  const visibility = profile.profile_visibility ?? (profile.is_public ? 'everyone' : 'only_me');
+  const canSeeProfile =
+    isOwnProfile ||
+    visibility === 'everyone' ||
+    (visibility === 'followers' && isFollowing && followsMe);
+
+  const canSeeFollowLists = canSeeProfile;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
@@ -230,25 +231,32 @@ export default function UserProfileScreen() {
                 {isFollowing ? 'Unfollow' : 'Follow'}
               </Text>
             </TouchableOpacity>
+            {/* Both written out. Two bare glyphs sat here before, and a report
+                button that isn't labelled as one is the exact thing Apple
+                calls out under Guideline 1.2. */}
             <TouchableOpacity
-              style={s.btnBlock}
+              style={s.btnSecondary}
               onPress={handleBlock}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isBlocked ? 'Unblock this account' : 'Block this account'}
             >
-              <Text style={s.btnBlockTxt}>{isBlocked ? '🔓' : '🚫'}</Text>
+              <Text style={s.btnSecondaryTxt}>{isBlocked ? 'Unblock' : 'Block'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={s.btnBlock}
+              style={s.btnSecondary}
               onPress={handleReport}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Report this account"
             >
-              <Text style={[s.btnBlockTxt, { color: '#ef4444' }]}>⚑</Text>
+              <Text style={[s.btnSecondaryTxt, { color: '#ef4444' }]}>Report</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Cries list */}
-        {(profile?.is_public || isOwnProfile) && cries.length > 0 && (
+        {canSeeProfile && cries.length > 0 && (
           <>
             <View style={s.criesHeader}>
               <Text style={s.criesTitle}>CRIES</Text>
@@ -280,11 +288,25 @@ export default function UserProfileScreen() {
           </>
         )}
 
-        {/* Private account message */}
-        {!profile?.is_public && !isOwnProfile && (
+        <ReportSheet
+          visible={reportOpen}
+          onClose={() => setReportOpen(false)}
+          target="user"
+          targetId={id!}
+          authorId={id}
+          authorUsername={profile.username}
+        />
+
+        {/* Locked message. Says which door is shut, since "friends only" is a
+            different situation from "nobody" and is one the viewer can act on. */}
+        {!canSeeProfile && (
           <View style={s.privateBox}>
             <Text style={s.privateEmoji}>🔒</Text>
-            <Text style={s.privateTxt}>This account is private</Text>
+            <Text style={s.privateTxt}>
+              {visibility === 'followers'
+                ? 'Only mutual follows can see this account'
+                : 'This account is private'}
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -331,11 +353,11 @@ const s = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   btnFollowingTxt: { color: '#ef4444', fontSize: 16, fontWeight: '700' },
-  btnBlock: {
-    width: 50, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937',
+  btnSecondary: {
+    paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937',
     alignItems: 'center', justifyContent: 'center',
   },
-  btnBlockTxt: { fontSize: 20 },
+  btnSecondaryTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
 
   criesHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

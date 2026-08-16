@@ -30,11 +30,17 @@ import { validateUsername, isUsernameTaken, updateUsername } from '../../lib/use
 import { useTheme, THEMES } from '../../lib/themes';
 import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
 import { isPrivacyOptionsRequired, showPrivacyOptions } from '../../lib/ads';
+import { SUPPORT_EMAIL, openSupportEmail } from '../guidelines';
 
 // Hosted privacy policy (same target as the paywall's legal links). Google Play
 // requires an accessible privacy policy for apps that collect account data, so
 // it's surfaced in Settings as well as at purchase time.
 const PRIVACY_URL = 'https://teardropapp.com/privacy-policy.html';
+
+// Apple's standard EULA, the same one the paywall links at purchase time.
+// Guideline 1.2 wants the terms reachable from inside the app, not only at the
+// moment someone is about to pay.
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -666,6 +672,20 @@ export default function SettingsScreen() {
               <Text style={styles.rowValue}>{Constants.expoConfig?.version ?? '1.0.0'}</Text>
             </View>
             <SettingsRow
+              label="Community Guidelines"
+              value="›"
+              onPress={() => router.push('/guidelines')}
+            />
+            <SettingsRow
+              label="Terms of Use"
+              value="›"
+              onPress={() =>
+                Linking.openURL(TERMS_URL).catch(() =>
+                  Alert.alert('Could not open link', 'Please visit ' + TERMS_URL)
+                )
+              }
+            />
+            <SettingsRow
               label="Privacy Policy"
               value="›"
               onPress={() =>
@@ -673,6 +693,14 @@ export default function SettingsScreen() {
                   Alert.alert('Could not open link', 'Please visit ' + PRIVACY_URL)
                 )
               }
+            />
+            {/* Shown as an address rather than a "Contact us" link on purpose:
+                Guideline 1.2 asks for published contact information, and a
+                label that hides the address behind a tap is not published. */}
+            <SettingsRow
+              label="Contact"
+              value={SUPPORT_EMAIL}
+              onPress={() => openSupportEmail('Teardrop')}
             />
             {adPrivacyAvailable && (
               <SettingsRow

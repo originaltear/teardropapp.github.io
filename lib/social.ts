@@ -92,7 +92,7 @@ export interface Comment {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow';
+  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow' | 'report';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -422,11 +422,18 @@ export async function unblockUser(targetId: string): Promise<void> {
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
 /**
- * Report a cry or a user profile.
+ * What can be reported. Comments were missing: someone could write something
+ * vile in a comment and the only options were reporting the whole cry it sat
+ * under, or the whole person.
+ */
+export type ReportTarget = 'cry' | 'user' | 'comment';
+
+/**
+ * Report a cry, comment or user profile.
  * Returns 'ok' on success, 'duplicate' if already reported, 'error' otherwise.
  */
 export async function reportContent(
-  type: 'cry' | 'user',
+  type: ReportTarget,
   reportedId: string,
   reason: string,
 ): Promise<'ok' | 'duplicate' | 'error'> {

@@ -24,6 +24,7 @@ import { useTheme } from '../lib/themes';
 import { Avatar } from '../components/Avatar';
 import { TagPills } from '../components/TagPills';
 import { Drops } from '../components/Drops';
+import { ReportSheet } from '../components/ReportSheet';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { fullDateTime } from '../lib/format';
@@ -47,6 +48,8 @@ export default function CryDetailScreen() {
   const [posting, setPosting] = useState(false);
   const [commentsDisabled, setCommentsDisabled] = useState(false);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportComment, setReportComment] = useState<Comment | null>(null);
 
   useFocusEffect(useCallback(() => {
     if (!id) return;
@@ -181,31 +184,33 @@ export default function CryDetailScreen() {
   const emotion = cry ? emotionById(cry.emotion) : null;
   const isOwn = session?.user.id === cry?.user_id;
 
-  function handleReport() {
+  /**
+   * The ⋯ used to fire a report dialog the moment it was tapped. Three dots
+   * read as "more options" everywhere else, so nobody found reporting and
+   * anyone who pressed it by accident landed in a report they never wanted.
+   * It now opens a menu that says what it does.
+   */
+  function openCryMenu() {
     if (!cry) return;
     Alert.alert(
-      'Report Cry',
-      'Why are you reporting this?',
+      'Options',
+      undefined,
       [
-        { text: 'Inappropriate content', onPress: () => submitReport('Inappropriate content') },
-        { text: 'Harassment', onPress: () => submitReport('Harassment') },
-        { text: 'Spam', onPress: () => submitReport('Spam') },
-        { text: 'Other', onPress: () => submitReport('Other') },
+        { text: 'Report cry', style: 'destructive', onPress: () => setReportOpen(true) },
         { text: 'Cancel', style: 'cancel' },
       ],
     );
   }
 
-  async function submitReport(reason: string) {
-    if (!cry) return;
-    const result = await reportContent('cry', cry.id, reason);
-    if (result === 'ok') {
-      Alert.alert('Reported', "Thanks for your report. We'll review it shortly.");
-    } else if (result === 'duplicate') {
-      Alert.alert('Already reported', "You've already reported this cry.");
-    } else {
-      Alert.alert('Error', 'Could not submit report. Please try again.');
-    }
+  function openCommentMenu(c: Comment) {
+    Alert.alert(
+      `@${c.profile.username}'s comment`,
+      undefined,
+      [
+        { text: 'Report comment', style: 'destructive', onPress: () => setReportComment(c) },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
   }
 
   if (loading) {
@@ -255,7 +260,13 @@ export default function CryDetailScreen() {
             <Text style={{ fontSize: 17 }}>✏️</Text>
           </TouchableOpacity>
         ) : !isOwn && session && cry ? (
-          <TouchableOpacity style={s.backBtn} onPress={handleReport} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={s.backBtn}
+            onPress={openCryMenu}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Options, including reporting this cry"
+          >
             <Text style={s.menuTxt}>⋯</Text>
           </TouchableOpacity>
         ) : (
@@ -354,6 +365,7 @@ export default function CryDetailScreen() {
                     onLike={() => toggleCommentLike(parent)}
                     onReply={() => startReply(parent)}
                     onDelete={() => confirmDeleteComment(parent)}
+                    onReport={() => openCommentMenu(parent)}
                   />
                   {comments
                     .filter(r => r.parent_comment_id === parent.id)
@@ -367,6 +379,7 @@ export default function CryDetailScreen() {
                           onLike={() => toggleCommentLike(reply)}
                           onReply={() => startReply(reply)}
                           onDelete={() => confirmDeleteComment(reply)}
+                          onReport={() => openCommentMenu(reply)}
                         />
                       </View>
                     ))}
@@ -412,13 +425,34 @@ export default function CryDetailScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {cry && (
+        <ReportSheet
+          visible={reportOpen}
+          onClose={() => setReportOpen(false)}
+          target="cry"
+          targetId={cry.id}
+          authorId={cry.user_id}
+          authorUsername={cry.profile?.username}
+        />
+      )}
+      {reportComment && (
+        <ReportSheet
+          visible={!!reportComment}
+          onClose={() => setReportComment(null)}
+          target="comment"
+          targetId={reportComment.id}
+          authorId={reportComment.user_id}
+          authorUsername={reportComment.profile.username}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 // ─── Comment bubble with like + reply actions ─────────────────────────────────
 
-function CommentItem({ comment, accent, isOwn, canInteract, onLike, onReply, onDelete }: {
+function CommentItem({ comment, accent, isOwn, canInteract, onLike, onReply, onDelete, onReport }: {
   comment: Comment;
   accent: string;
   isOwn: boolean;
@@ -426,6 +460,7 @@ function CommentItem({ comment, accent, isOwn, canInteract, onLike, onReply, onD
   onLike: () => void;
   onReply: () => void;
   onDelete: () => void;
+  onReport: () => void;
 }) {
   return (
     <View style={s.commentRow}>
@@ -451,6 +486,13 @@ function CommentItem({ comment, accent, isOwn, canInteract, onLike, onReply, onD
             <TouchableOpacity onPress={onReply} hitSlop={8} accessibilityRole="button" accessibilityLabel="Reply to comment">
               <Text style={s.commentAction}>Reply</Text>
             </TouchableOpacity>
+            {/* Written out rather than hidden behind an icon: a comment was the
+                one thing here that could not be reported at all. */}
+            {!isOwn && (
+              <TouchableOpacity onPress={onReport} hitSlop={8} accessibilityRole="button" accessibilityLabel="Report this comment">
+                <Text style={s.commentAction}>Report</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>

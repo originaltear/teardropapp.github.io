@@ -14,6 +14,12 @@ import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
 import { signInWithApple } from '../../lib/apple-auth';
 import { useTheme } from '../../lib/themes';
 
+const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+
+function openTerms() {
+  WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});
+}
+
 WebBrowser.maybeCompleteAuthSession();
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -236,6 +242,21 @@ export default function SignupScreen() {
                 ? <ActivityIndicator color="#0d1117" />
                 : <Text style={styles.btnTxt}>Create account</Text>}
             </TouchableOpacity>
+
+            {/* Guideline 1.2 asks that people agree to terms which say plainly
+                that abuse is not tolerated. Stated at the moment of creating
+                the account, and reachable afterwards from Settings. */}
+            <Text style={styles.legal}>
+              By creating an account you agree to our{' '}
+              <Text style={[styles.legalLink, { color: accent }]} onPress={() => router.push('/guidelines')}>
+                Community Guidelines
+              </Text>
+              {' '}and{' '}
+              <Text style={[styles.legalLink, { color: accent }]} onPress={() => openTerms()}>
+                Terms of Use
+              </Text>
+              . Abusive content and the accounts behind it are removed.
+            </Text>
           </View>
 
           <TouchableOpacity
@@ -347,4 +368,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 32,
   },
   backBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
+  legal: {
+    color: '#4a5568', fontSize: 12, lineHeight: 18,
+    textAlign: 'center', marginTop: 14, paddingHorizontal: 4,
+  },
+  legalLink: { textDecorationLine: 'underline' },
 });

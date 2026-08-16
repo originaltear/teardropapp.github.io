@@ -226,6 +226,19 @@ export default function MapScreen() {
     cries: (Cry | SocialCry)[]; clusterId: number; lng: number; lat: number;
   } | null>(null);
 
+  /**
+   * Whether the map has wandered far enough from the user for a way back to be
+   * worth offering. Measured against the visible span rather than a fixed
+   * distance, so it behaves the same zoomed into a street or out to a
+   * continent. Degrees are crude near the poles and entirely good enough for
+   * "am I still looking at roughly where I am".
+   */
+  const showRecentre = !!(
+    gpsCoords && region &&
+    (Math.abs(region.latitude - gpsCoords.latitude) > region.latitudeDelta * 0.75 ||
+     Math.abs(region.longitude - gpsCoords.longitude) > region.longitudeDelta * 0.75)
+  );
+
   useEffect(() => {
     const applyCoords = (latitude: number, longitude: number) => {
       if (!initialRegionRef.current) {
@@ -560,18 +573,25 @@ export default function MapScreen() {
         </SafeAreaView>
       )}
 
+      {/* Bottom left, opposite the logging buttons, and only once you have
+          actually wandered off. A permanent fourth button on the right was
+          both crowded and easy to miss, and there is nothing to return to
+          while you are already standing on yourself. */}
+      {showRecentre && (
+        <SafeAreaView edges={['bottom']} style={styles.recentreContainer} pointerEvents="box-none">
+          <PressableScale
+            style={styles.recentreBtn}
+            onPress={recentreOnMe}
+            scaleTo={0.88}
+            accessibilityRole="button"
+            accessibilityLabel="Centre the map on my location"
+          >
+            <Text style={styles.recentreIcon}>📍</Text>
+          </PressableScale>
+        </SafeAreaView>
+      )}
+
       <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
-        {/* Once you have panned across the world looking at other people's
-            cries there is otherwise no way back to yourself. */}
-        <PressableScale
-          style={[styles.quickFab, { borderColor: accent }]}
-          onPress={recentreOnMe}
-          scaleTo={0.88}
-          accessibilityRole="button"
-          accessibilityLabel="Centre the map on my location"
-        >
-          <Text style={styles.quickFabIcon}>◎</Text>
-        </PressableScale>
         <PressableScale
           style={[styles.quickFab, { borderColor: accent }]}
           onPress={() => { tapLight(); if (requireCoords()) setQuickLogOpen(true); }}
@@ -718,6 +738,14 @@ const styles = StyleSheet.create({
   wrappedPillTxt: { fontSize: 13, fontWeight: '700' },
 
   fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
+  // Mirrors fabContainer on the other side so the two never crowd each other.
+  recentreContainer: { position: 'absolute', bottom: 0, left: 0, alignItems: 'flex-start' },
+  recentreBtn: {
+    width: 48, height: 48, borderRadius: 24, margin: 20,
+    backgroundColor: '#111827ee', borderWidth: 1, borderColor: '#374151',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  recentreIcon: { fontSize: 20 },
   quickFab: {
     width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(13,17,23,0.92)',

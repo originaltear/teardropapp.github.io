@@ -345,12 +345,18 @@ export default function SettingsScreen() {
     setSendingReport(true);
     try {
       const { data: { session: s } } = await supabase.auth.getSession();
-      await supabase.from('reports').insert({
+      // supabase-js reports failures in the result rather than throwing, so the
+      // catch below never sees them. Without this check every problem report
+      // was answered with "Thanks!" whether or not the row survived — and for
+      // a long time none of them did, because reported_type = 'app' violated a
+      // CHECK constraint that only allowed 'cry' and 'user'.
+      const { error } = await supabase.from('reports').insert({
         reporter_id: s?.user.id,
         reported_type: 'app',
         reported_id: s?.user.id ?? 'unknown',
         reason: reportText.trim().slice(0, 1000),
       });
+      if (error) throw error;
       setReportText('');
       setShowReport(false);
       Alert.alert('Thanks!', 'Your report has been submitted.');

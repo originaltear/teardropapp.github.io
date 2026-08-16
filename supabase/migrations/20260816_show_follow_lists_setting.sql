@@ -20,3 +20,11 @@ alter table public.profiles
 
 comment on column public.profiles.show_follow_lists is
   'When false, others see follower/following counts but cannot open the lists.';
+
+-- ⚠️ REQUIRED, and easy to forget. Column privileges on `profiles` are an
+-- allowlist, set up when push_token was protected, so a new column is denied
+-- to clients by default. Selecting it then fails the WHOLE query, and the app
+-- reads that as the row not existing: opening any profile said "user not
+-- found" until this ran. Every future column on this table needs the same.
+grant select (show_follow_lists) on public.profiles to anon, authenticated;
+grant update (show_follow_lists) on public.profiles to authenticated;

@@ -14,3 +14,9 @@ alter table public.profiles
 
 comment on column public.profiles.show_reactions is
   'When false, other users see reaction counts but not who reacted.';
+
+-- ⚠️ REQUIRED. Column privileges on `profiles` are an allowlist (see the
+-- push_token migration), so without this the column is unreadable by clients
+-- and any query selecting it fails outright rather than omitting the field.
+grant select (show_reactions) on public.profiles to anon, authenticated;
+grant update (show_reactions) on public.profiles to authenticated;

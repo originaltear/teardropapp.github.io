@@ -66,7 +66,8 @@ export interface WrappedData {
   monthly: { label: string; short: string; value: number }[];
 
   countries: { name: string; count: number }[];
-  longestStreak: number;
+  /** Distinct days with at least one cry. */
+  daysLogged: number;
   avgIntensity: number;
   withPhoto: number;
   withAudio: number;
@@ -112,25 +113,16 @@ function toSlice(emotion: Emotion, count: number, total: number): EmotionSlice {
   };
 }
 
-/** Longest run of consecutive days that contain at least one cry. */
-function computeLongestStreak(cries: Cry[]): number {
-  const days = [...new Set(cries.map(c => localDay(c.createdAt)))].sort();
-  if (days.length === 0) return 0;
-
-  let longest = 1;
-  let run = 1;
-  for (let i = 1; i < days.length; i++) {
-    const diff = Math.round(
-      (new Date(days[i]).getTime() - new Date(days[i - 1]).getTime()) / 86_400_000,
-    );
-    if (diff === 1) {
-      run += 1;
-      if (run > longest) longest = run;
-    } else {
-      run = 1;
-    }
-  }
-  return longest;
+/**
+ * Number of distinct days with at least one cry.
+ *
+ * This replaced a longest-streak count. A streak rewards unbroken days, which
+ * in an app about crying means rewarding someone for not having stopped. The
+ * plain day count carries the same weight in a recap without asking anything
+ * of next year.
+ */
+function computeDaysLogged(cries: Cry[]): number {
+  return new Set(cries.map(c => localDay(c.createdAt))).size;
 }
 
 // ─── Core computation ─────────────────────────────────────────────────────────
@@ -157,7 +149,7 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     busiestMonth: null,
     monthly: MONTH_LABELS.map(label => ({ label, short: label.slice(0, 3), value: 0 })),
     countries: [],
-    longestStreak: 0,
+    daysLogged: 0,
     avgIntensity: 0,
     withPhoto: 0,
     withAudio: 0,
@@ -236,7 +228,7 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     busiestMonth,
     monthly,
     countries,
-    longestStreak: computeLongestStreak(cries),
+    daysLogged: computeDaysLogged(cries),
     avgIntensity: Math.round((cries.reduce((s, c) => s + c.intensity, 0) / total) * 10) / 10,
     withPhoto: cries.filter(c => c.photoUri).length,
     withAudio: cries.filter(c => c.audioUri).length,

@@ -88,13 +88,6 @@ const TIME_BANK: Record<string, string[]> = {
   ],
 };
 
-const STREAK_BANK: Record<string, string[]> = {
-  none: ['No streaks — you took your breaks.'],
-  short: ['A few days in a row. Rough patch, survived.'],
-  medium: ['A properly difficult stretch. You got through it.'],
-  long: ['That is a long run of hard days. Real endurance.'],
-};
-
 const GEO_BANK: Record<string, string[]> = {
   one: ['All in one place. Home turf.'],
   couple: ['You cried in more than one country. Well travelled.'],
@@ -115,13 +108,6 @@ function totalBucket(total: number): string {
   if (total < 50) return 'some';
   if (total < 150) return 'many';
   return 'epic';
-}
-
-function streakBucket(streak: number): string {
-  if (streak <= 1) return 'none';
-  if (streak <= 3) return 'short';
-  if (streak <= 7) return 'medium';
-  return 'long';
 }
 
 function geoBucket(countries: number): string {
@@ -151,10 +137,6 @@ export function emotionComment(emotionId: string | null, seed: CommentSeed): str
 export function timeComment(bucketId: string | null, seed: CommentSeed): string {
   const bank = (bucketId && TIME_BANK[bucketId]) || TIME_BANK.evening;
   return pick(bank, seedFor(seed, 'time'));
-}
-
-export function streakComment(streak: number, seed: CommentSeed): string {
-  return pick(STREAK_BANK[streakBucket(streak)], seedFor(seed, 'streak'));
 }
 
 export function geoComment(countryCount: number, seed: CommentSeed): string {

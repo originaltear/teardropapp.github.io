@@ -17,7 +17,7 @@ export interface Achievement {
   howToUnlock: string;     // shown when locked (plain description of the condition)
   isTear: boolean;
   tearEmoji?: string;
-  category: 'quantity' | 'timing' | 'geography' | 'emotion' | 'streak' | 'media' | 'social' | 'profile' | 'quirky';
+  category: 'quantity' | 'timing' | 'geography' | 'emotion' | 'media' | 'social' | 'profile' | 'quirky';
 }
 
 // ─── Tear definitions ─────────────────────────────────────────────────────────
@@ -49,11 +49,6 @@ export const TEARS: TearDef[] = [
     emoji: '🌍', name: 'World Tear', description: 'Cried in 5+ countries',
     howObtained: 'Obtained from the "World Tear" achievement — you logged cries in 5 different countries.',
     achievementId: 'world_tear',
-  },
-  {
-    emoji: '🔥', name: 'Burning Tear', description: '30-day streak',
-    howObtained: 'Obtained from the "Month Streak" achievement — you logged at least one cry every day for 30 days in a row.',
-    achievementId: 'month_streak',
   },
   {
     emoji: '🌙', name: 'Midnight Tear', description: 'Cried between midnight and 4am',
@@ -122,13 +117,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'anxious_mind', title: 'Anxious Mind', emoji: '🫨', category: 'emotion', isTear: false,
     howToUnlock: "Log 10 cries with 'Anxiety'.", unlockMessage: "The mind never rests. Neither do you." },
 
-  // ── Streaks ──
-  { id: 'week_streak', title: 'Week Streak', emoji: '🔥', category: 'streak', isTear: false,
-    howToUnlock: "Log at least one cry per day for 7 days in a row.", unlockMessage: "Seven days. Consistent, if nothing else." },
-  { id: 'month_streak', title: 'Month Streak', emoji: '🔥', category: 'streak', isTear: true, tearEmoji: '🔥',
-    howToUnlock: "Log at least one cry per day for 30 days in a row.", unlockMessage: "Thirty days. At this point it's a lifestyle." },
-  { id: 'century', title: 'Century', emoji: '💫', category: 'streak', isTear: false,
-    howToUnlock: "Log at least one cry per day for 100 days in a row.", unlockMessage: "100 days. This is who you are now." },
+  // Streak achievements used to sit here: seven, thirty and a hundred days in a
+  // row. They rewarded crying every single day, in an app about crying, and the
+  // thirty-day one even carried a tear. Removed rather than reworded — the
+  // problem was the mechanic, not the copy.
 
   // ── Media ──
   { id: 'photographer', title: 'Photographer', emoji: '📷', category: 'media', isTear: false,
@@ -194,20 +186,6 @@ function toLocalDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   // en-CA locale uses YYYY-MM-DD format natively
   return d.toLocaleDateString('en-CA');
-}
-
-function computeStreak(cries: Cry[]): number {
-  if (!cries.length) return 0;
-  const days = [...new Set(cries.map(c => toLocalDate(c.createdAt)))].sort().reverse();
-  const today     = toLocalDate(new Date());
-  const yesterday = toLocalDate(new Date(Date.now() - 86_400_000));
-  if (days[0] !== today && days[0] !== yesterday) return 0;
-  let s = 1;
-  for (let i = 0; i < days.length - 1; i++) {
-    const a = new Date(days[i]).getTime(), b = new Date(days[i + 1]).getTime();
-    if (Math.round((a - b) / 86_400_000) === 1) s++; else break;
-  }
-  return s;
 }
 
 // ─── Local conditions check ───────────────────────────────────────────────────
@@ -291,12 +269,6 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
   if (cries.filter(c => c.emotion === 'mixed').length >= 20) ok.add('complex_soul');
   if (cries.filter(c => c.emotion === 'rage').length >= 10) ok.add('drama');
   if (cries.filter(c => c.emotion === 'anxiety').length >= 10) ok.add('anxious_mind');
-
-  // Streak
-  const s = computeStreak(cries);
-  if (s >= 7) ok.add('week_streak');
-  if (s >= 30) ok.add('month_streak');
-  if (s >= 100) ok.add('century');
 
   // Media
   if (cries.filter(c => c.photoUri).length >= 10) ok.add('photographer');

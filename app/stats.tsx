@@ -246,29 +246,17 @@ export default function StatsScreen() {
     const thisMonth = cries.filter(c => getMonthKey(new Date(c.createdAt)) === moKey).length;
     const thisYear  = cries.filter(c => new Date(c.createdAt).getFullYear() === yr).length;
 
-    // Streaks
-    const days = [...new Set(cries.map(c => new Date(c.createdAt).toLocaleDateString('en-CA')))].sort().reverse();
-    let currentStreak = 0, maxStreak = 0;
-    if (days.length > 0) {
-      const yestStr = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-      if (days[0] === todayStr || days[0] === yestStr) {
-        currentStreak = 1;
-        for (let i = 0; i < days.length - 1; i++) {
-          const diff = Math.round((new Date(days[i]).getTime() - new Date(days[i + 1]).getTime()) / 86400000);
-          if (diff === 1) currentStreak++; else break;
-        }
-      }
-      let streak = 1;
-      for (let i = 0; i < days.length - 1; i++) {
-        const diff = Math.round((new Date(days[i]).getTime() - new Date(days[i + 1]).getTime()) / 86400000);
-        if (diff === 1) { streak++; maxStreak = Math.max(maxStreak, streak); } else { streak = 1; }
-      }
-      maxStreak = Math.max(maxStreak, currentStreak);
-    }
+    // Days logged replaces the old current/best streak pair. A streak counts
+    // unbroken days, which in this app quietly asked people to keep crying to
+    // hold on to a number. This just says how many days you wrote something.
+    const daysLogged = new Set(
+      cries.map(c => new Date(c.createdAt).toLocaleDateString('en-CA'))
+    ).size;
 
     // Basics
     const avgIntensity = n > 0 ? (cries.reduce((s, c) => s + c.intensity, 0) / n).toFixed(1) : '—';
     const withPhoto = cries.filter(c => c.photoUri).length;
+    const withNote  = cries.filter(c => c.note && c.note.trim().length > 0).length;
 
     // Country counts
     const countryMap: Record<string, number> = {};
@@ -327,16 +315,16 @@ export default function StatsScreen() {
     }));
 
     return {
-      thisWeek, thisMonth, thisYear, currentStreak, maxStreak,
-      avgIntensity, withPhoto, countryList, countryCount,
+      thisWeek, thisMonth, thisYear, daysLogged,
+      avgIntensity, withPhoto, withNote, countryList, countryCount,
       monthData, maxMonth, emotionCounts, emotionList, topEmotion,
       weekdayData, maxDay, hourBuckets, trendData,
     };
   }, [cries, n]);
 
   const {
-    thisWeek, thisMonth, thisYear, currentStreak, maxStreak,
-    avgIntensity, withPhoto, countryList, countryCount,
+    thisWeek, thisMonth, thisYear, daysLogged,
+    avgIntensity, withPhoto, withNote, countryList, countryCount,
     monthData, maxMonth, emotionCounts, emotionList, topEmotion,
     weekdayData, maxDay, hourBuckets, trendData,
   } = stats;
@@ -360,7 +348,7 @@ export default function StatsScreen() {
           <Text style={{ fontSize: 52 }}>📊</Text>
           <Text style={s.emptyTitle}>Statistics</Text>
           <Text style={s.emptyMsg}>
-            Create an account to track your cry history, streaks, and emotions over time.
+            Create an account to track your cry history, patterns, and emotions over time.
           </Text>
           <TouchableOpacity
             style={[s.emptyBtn, { backgroundColor: accent }]}
@@ -399,18 +387,18 @@ export default function StatsScreen() {
           <StatCard value={thisYear}  label="This year" />
         </View>
 
-        {/* ── Row 2: Total / streak / best streak ── */}
+        {/* ── Row 2: Total / days logged / avg intensity ── */}
         <View style={s.cardRow}>
-          <StatCard value={n}             label="Total cries" />
-          <StatCard value={currentStreak} label="Streak" />
-          <StatCard value={maxStreak}     label="Best streak" />
+          <StatCard value={n}            label="Total cries" />
+          <StatCard value={daysLogged}   label="Days logged" />
+          <StatCard value={avgIntensity} label="Avg intensity" />
         </View>
 
-        {/* ── Row 3: Avg intensity / countries / with photo ── */}
+        {/* ── Row 3: Countries / with photo / with note ── */}
         <View style={[s.cardRow, { marginBottom: 0 }]}>
-          <StatCard value={avgIntensity} label="Avg intensity" />
           <StatCard value={countryCount} label="Countries" />
           <StatCard value={withPhoto}    label="With photo" />
+          <StatCard value={withNote}     label="With note" />
         </View>
 
         {/* ── CRIES PER MONTH (free) ── */}

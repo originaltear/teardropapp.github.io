@@ -92,8 +92,8 @@ export const WrappedShareCard = forwardRef<View, ShareCardProps>(
               label="heaviest month"
             />
             <Stat
-              value={data.longestStreak > 0 ? `${data.longestStreak}` : '—'}
-              label={data.longestStreak === 1 ? 'day streak' : 'day streak'}
+              value={data.daysLogged > 0 ? `${data.daysLogged}` : '—'}
+              label={data.daysLogged === 1 ? 'day logged' : 'days logged'}
             />
             <Stat
               value={extras.hugsReceived > 0 ? `${extras.hugsReceived}` : `${data.spectrum.length}`}

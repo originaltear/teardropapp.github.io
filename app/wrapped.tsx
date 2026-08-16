@@ -25,7 +25,7 @@ import {
 } from '../lib/wrapped';
 import {
   totalComment, emotionComment, timeComment,
-  streakComment, geoComment, closingComment,
+  geoComment, closingComment,
 } from '../lib/wrapped-comments';
 import { WrappedCard } from '../components/WrappedCard';
 import { WrappedShareCard } from '../components/WrappedShareCard';
@@ -398,20 +398,6 @@ export default function WrappedScreen() {
       });
     }
 
-    if (data.longestStreak > 1) {
-      list.push({
-        key: 'streak',
-        render: active => (
-          <WrappedCard
-            active={active} accent={accent} eyebrow="Your longest streak"
-            caption={streakComment(data.longestStreak, seed)} variant="flood"
-          >
-            <BigNumber value={data.longestStreak} color={accent} active={active} />
-            <Text style={s.heroUnit}>days in a row</Text>
-          </WrappedCard>
-        ),
-      });
-    }
 
     // Percentile card — only once enough people share the scope for the number
     // to be meaningful (the RPC returns null below its thresholds).

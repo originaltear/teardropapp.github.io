@@ -68,6 +68,8 @@ export interface ProfileSettings {
   allow_comments: boolean;
   /** When false, others see reaction counts on your cries but not who reacted. */
   show_reactions: boolean;
+  /** When false, others see follower counts but cannot open the lists. */
+  show_follow_lists: boolean;
   notification_preferences: {
     new_cries_from_following: boolean;
     new_likes: boolean;
@@ -696,7 +698,7 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
   if (!session) return null;
   const { data, error } = await supabase
     .from('profiles')
-    .select('profile_visibility, allow_comments, show_reactions, notification_preferences')
+    .select('profile_visibility, allow_comments, show_reactions, show_follow_lists, notification_preferences')
     .eq('id', session.user.id)
     .single();
   if (error || !data) return null;
@@ -704,6 +706,7 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
     profile_visibility: (data.profile_visibility as ProfileSettings['profile_visibility']) ?? 'everyone',
     allow_comments: data.allow_comments ?? true,
     show_reactions: data.show_reactions ?? true,
+    show_follow_lists: data.show_follow_lists ?? true,
     notification_preferences: {
       new_cries_from_following: true,
       new_likes: true,
@@ -734,6 +737,7 @@ export async function updateProfileSettings(settings: Partial<ProfileSettings>):
   if (settings.profile_visibility !== undefined) update.profile_visibility = settings.profile_visibility;
   if (settings.allow_comments !== undefined) update.allow_comments = settings.allow_comments;
   if (settings.show_reactions !== undefined) update.show_reactions = settings.show_reactions;
+  if (settings.show_follow_lists !== undefined) update.show_follow_lists = settings.show_follow_lists;
   if (settings.notification_preferences !== undefined) update.notification_preferences = settings.notification_preferences;
   await supabase.from('profiles').update(update).eq('id', session.user.id);
 }

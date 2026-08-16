@@ -126,7 +126,20 @@ function watchForegroundForRetry() {
   });
 }
 
+// Every caller funnels through here, so the floor lives here rather than in
+// each of them. Measured on a real phone: without it, returning to the
+// foreground re-requested immediately and reset the backoff, so a session with
+// no fill fired a dozen requests in three minutes, two of them in the same
+// second. That is wasted battery and the kind of request pattern AdMob reads
+// as misbehaviour.
+const MIN_PRELOAD_GAP_MS = 60_000;
+let lastPreloadAt = 0;
+
 function preloadInterstitial() {
+  const now = Date.now();
+  if (now - lastPreloadAt < MIN_PRELOAD_GAP_MS) return;
+  lastPreloadAt = now;
+
   try {
     const ad = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID);
     interstitial = ad;

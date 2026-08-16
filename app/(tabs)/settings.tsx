@@ -132,26 +132,10 @@ export default function SettingsScreen() {
   const [hapticsOn, setHapticsOn] = useState(true);
   const [adPrivacyAvailable, setAdPrivacyAvailable] = useState(false);
 
-  // Privacy settings
-  const [profileVisibility, setProfileVisibility] =
-    useState<ProfileSettings['profile_visibility']>('everyone');
-  const [allowComments, setAllowComments] = useState(true);
-
-  // Notification prefs
-  const [notifPrefs, setNotifPrefs] =
-    useState<ProfileSettings['notification_preferences']>(DEFAULT_NOTIF_PREFS);
-
-  // Blocked users
-  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
-  const [showBlocked, setShowBlocked] = useState(false);
-
   // Report a problem modal
   const [showReport, setShowReport] = useState(false);
   const [reportText, setReportText] = useState('');
   const [sendingReport, setSendingReport] = useState(false);
-
-  // Visibility dropdown open
-  const [showVisibilityPicker, setShowVisibilityPicker] = useState(false);
 
   // Account linking (Supabase Auth identities)
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
@@ -173,19 +157,13 @@ export default function SettingsScreen() {
     (async () => {
       setLoading(true);
       try {
-        const [settings, blocked, premium, ids, profileRow] = await Promise.all([
-          getProfileSettings(),
-          getBlockedUsers(),
+        // Visibility and notification preferences now load on their own pages,
+        // so this screen no longer fetches them.
+        const [premium, ids, profileRow] = await Promise.all([
           checkPremium(),
           getLinkedIdentities(),
           supabase.from('profiles').select('username').eq('id', session.user.id).single(),
         ]);
-        if (settings) {
-          setProfileVisibility(settings.profile_visibility);
-          setAllowComments(settings.allow_comments);
-          setNotifPrefs({ ...DEFAULT_NOTIF_PREFS, ...settings.notification_preferences });
-        }
-        setBlockedUsers(blocked);
         setIsPremium(premium);
         setIdentities(ids);
         setUsername(profileRow.data?.username ?? null);
@@ -298,27 +276,6 @@ export default function SettingsScreen() {
     );
   }
 
-  // ── Auto-save privacy settings ──
-  async function saveVisibility(v: ProfileSettings['profile_visibility']) {
-    setProfileVisibility(v);
-    setShowVisibilityPicker(false);
-    await updateProfileSettings({ profile_visibility: v });
-  }
-
-  async function toggleComments(v: boolean) {
-    setAllowComments(v);
-    await updateProfileSettings({ allow_comments: v });
-  }
-
-  async function toggleNotif(
-    key: keyof ProfileSettings['notification_preferences'],
-    value: boolean,
-  ) {
-    const next = { ...notifPrefs, [key]: value };
-    setNotifPrefs(next);
-    await updateProfileSettings({ notification_preferences: next });
-  }
-
   // ── Export my data ──
   async function handleExport() {
     try {
@@ -365,20 +322,6 @@ export default function SettingsScreen() {
     } finally {
       setSendingReport(false);
     }
-  }
-
-  // ── Unblock user ──
-  async function handleUnblock(userId: string, username: string) {
-    Alert.alert('Unblock', `Unblock @${username}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Unblock',
-        onPress: async () => {
-          await unblockUser(userId);
-          setBlockedUsers(prev => prev.filter(u => u.id !== userId));
-        },
-      },
-    ]);
   }
 
   // ── Logout ──
@@ -550,59 +493,21 @@ export default function SettingsScreen() {
               guests so the screen doesn't show toggles that silently no-op. */}
           {session ? (
           <>
-          {/* Privacy */}
+          {/* Both of these used to be full sections here. They kept growing,
+              and they were competing for attention with vibration and theme
+              colours. Each now has a page where the settings can explain
+              themselves. */}
           <SectionLabel text="Privacy" />
           <SettingsGroup>
-            {/* Profile visibility */}
             <SettingsRow
-              label="Profile visibility"
-              value={VISIBILITY_LABELS[profileVisibility]}
-              onPress={() => setShowVisibilityPicker(true)}
-            />
-            <ToggleRow
-              label="Allow comments"
-              value={allowComments}
-              onChange={toggleComments}
+              label="Visibility"
+              value="Who can see what ›"
+              onPress={() => router.push('/visibility-settings')}
             />
             <SettingsRow
-              label="Close Friends"
-              value="Manage list ›"
-              onPress={() => router.push('/close-friends')}
-            />
-            <SettingsRow
-              label="Blocked users"
-              value={blockedUsers.length > 0 ? `${blockedUsers.length} blocked` : 'None'}
-              onPress={() => setShowBlocked(true)}
-            />
-          </SettingsGroup>
-
-          {/* Notifications */}
-          <SectionLabel text="Notifications" />
-          <SettingsGroup>
-            <ToggleRow
-              label="New cries from people I follow"
-              value={notifPrefs.new_cries_from_following}
-              onChange={v => toggleNotif('new_cries_from_following', v)}
-            />
-            <ToggleRow
-              label="New likes on my cries"
-              value={notifPrefs.new_likes}
-              onChange={v => toggleNotif('new_likes', v)}
-            />
-            <ToggleRow
-              label="New comments on my cries"
-              value={notifPrefs.new_comments}
-              onChange={v => toggleNotif('new_comments', v)}
-            />
-            <ToggleRow
-              label="New followers"
-              value={notifPrefs.new_followers}
-              onChange={v => toggleNotif('new_followers', v)}
-            />
-            <ToggleRow
-              label="Friend requests"
-              value={notifPrefs.friend_requests}
-              onChange={v => toggleNotif('friend_requests', v)}
+              label="Notifications"
+              value="What we send you ›"
+              onPress={() => router.push('/notification-settings')}
             />
           </SettingsGroup>
           </>
@@ -759,63 +664,6 @@ export default function SettingsScreen() {
 
         </ScrollView>
       )}
-
-      {/* ── Profile visibility picker modal ── */}
-      <Modal visible={showVisibilityPicker} transparent animationType="fade" onRequestClose={() => setShowVisibilityPicker(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowVisibilityPicker(false)} />
-        <View style={styles.pickerCard}>
-          <Text style={styles.pickerTitle}>Profile visibility</Text>
-          {(['everyone', 'followers', 'only_me'] as const).map(v => (
-            <TouchableOpacity
-              key={v}
-              style={[styles.pickerOption, profileVisibility === v && styles.pickerOptionActive]}
-              onPress={() => saveVisibility(v)}
-            >
-              <Text style={[styles.pickerOptionTxt, profileVisibility === v && styles.pickerOptionTxtActive]}>
-                {VISIBILITY_LABELS[v]}
-              </Text>
-              {profileVisibility === v && <Text style={styles.pickerCheck}>✓</Text>}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </Modal>
-
-      {/* ── Blocked users modal ── */}
-      <Modal visible={showBlocked} transparent animationType="slide" onRequestClose={() => setShowBlocked(false)}>
-        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowBlocked(false)} />
-        <SafeAreaView edges={['bottom']} style={styles.sheetContainer}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHandle} />
-            <View style={styles.sheetHeaderRow}>
-              <Text style={styles.sheetTitle}>Blocked users</Text>
-              <TouchableOpacity onPress={() => setShowBlocked(false)}>
-                <Text style={styles.sheetClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {blockedUsers.length === 0 ? (
-              <Text style={styles.emptyText}>You haven't blocked anyone.</Text>
-            ) : (
-              <ScrollView>
-                {blockedUsers.map(u => (
-                  <View key={u.id} style={styles.blockedRow}>
-                    <Avatar uri={u.avatar_uri} size={36} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.blockedName}>{u.display_name}</Text>
-                      <Text style={styles.blockedHandle}>@{u.username}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.unblockBtn}
-                      onPress={() => handleUnblock(u.id, u.username)}
-                    >
-                      <Text style={styles.unblockTxt}>Unblock</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </SafeAreaView>
-      </Modal>
 
       {/* ── Theme picker modal ── */}
       <Modal visible={showThemePicker} transparent animationType="fade" onRequestClose={() => setShowThemePicker(false)}>

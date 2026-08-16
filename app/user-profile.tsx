@@ -36,6 +36,9 @@ interface PublicProfile {
    * and this screen locked out the mutual follows who were meant to get in.
    */
   profile_visibility: 'everyone' | 'followers' | 'only_me' | null;
+  /** Separate from profile visibility: a visible profile can still keep its
+   *  connections private, the way Facebook and Instagram both allow. */
+  show_follow_lists: boolean | null;
 }
 
 export default function UserProfileScreen() {
@@ -59,7 +62,7 @@ export default function UserProfileScreen() {
       try {
         const [profileRes, statsRes, criesRes] = await Promise.all([
           supabase.from('profiles')
-            .select('id, username, display_name, avatar_uri, bio, is_public, profile_visibility')
+            .select('id, username, display_name, avatar_uri, bio, is_public, profile_visibility, show_follow_lists')
             .eq('id', id).single(),
           getProfileStats(id),
           getUserCries(id),
@@ -170,7 +173,10 @@ export default function UserProfileScreen() {
     visibility === 'everyone' ||
     (visibility === 'followers' && isFollowing && followsMe);
 
-  const canSeeFollowLists = canSeeProfile;
+  // Two gates, not one: you have to be allowed to see the profile at all, and
+  // they have to be willing to show who they are connected to.
+  const canSeeFollowLists =
+    canSeeProfile && (isOwnProfile || profile.show_follow_lists !== false);
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>

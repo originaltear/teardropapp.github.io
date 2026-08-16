@@ -24,6 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useTheme } from '../lib/themes';
 import { reportContent, blockUser, ReportTarget } from '../lib/social';
+import { selection } from '../lib/haptics';
 
 const REASONS = [
   'Harassment or bullying',
@@ -129,7 +130,7 @@ export function ReportSheet({
                     <TouchableOpacity
                       key={r}
                       style={[s.chip, on && { borderColor: accent, backgroundColor: accent + '18' }]}
-                      onPress={() => setReason(r)}
+                      onPress={() => { selection(); setReason(r); }}
                       activeOpacity={0.8}
                       accessibilityRole="radio"
                       accessibilityState={{ selected: on }}

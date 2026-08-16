@@ -10,6 +10,7 @@
 import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { selection } from '../lib/haptics';
 
 export function SectionLabel({ text }: { text: string }) {
   return <Text style={s.section}>{text}</Text>;
@@ -50,7 +51,9 @@ export function ToggleRow({ label, hint, value, onChange }: {
       </View>
       <Switch
         value={value}
-        onValueChange={onChange}
+        // Every toggle in the app goes through this component, so the tick
+        // lives here rather than being remembered at each call site.
+        onValueChange={v => { selection(); onChange(v); }}
         trackColor={{ false: '#1f2937', true: '#6fe0e6' }}
         thumbColor="#e2e8f0"
       />

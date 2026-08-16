@@ -22,6 +22,7 @@ import {
   getUserCries, blockUser, unblockUser, isUserBlocked, SocialCry,
 } from '../lib/social';
 import { ReportSheet } from '../components/ReportSheet';
+import { tapLight } from '../lib/haptics';
 
 interface PublicProfile {
   id: string;
@@ -95,6 +96,8 @@ export default function UserProfileScreen() {
 
   async function handleFollowToggle() {
     if (!session) { Alert.alert('Log in', 'You need an account to follow people.'); return; }
+    // Following someone is the moment worth marking; unfollowing isn't.
+    if (!isFollowing) tapLight();
     if (isFollowing) {
       await unfollowUser(id!);
       setIsFollowing(false);

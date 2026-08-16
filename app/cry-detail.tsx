@@ -29,6 +29,7 @@ import { ReactorsSheet } from '../components/ReactorsSheet';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { fullDateTime } from '../lib/format';
+import { tapLight, tapMedium, success } from '../lib/haptics';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,8 @@ export default function CryDetailScreen() {
   async function toggleLike() {
     if (!session || !cry) return;
     const next = !liked;
+    // Only on the way in. Taking a like back shouldn't feel like anything.
+    if (next) tapLight();
     setLiked(next);
     setLikeCount(c => c + (next ? 1 : -1));
     try {
@@ -107,6 +110,10 @@ export default function CryDetailScreen() {
   async function toggleHug() {
     if (!session || !cry) return;
     const next = !hugged;
+    // Deliberately heavier than a like. On a cry about someone's worst night
+    // the difference between the two is most of the meaning, and the hand
+    // should be able to tell them apart without looking.
+    if (next) tapMedium();
     setHugged(next);
     setHugCount(c => c + (next ? 1 : -1));
     try {
@@ -154,7 +161,10 @@ export default function CryDetailScreen() {
       // level deep (replying to a reply targets its parent thread).
       const parentId = replyTo ? (replyTo.parent_comment_id ?? replyTo.id) : undefined;
       const c = await addComment(id!, commentText.trim(), parentId);
-      if (c) setComments(prev => [...prev, c]);
+      if (c) {
+        success();
+        setComments(prev => [...prev, c]);
+      }
       setCommentText('');
       setReplyTo(null);
     } catch (e: any) {
@@ -170,6 +180,7 @@ export default function CryDetailScreen() {
   async function toggleCommentLike(c: Comment) {
     if (!session) return;
     const next = !c.liked_by_me;
+    if (next) tapLight();
     setComments(prev => prev.map(x => x.id === c.id
       ? { ...x, liked_by_me: next, like_count: x.like_count + (next ? 1 : -1) }
       : x));

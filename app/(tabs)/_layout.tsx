@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, AppState, type ColorValue } from 'react-native';
 import { useAuth } from '../../lib/auth';
-import { getUnreadCount } from '../../lib/social';
+import { getUnreadCount, subscribeUnreadCount } from '../../lib/social';
 import { useTheme } from '../../lib/themes';
 import { selection } from '../../lib/haptics';
 
@@ -28,7 +28,10 @@ function NotifIcon({ color }: { color: ColorValue }) {
     tick();
     const interval = setInterval(tick, 30000);
     const sub = AppState.addEventListener('change', st => { if (st === 'active') tick(); });
-    return () => { clearInterval(interval); sub.remove(); };
+    // Reading the alerts screen updates the count immediately — without this the
+    // badge lingers until the next tick, which reads as the app being slow.
+    const unsubscribe = subscribeUnreadCount(setCount);
+    return () => { clearInterval(interval); sub.remove(); unsubscribe(); };
   }, [session]);
 
   return (

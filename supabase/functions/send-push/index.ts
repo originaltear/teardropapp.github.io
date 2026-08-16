@@ -16,7 +16,7 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 interface NotificationRow {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'friend_request' | 'follow';
+  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -26,7 +26,10 @@ interface NotificationRow {
 /** Maps notification type → notification_preferences key */
 const PREF_KEY: Record<string, string> = {
   like:           'new_likes',
+  hug:            'new_likes',
   comment:        'new_comments',
+  reply:          'new_comments',
+  comment_like:   'new_likes',
   follow:         'new_followers',
   friend_request: 'friend_requests',
 };
@@ -102,8 +105,15 @@ Deno.serve(async (req: Request) => {
       title = `${actorName} liked your cry 💧`;
       body_text = 'Tap to see your cry';
       break;
+    case 'hug':
+      title = `${actorName} sent you a hug 🫂`;
+      body_text = 'Tap to see your cry';
+      break;
     case 'comment':
-      title = `${actorName} commented 💬`;
+    case 'reply': {
+      title = row.type === 'reply'
+        ? `${actorName} replied 💬`
+        : `${actorName} commented 💬`;
       // Fetch comment content if available
       if (row.reference_id) {
         const { data: comment } = await supabase
@@ -116,6 +126,22 @@ Deno.serve(async (req: Request) => {
         body_text = 'Tap to see the comment';
       }
       break;
+    }
+    case 'comment_like': {
+      title = `${actorName} liked your comment 💧`;
+      // reference_id is the comment that was liked — show it back to the author
+      if (row.reference_id) {
+        const { data: comment } = await supabase
+          .from('comments')
+          .select('content')
+          .eq('id', row.reference_id)
+          .single();
+        body_text = comment?.content ?? 'Tap to see the comment';
+      } else {
+        body_text = 'Tap to see the comment';
+      }
+      break;
+    }
     case 'follow':
       title = `${actorName} started following you 👤`;
       body_text = 'Tap to see their profile';

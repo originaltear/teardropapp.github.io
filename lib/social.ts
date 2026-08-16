@@ -66,6 +66,8 @@ export interface CloseFriend {
 export interface ProfileSettings {
   profile_visibility: 'everyone' | 'followers' | 'only_me';
   allow_comments: boolean;
+  /** When false, others see reaction counts on your cries but not who reacted. */
+  show_reactions: boolean;
   notification_preferences: {
     new_cries_from_following: boolean;
     new_likes: boolean;
@@ -90,7 +92,7 @@ export interface Comment {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'reply' | 'hug' | 'friend_request' | 'follow';
+  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -655,9 +657,29 @@ export async function getNotifications(): Promise<Notification[]> {
   })) as Notification[];
 }
 
+// The tab-bar bell polls getUnreadCount() on a slow interval, so on its own it
+// keeps showing a stale count for up to a full tick after the notifications
+// screen has already marked everything read. Anything that changes the count
+// publishes here so the badge updates straight away instead.
+type UnreadListener = (count: number) => void;
+const unreadListeners = new Set<UnreadListener>();
+
+/** Subscribe to unread-count changes. Returns an unsubscribe function. */
+export function subscribeUnreadCount(listener: UnreadListener): () => void {
+  unreadListeners.add(listener);
+  return () => { unreadListeners.delete(listener); };
+}
+
 export async function markNotificationsRead(ids: string[]): Promise<void> {
   if (!ids.length) return;
   await supabase.from('notifications').update({ read: true }).in('id', ids);
+  // Re-read rather than assuming zero: the caller only marks what it loaded.
+  try {
+    const count = await getUnreadCount();
+    unreadListeners.forEach(listener => listener(count));
+  } catch {
+    // Badge will self-correct on its next poll
+  }
 }
 
 // ─── Profile settings ─────────────────────────────────────────────────────────
@@ -667,13 +689,14 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
   if (!session) return null;
   const { data, error } = await supabase
     .from('profiles')
-    .select('profile_visibility, allow_comments, notification_preferences')
+    .select('profile_visibility, allow_comments, show_reactions, notification_preferences')
     .eq('id', session.user.id)
     .single();
   if (error || !data) return null;
   return {
     profile_visibility: (data.profile_visibility as ProfileSettings['profile_visibility']) ?? 'everyone',
     allow_comments: data.allow_comments ?? true,
+    show_reactions: data.show_reactions ?? true,
     notification_preferences: {
       new_cries_from_following: true,
       new_likes: true,
@@ -703,6 +726,7 @@ export async function updateProfileSettings(settings: Partial<ProfileSettings>):
   const update: Record<string, any> = {};
   if (settings.profile_visibility !== undefined) update.profile_visibility = settings.profile_visibility;
   if (settings.allow_comments !== undefined) update.allow_comments = settings.allow_comments;
+  if (settings.show_reactions !== undefined) update.show_reactions = settings.show_reactions;
   if (settings.notification_preferences !== undefined) update.notification_preferences = settings.notification_preferences;
   await supabase.from('profiles').update(update).eq('id', session.user.id);
 }

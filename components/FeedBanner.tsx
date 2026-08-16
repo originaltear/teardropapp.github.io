@@ -3,9 +3,17 @@
  * stats and calendar screens. Renders nothing for Pro users, while the premium
  * check is in flight, or when the ad fails to fill — an empty reserved slot
  * would otherwise leave a visible hole in the layout.
+ *
+ * Only requests while its screen is focused. Tabs stay mounted once visited,
+ * so without this the banners on the feed, the profile and the stats screen
+ * all kept requesting in the background: measured on a real phone as three ad
+ * requests firing within the same second, repeatedly, for slots nobody was
+ * looking at. That is the user's battery and data spent on nothing, and it is
+ * the kind of request pattern an ad network reads as misbehaviour.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { BANNER_UNIT_ID } from '../lib/ads';
 import { checkPremium } from '../lib/purchases';
@@ -13,6 +21,7 @@ import { checkPremium } from '../lib/purchases';
 export function FeedBanner() {
   const [show, setShow] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -22,7 +31,14 @@ export function FeedBanner() {
     return () => { mounted = false; };
   }, []);
 
-  if (!show || failed) return null;
+  // expo-router re-exports this from react-navigation; @react-navigation/native
+  // itself is only a transitive dependency here, so it isn't imported directly.
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
+
+  if (!show || failed || !focused) return null;
 
   return (
     <View style={styles.wrap}>

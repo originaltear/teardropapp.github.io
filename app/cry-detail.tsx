@@ -16,7 +16,7 @@ import { emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import {
   getCry, likeCry, unlikeCry, hugCry, unhugCry, getComments, addComment, deleteComment,
-  likeComment, unlikeComment,
+  likeComment, unlikeComment, recordView, getViewCount,
   SocialCry, Comment, reportContent,
 } from '../lib/social';
 import { supabase } from '../lib/supabase';
@@ -54,6 +54,7 @@ export default function CryDetailScreen() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reactorsOpen, setReactorsOpen] = useState(false);
   const [reportComment, setReportComment] = useState<Comment | null>(null);
+  const [viewCount, setViewCount] = useState(0);
 
   useFocusEffect(useCallback(() => {
     if (!id) return;
@@ -72,6 +73,16 @@ export default function CryDetailScreen() {
           setHugCount(cryData.hug_count);
 
           const isOwner = cryData.user_id === session?.user.id;
+
+          // Only the author is told how many people sat with this, and only
+          // when it could have been seen at all — a private cry would report
+          // nothing forever, which is noise on an already tender screen.
+          if (isOwner) {
+            if (cryData.visibility !== 'only_me') getViewCount(id).then(setViewCount);
+          } else {
+            recordView(id);
+          }
+
           if (!isOwner) {
             const { data: ownerProfile } = await supabase
               .from('profiles')
@@ -368,6 +379,17 @@ export default function CryDetailScreen() {
             )}
           </View>
 
+          {/*
+            Seen by — author's eyes only, and never at zero. "Seen by 0" on
+            something you struggled to write is the one number that would hurt,
+            and it is the easiest one to leave out.
+          */}
+          {isOwn && viewCount > 0 && (
+            <Text style={s.seenBy}>
+              Seen by {viewCount} {viewCount === 1 ? 'person' : 'people'}
+            </Text>
+          )}
+
           {/* Comments — one-level threads: top-level comments with replies below */}
           <Text style={s.sectionLabel}>COMMENTS</Text>
           {commentsDisabled ? (
@@ -577,6 +599,8 @@ const s = StyleSheet.create({
   likeTxt: { color: '#4a5568', fontSize: 15, fontWeight: '600' },
   likeTxtActive: { color: '#6fe0e6' },
   likeCount: { color: '#4a5568', fontSize: 13 },
+  // Deliberately the quietest text on the screen. It is reassurance, not a score.
+  seenBy: { color: '#374151', fontSize: 13, marginTop: 2 },
 
   sectionLabel: {
     color: '#4a5568', fontSize: 11, fontFamily: 'monospace',

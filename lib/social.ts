@@ -540,6 +540,38 @@ export async function isUserBlocked(targetId: string): Promise<boolean> {
 
 // ─── Likes ────────────────────────────────────────────────────────────────────
 
+/**
+ * Records that this person has seen a cry. Fire-and-forget.
+ *
+ * One row per person per cry ever, so re-opening the same cry costs nothing and
+ * the number can never be inflated by refreshing. A failure here must never be
+ * visible: nobody's evening should be interrupted to tell them a view counter
+ * did not save.
+ */
+export async function recordView(cryId: string): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  const { error } = await supabase.from('cry_views')
+    .insert({ cry_id: cryId, viewer_id: session.user.id });
+  // 23505 = already seen. That is the normal case, not a problem.
+  if (error && error.code !== '23505') console.warn('[recordView]', error.message);
+}
+
+/**
+ * How many distinct people have seen a cry.
+ *
+ * Readable only by the cry's author — RLS returns zero rows to anyone else, so
+ * there is no way for this to leak a number to the wrong person even if it were
+ * called from the wrong screen.
+ */
+export async function getViewCount(cryId: string): Promise<number> {
+  const { count, error } = await supabase.from('cry_views')
+    .select('cry_id', { count: 'exact', head: true })
+    .eq('cry_id', cryId);
+  if (error) { console.warn('[getViewCount]', error.message); return 0; }
+  return count ?? 0;
+}
+
 export async function likeCry(cryId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;

@@ -90,11 +90,13 @@ function clusterSize(count: number): number {
 }
 
 export function ClusterPin({
-  latitude, longitude, count, onPress,
+  latitude, longitude, count, tally, onPress,
 }: {
   latitude: number;
   longitude: number;
   count: number;
+  /** How many of each emotion are inside, accumulated by supercluster. */
+  tally?: Record<string, number>;
   onPress: () => void;
 }) {
   const size = clusterSize(count);
@@ -103,6 +105,14 @@ export function ClusterPin({
   const r = size / 2;
   const tracks = useTracksOnce();
   const label = count > 999 ? `${Math.floor(count / 1000)}k` : String(count);
+
+  // Whichever emotion appears most in the group decides the colour. Ties fall
+  // to whatever came first, which is fine — the point is a hint, not a
+  // statistic. No tally (older data, or a single point) falls back to blue.
+  const dominant = tally
+    ? Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0]
+    : undefined;
+  const ringColor = (dominant && emotionById(dominant)?.color) || TEAR_BLUE;
 
   return (
     <Marker
@@ -114,8 +124,14 @@ export function ClusterPin({
     >
       <View style={{ width: box, height: box }} collapsable={false}>
         <Svg width={box} height={box}>
-          {/* dark circle + Tear Blue outline */}
-          <Circle cx={c} cy={c} r={r} fill={DARK} stroke={TEAR_BLUE} strokeWidth={2.5} />
+          {/* A faint halo in the same colour, so a cluster reads as a place
+              where more happened rather than as a flat badge. */}
+          <Circle cx={c} cy={c} r={r + 4} fill={ringColor} opacity={0.14} />
+          {/* Ring takes the colour of whatever the group mostly is. A cluster
+              used to be a number in a cyan circle, which threw away the one
+              thing worth knowing before you tap it: what kind of days these
+              were. */}
+          <Circle cx={c} cy={c} r={r} fill={DARK} stroke={ringColor} strokeWidth={2.5} />
         </Svg>
         <View style={[styles.overlayBox, styles.fillBox]} pointerEvents="none">
           <Text style={[styles.clusterCount, { fontSize: size * 0.38 }]}>{label}</Text>

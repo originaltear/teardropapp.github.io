@@ -18,6 +18,7 @@ import {
   PRODUCT_IDS, type PlanOption,
 } from '../lib/purchases';
 import { useTheme } from '../lib/themes';
+import { PressableScale } from '../components/PressableScale';
 
 // Store name shown in the billing disclosure — must match the platform the
 // purchase is actually processed by.
@@ -142,16 +143,15 @@ export default function PaywallScreen() {
         )}
 
         {/* CTA */}
-        <TouchableOpacity
+        <PressableScale
           style={[s.cta, { backgroundColor: accent }, purchasing && { opacity: 0.6 }]}
           onPress={handlePurchase}
           disabled={purchasing || loading}
-          activeOpacity={0.85}
         >
           {purchasing
             ? <ActivityIndicator color="#0d1117" />
             : <Text style={s.ctaTxt}>Get Pro</Text>}
-        </TouchableOpacity>
+        </PressableScale>
 
         {/* Platform-specific store line */}
         <Text style={s.storeLine}>

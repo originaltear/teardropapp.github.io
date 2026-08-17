@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
 import { signInWithApple } from '../../lib/apple-auth';
 import { useTheme } from '../../lib/themes';
+import { PressableScale } from '../../components/PressableScale';
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
@@ -232,16 +233,15 @@ export default function SignupScreen() {
 
             {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
 
-            <TouchableOpacity
+            <PressableScale
               style={[styles.btn, { backgroundColor: accent }, anyLoading && styles.btnDisabled]}
               onPress={handleSignup}
               disabled={anyLoading}
-              activeOpacity={0.85}
             >
               {loading
                 ? <ActivityIndicator color="#0d1117" />
                 : <Text style={styles.btnTxt}>Create account</Text>}
-            </TouchableOpacity>
+            </PressableScale>
 
             {/* Guideline 1.2 asks that people agree to terms which say plainly
                 that abuse is not tolerated. Stated at the moment of creating

@@ -343,6 +343,16 @@ export default function MapScreen() {
       radius: 48,      // px distance at which points merge
       maxZoom: 18,     // stop clustering past this zoom
       minPoints: 2,    // need ≥2 points to form a cluster
+      // Carry a tally of emotions up through the cluster tree so a group can be
+      // drawn in the colour of whatever it mostly is. Without this a cluster is
+      // just a number in a ring, and the map loses all its colour exactly where
+      // the most has happened. Supercluster does the accumulating for us.
+      map: (props: any) => ({ tally: { [props.cry.emotion]: 1 } as Record<string, number> }),
+      reduce: (acc: any, props: any) => {
+        for (const [k, v] of Object.entries(props.tally as Record<string, number>)) {
+          acc.tally[k] = (acc.tally[k] ?? 0) + v;
+        }
+      },
     });
     index.load(
       cries
@@ -499,6 +509,7 @@ export default function MapScreen() {
                 latitude={lat}
                 longitude={lng}
                 count={props.point_count}
+                tally={props.tally}
                 onPress={() => handleClusterPress(props.cluster_id, lng, lat)}
               />
             );

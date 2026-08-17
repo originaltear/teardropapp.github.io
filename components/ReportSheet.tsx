@@ -25,6 +25,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useTheme } from '../lib/themes';
 import { reportContent, blockUser, ReportTarget } from '../lib/social';
 import { selection } from '../lib/haptics';
+import { PressableScale } from './PressableScale';
 
 const REASONS = [
   'Harassment or bullying',
@@ -152,16 +153,15 @@ export function ReportSheet({
                 textAlignVertical="top"
               />
 
-              <TouchableOpacity
+              <PressableScale
                 style={[s.submit, (!reason || sending) && { opacity: 0.4 }]}
                 onPress={submit}
                 disabled={!reason || sending}
-                activeOpacity={0.85}
               >
                 {sending
                   ? <ActivityIndicator color="#0d1117" />
                   : <Text style={s.submitTxt}>Send report</Text>}
-              </TouchableOpacity>
+              </PressableScale>
             </View>
           </SafeAreaView>
         </KeyboardAvoidingView>

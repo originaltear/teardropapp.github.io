@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/themes';
+import { PressableScale } from '../../components/PressableScale';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -215,16 +216,15 @@ export default function SetupProfileScreen() {
           {error ? <Text style={s.errorTxt}>{error}</Text> : null}
 
           {/* Save */}
-          <TouchableOpacity
+          <PressableScale
             style={[s.btn, { backgroundColor: accent }, !canSave && s.btnDisabled]}
             onPress={handleSave}
             disabled={!canSave}
-            activeOpacity={0.85}
           >
             {saving
               ? <ActivityIndicator color="#0d1117" />
               : <Text style={s.btnTxt}>Continue</Text>}
-          </TouchableOpacity>
+          </PressableScale>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

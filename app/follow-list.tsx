@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { getFollowList, followUser, unfollowUser, UserResult } from '../lib/social';
 import { useTheme } from '../lib/themes';
+import { ListSkeleton } from '../components/Skeleton';
 import { useAuth } from '../lib/auth';
 
 function Avatar({ uri, size = 46 }: { uri?: string | null; size?: number }) {
@@ -68,9 +69,7 @@ export default function FollowListScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator size="large" color={accent} />
-        </View>
+        <ListSkeleton rows={6} />
       ) : (
         <FlatList
           data={users}

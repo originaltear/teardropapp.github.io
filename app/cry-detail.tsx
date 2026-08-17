@@ -26,6 +26,7 @@ import { TagPills } from '../components/TagPills';
 import { Drops } from '../components/Drops';
 import { ReportSheet } from '../components/ReportSheet';
 import { ReactorsSheet } from '../components/ReactorsSheet';
+import { CrySkeleton } from '../components/Skeleton';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { fullDateTime } from '../lib/format';
@@ -234,7 +235,7 @@ export default function CryDetailScreen() {
             <Text style={[s.backTxt, { color: accent }]}>←</Text>
           </TouchableOpacity>
         </View>
-        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
+        <CrySkeleton />
       </SafeAreaView>
     );
   }

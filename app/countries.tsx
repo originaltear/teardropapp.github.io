@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
+import { ListSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from 'expo-router';
 import { loadCries } from '../lib/storage';
 
@@ -73,7 +74,7 @@ export default function CountriesScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
+        <ListSkeleton rows={6} />
       ) : rows.length === 0 ? (
         <View style={s.empty}>
           <Text style={s.emptyEmoji}>🌍</Text>

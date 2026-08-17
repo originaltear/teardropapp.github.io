@@ -17,6 +17,7 @@ import { EMOTIONS, emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import { checkPremium } from '../lib/purchases';
 import { FeedBanner } from '../components/FeedBanner';
+import { StatsSkeleton } from '../components/Skeleton';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
 
@@ -335,7 +336,7 @@ export default function StatsScreen() {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
         <Header onBack={() => router.back()} />
-        <ActivityIndicator size="large" color={accent} style={{ flex: 1 }} />
+        <StatsSkeleton />
       </SafeAreaView>
     );
   }

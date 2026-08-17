@@ -126,7 +126,7 @@ export function ClusterPin({
         <Svg width={box} height={box}>
           {/* A faint halo in the same colour, so a cluster reads as a place
               where more happened rather than as a flat badge. */}
-          <Circle cx={c} cy={c} r={r + 4} fill={ringColor} opacity={0.14} />
+          <Circle cx={c} cy={c} r={r + 5} fill={ringColor} opacity={0.22} />
           {/* Ring takes the colour of whatever the group mostly is. A cluster
               used to be a number in a cyan circle, which threw away the one
               thing worth knowing before you tap it: what kind of days these
@@ -182,7 +182,10 @@ const styles = StyleSheet.create({
   fillBox: { top: 0, bottom: 0 },
   pinEmoji: { fontSize: 15, textAlign: 'center' },
   clusterCount: {
-    color: TEAR_BLUE,
+    // The ring carries the emotion's colour now, so the number stays neutral.
+    // Leaving it blue meant a pink ring around a blue number, which reads as
+    // an accident rather than a choice.
+    color: '#e2e8f0',
     fontWeight: '800',
     textAlign: 'center',
   },

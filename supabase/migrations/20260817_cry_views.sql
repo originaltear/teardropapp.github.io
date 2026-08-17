@@ -55,11 +55,24 @@ create policy cry_views_insert_self on public.cry_views
 
 -- No update or delete policy: a view is a fact, not a setting.
 
--- Column privileges on this project are an allowlist. Without these grants the
--- table reads as missing rather than as forbidden, which is a miserable bug to
--- chase down twice.
-grant select (cry_id, viewer_id, first_seen_at, viewer_country) on public.cry_views to authenticated;
-grant insert (cry_id, viewer_id, viewer_country)                on public.cry_views to authenticated;
+-- Privileges.
+--
+-- A new table in public does NOT start locked down on this project: the default
+-- privileges hand anon and authenticated select, insert, update and references
+-- on every column. (That is the opposite of profiles, where a past migration
+-- revoked first and now every new column has to be granted by hand. Worth not
+-- confusing the two.)
+--
+-- So the work here is taking privileges away, not adding them. RLS already
+-- denies all of it — anon matches no policy and there is no update policy for
+-- anyone — but if RLS were ever switched off on this table by accident, these
+-- grants would be the only thing left standing between a viewer list and the
+-- open internet.
+revoke all on public.cry_views from anon;
+revoke update, references on public.cry_views from authenticated;
+
+-- Leaves authenticated holding exactly select and insert, which is what the two
+-- policies above are written against.
 
 -- The author's "who has seen my cries" lookup goes through cry_id, which the
 -- primary key already leads on. This one covers the reverse: cleaning up or

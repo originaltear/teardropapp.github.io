@@ -104,6 +104,12 @@ export interface WrappedExtras {
   hugsReceived: number;
   likesReceived: number;
   achievementsUnlocked: number;
+  /**
+   * Distinct people who opened one of this year's cries — people, not openings,
+   * so someone who read ten of them counts once. It is the answer to the
+   * quietest question the app exists to answer: did anyone see me.
+   */
+  seenBy: number;
 }
 
 /**
@@ -273,7 +279,7 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
  * Best-effort: any failure returns zeros so the recap still renders offline.
  */
 export async function getWrappedExtras(year: number): Promise<WrappedExtras> {
-  const zero: WrappedExtras = { hugsReceived: 0, likesReceived: 0, achievementsUnlocked: 0 };
+  const zero: WrappedExtras = { hugsReceived: 0, likesReceived: 0, achievementsUnlocked: 0, seenBy: 0 };
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return zero;
@@ -292,7 +298,7 @@ export async function getWrappedExtras(year: number): Promise<WrappedExtras> {
 
     const cryIds = (cryRows ?? []).map(r => r.id);
 
-    const [engagementRes, achievementsRes] = await Promise.all([
+    const [engagementRes, achievementsRes, viewsRes] = await Promise.all([
       cryIds.length
         ? supabase.from('cry_engagement').select('like_count, hug_count').in('cry_id', cryIds)
         : Promise.resolve({ data: [] as { like_count: number; hug_count: number }[] }),
@@ -302,6 +308,12 @@ export async function getWrappedExtras(year: number): Promise<WrappedExtras> {
         .eq('user_id', session.user.id)
         .gte('unlocked_at', from)
         .lt('unlocked_at', to),
+      // Viewer ids rather than a count, because the same person reading ten of
+      // your cries is one person who saw you, not ten. RLS keeps this to your
+      // own cries, so there is nothing to filter by author here.
+      cryIds.length
+        ? supabase.from('cry_views').select('viewer_id').in('cry_id', cryIds)
+        : Promise.resolve({ data: [] as { viewer_id: string }[] }),
     ]);
 
     let hugsReceived = 0;
@@ -315,6 +327,7 @@ export async function getWrappedExtras(year: number): Promise<WrappedExtras> {
       hugsReceived,
       likesReceived,
       achievementsUnlocked: (achievementsRes as any).count ?? 0,
+      seenBy: new Set((viewsRes.data ?? []).map(r => r.viewer_id)).size,
     };
   } catch (e) {
     console.warn('[wrapped] extras failed:', e);

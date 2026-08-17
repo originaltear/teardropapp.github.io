@@ -180,7 +180,7 @@ export default function WrappedScreen() {
 
   const [cries, setCries] = useState<Cry[]>([]);
   const [extras, setExtras] = useState<WrappedExtras>({
-    hugsReceived: 0, likesReceived: 0, achievementsUnlocked: 0,
+    hugsReceived: 0, likesReceived: 0, achievementsUnlocked: 0, seenBy: 0,
   });
   const [rank, setRank] = useState<WrappedRank>({
     country: null, globalTopPct: null, countryTopPct: null,
@@ -430,14 +430,28 @@ export default function WrappedScreen() {
       });
     }
 
-    if (extras.hugsReceived + extras.likesReceived + extras.achievementsUnlocked > 0) {
+    if (extras.seenBy + extras.hugsReceived + extras.likesReceived + extras.achievementsUnlocked > 0) {
       list.push({
         key: 'received',
         render: active => (
           <WrappedCard
             active={active} accent={accent} eyebrow="You were not alone"
-            caption="People showed up for you this year." variant="center"
+            caption={extras.seenBy > 0
+              // The reaction counts undersell this badly: most people who read
+              // something heavy do not press anything afterwards. Saying so is
+              // what turns a number into a comfort.
+              ? 'Most of them never said anything. They were still there.'
+              : 'People showed up for you this year.'}
+            variant="center"
           >
+            {extras.seenBy > 0 && (
+              <>
+                <BigNumber value={extras.seenBy} color={accent} active={active} />
+                <Text style={s.heroUnit}>
+                  {extras.seenBy === 1 ? 'person saw you' : 'people saw you'}
+                </Text>
+              </>
+            )}
             <View style={s.receivedRow}>
               <ReceivedStat value={extras.hugsReceived} label="🫂 hugs" color={accent} active={active} delay={380} />
               <ReceivedStat value={extras.likesReceived} label="💧 drops" color={accent} active={active} delay={500} />

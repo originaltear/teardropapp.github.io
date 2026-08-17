@@ -40,6 +40,14 @@ const DEFAULT_ACCENT = '#6fe0e6';
 /** How long each card holds before advancing itself. */
 const CARD_DURATION_MS = 5200;
 
+/**
+ * Below this the writing card is skipped. Set against real numbers rather than
+ * taste: this year the most active person wrote 643 words and most wrote under
+ * fifty, so a low bar would show almost everyone a total they would rather not
+ * have been handed.
+ */
+const WORDS_CARD_MIN = 100;
+
 // ─── Small building blocks ────────────────────────────────────────────────────
 
 /**
@@ -425,6 +433,26 @@ export default function WrappedScreen() {
             <Text style={s.heroUnit}>
               {inCountry ? `of criers in ${rank.country}` : 'of criers worldwide'}
             </Text>
+          </WrappedCard>
+        ),
+      });
+    }
+
+    // Only once there is enough writing for the number to feel like something.
+    // Measured against real data: the most active person this year wrote 643
+    // words, most wrote under 50. "You wrote 12 words this year" is not a
+    // memory, it is an accusation, and it is better left out entirely.
+    if (data.wordsWritten >= WORDS_CARD_MIN) {
+      list.push({
+        key: 'words',
+        render: active => (
+          <WrappedCard
+            active={active} accent={accent} eyebrow="You put it into words"
+            caption={`Across ${data.notesWritten} ${data.notesWritten === 1 ? 'entry' : 'entries'}, when you could have written nothing at all.`}
+            variant="center"
+          >
+            <BigNumber value={data.wordsWritten} color={accent} active={active} />
+            <Text style={s.heroUnit}>words</Text>
           </WrappedCard>
         ),
       });

@@ -4,7 +4,7 @@
  * Premium: emotion breakdown, day of week, countries, top likers, active hour, emotion trends
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Image,
@@ -18,6 +18,7 @@ import { useAuth } from '../lib/auth';
 import { checkPremium } from '../lib/purchases';
 import { FeedBanner } from '../components/FeedBanner';
 import { StatsSkeleton } from '../components/Skeleton';
+import { computePlaces, namePlaces, Place } from '../lib/places';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
 
@@ -182,6 +183,10 @@ export default function StatsScreen() {
   const [loading, setLoading] = useState(true);
   const [isPremium, setIsPremium] = useState(false);
   const [topLikers, setTopLikers] = useState<TopLiker[]>([]);
+  // Place names arrive after the numbers: the maths is instant, the geocoder
+  // isn't. The section renders with "Place 1" and fills in the real names when
+  // they land, rather than holding the whole screen for a lookup.
+  const [namedPlaces, setNamedPlaces] = useState<Place[] | null>(null);
 
   useFocusEffect(useCallback(() => {
     loadAll();
@@ -227,6 +232,26 @@ export default function StatsScreen() {
 
   const goPaywall = () => router.push('/paywall');
   const n = cries.length;
+
+  // Pure maths over coordinates already on each cry — no network, no new
+  // permission, works offline.
+  const rawPlaces = useMemo(() => computePlaces(cries), [cries]);
+
+  // Naming is the only part that talks to the geocoder, and only for premium
+  // users who can actually see the section. Cached per place, so this is a
+  // handful of lookups once, not on every visit.
+  useEffect(() => {
+    if (!isPremium || rawPlaces.places.length === 0) { setNamedPlaces(null); return; }
+    let alive = true;
+    namePlaces(rawPlaces.places).then(p => { if (alive) setNamedPlaces(p); }).catch(() => {});
+    return () => { alive = false; };
+  }, [isPremium, rawPlaces]);
+
+  const placeInsight = useMemo(() => {
+    if (!namedPlaces) return rawPlaces;
+    const home = namedPlaces[0] ?? rawPlaces.home;
+    return { ...rawPlaces, places: namedPlaces, home };
+  }, [rawPlaces, namedPlaces]);
 
   // ── Compute all stats (memoized — these are ~15 O(n) passes over `cries`
   //    that would otherwise re-run on every render, e.g. loading/premium state) ──
@@ -473,6 +498,78 @@ export default function StatsScreen() {
           )}
         </PremiumSection>
 
+        {/* ── YOUR PLACES 💎 ──
+            The one section no other journal can copy. Daylio and Stoic know
+            what you felt and when; only this app knows where, and until now it
+            used that for nothing but drawing a pin. */}
+        <PremiumSection isPremium={isPremium} title="YOUR PLACES" onLockPress={goPaywall}>
+          {placeInsight.places.length === 0 ? (
+            <Text style={s.emptyInner}>No places yet</Text>
+          ) : (
+            <View style={{ gap: 0 }}>
+              {placeInsight.places.slice(0, 5).map((p, i) => {
+                const e = emotionById(p.dominant);
+                return (
+                  <HBar
+                    key={`${p.latitude},${p.longitude}`}
+                    label={`${e?.emoji ?? '💧'} ${p.name ?? `Place ${i + 1}`}`}
+                    value={p.count}
+                    max={placeInsight.places[0].count}
+                    labelWidth={160}
+                    color={e?.color}
+                  />
+                );
+              })}
+            </View>
+          )}
+        </PremiumSection>
+
+        {/* ── HOME AND AWAY 💎 ──
+            A "why" rather than another "what". Daylio sells correlations
+            between mood and activities; this is the same shape of answer built
+            on the one column nobody else has. */}
+        {placeInsight.awayCount > 0 && (
+          <PremiumSection isPremium={isPremium} title="HOME AND AWAY" onLockPress={goPaywall}>
+            <Text style={s.placeLede}>
+              {placeInsight.home?.name
+                ? `Most of your cries happen around ${placeInsight.home.name}.`
+                : 'Most of your cries happen in one place.'}
+              {' '}
+              {placeInsight.awayCount === 1
+                ? 'One happened somewhere else.'
+                : `${placeInsight.awayCount} happened somewhere else.`}
+            </Text>
+
+            <View style={s.awayRow}>
+              <View style={s.awayCell}>
+                <Text style={s.awayValue}>
+                  {placeInsight.homeIntensity != null ? placeInsight.homeIntensity.toFixed(1) : '—'}
+                </Text>
+                <Text style={s.awayLabel}>intensity at home</Text>
+                {placeInsight.homeEmotion && (
+                  <Text style={s.awayEmotion}>
+                    {emotionById(placeInsight.homeEmotion)?.emoji}{' '}
+                    {emotionById(placeInsight.homeEmotion)?.label}
+                  </Text>
+                )}
+              </View>
+              <View style={s.awayDivider} />
+              <View style={s.awayCell}>
+                <Text style={s.awayValue}>
+                  {placeInsight.awayIntensity != null ? placeInsight.awayIntensity.toFixed(1) : '—'}
+                </Text>
+                <Text style={s.awayLabel}>intensity away</Text>
+                {placeInsight.awayEmotion && (
+                  <Text style={s.awayEmotion}>
+                    {emotionById(placeInsight.awayEmotion)?.emoji}{' '}
+                    {emotionById(placeInsight.awayEmotion)?.label}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </PremiumSection>
+        )}
+
         {/* ── WHO LIKED YOUR CRIES THE MOST 💎 ── */}
         <PremiumSection isPremium={isPremium} title="WHO LIKED YOUR CRIES THE MOST" onLockPress={goPaywall}>
           {topLikers.length === 0 ? (
@@ -620,6 +717,13 @@ const s = StyleSheet.create({
 
   // Countries
   emptyInner: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  placeLede: { color: '#94a3b8', fontSize: 13, lineHeight: 19, marginBottom: 16 },
+  awayRow: { flexDirection: 'row', alignItems: 'stretch' },
+  awayCell: { flex: 1, alignItems: 'center', gap: 4 },
+  awayDivider: { width: 1, backgroundColor: '#1f2937', marginHorizontal: 12 },
+  awayValue: { color: '#e2e8f0', fontSize: 24, fontWeight: '800' },
+  awayLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
+  awayEmotion: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
 
   // Emotion trends
   trendRow: { paddingVertical: 10, gap: 6, borderTopWidth: 1, borderTopColor: '#1a2233' },

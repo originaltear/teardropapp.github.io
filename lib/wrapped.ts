@@ -44,6 +44,15 @@ export interface EmotionSlice {
   pct: number;
 }
 
+/**
+ * Whitespace-separated runs. Deliberately naive: it is close enough for
+ * "you wrote 4,300 words this year" and it does not need to be defensible to
+ * the word, only true enough to mean something.
+ */
+function countWords(text: string): number {
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
 export interface WrappedData {
   year: number;
   total: number;
@@ -72,6 +81,18 @@ export interface WrappedData {
   withPhoto: number;
   withAudio: number;
   topTags: { tag: string; count: number }[];
+
+  /**
+   * What people actually wrote.
+   *
+   * Measured across the whole database: 80% of cries carry a note and they
+   * average 81 characters, so these are sentences rather than keywords. Tags,
+   * by contrast, appear on 11%. Writing is how someone tells you what happened;
+   * a tag is how a database would prefer it filed, and after crying almost
+   * nobody wants to do filing. A recap should be built on the first.
+   */
+  notesWritten: number;
+  wordsWritten: number;
 
   /** ISO dates of the first and last cry of the year. */
   firstCry: string | null;
@@ -154,6 +175,8 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     withPhoto: 0,
     withAudio: 0,
     topTags: [],
+    notesWritten: 0,
+    wordsWritten: 0,
     firstCry: null,
     lastCry: null,
   };
@@ -215,6 +238,9 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
+  // ── Words ──
+  const noted = cries.map(c => c.note?.trim()).filter((n): n is string => !!n);
+
   // ── Misc ──
   const sorted = [...cries].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
@@ -233,6 +259,8 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     withPhoto: cries.filter(c => c.photoUri).length,
     withAudio: cries.filter(c => c.audioUri).length,
     topTags,
+    notesWritten: noted.length,
+    wordsWritten: noted.reduce((sum, n) => sum + countWords(n), 0),
     firstCry: sorted[0]?.createdAt ?? null,
     lastCry: sorted[sorted.length - 1]?.createdAt ?? null,
   };

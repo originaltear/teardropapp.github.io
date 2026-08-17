@@ -529,7 +529,7 @@ export default function StatsScreen() {
             between mood and activities; this is the same shape of answer built
             on the one column nobody else has. */}
         {placeInsight.awayCount > 0 && (
-          <PremiumSection isPremium={isPremium} title="HOME AND AWAY" onLockPress={goPaywall}>
+          <PremiumSection isPremium={isPremium} title="HERE AND ELSEWHERE" onLockPress={goPaywall}>
             <Text style={s.placeLede}>
               {placeInsight.home?.name
                 ? `Most of your cries happen around ${placeInsight.home.name}.`
@@ -545,7 +545,7 @@ export default function StatsScreen() {
                 <Text style={s.awayValue}>
                   {placeInsight.homeIntensity != null ? placeInsight.homeIntensity.toFixed(1) : '—'}
                 </Text>
-                <Text style={s.awayLabel}>intensity at home</Text>
+                <Text style={s.awayLabel}>intensity where you usually are</Text>
                 {placeInsight.homeEmotion && (
                   <Text style={s.awayEmotion}>
                     {emotionById(placeInsight.homeEmotion)?.emoji}{' '}
@@ -558,7 +558,7 @@ export default function StatsScreen() {
                 <Text style={s.awayValue}>
                   {placeInsight.awayIntensity != null ? placeInsight.awayIntensity.toFixed(1) : '—'}
                 </Text>
-                <Text style={s.awayLabel}>intensity away</Text>
+                <Text style={s.awayLabel}>intensity elsewhere</Text>
                 {placeInsight.awayEmotion && (
                   <Text style={s.awayEmotion}>
                     {emotionById(placeInsight.awayEmotion)?.emoji}{' '}

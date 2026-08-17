@@ -726,8 +726,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#6fe0e6', fontSize: 18 },
-  title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700', letterSpacing: 0.5 },
+  closeTxt: { color: '#6fe0e6', fontSize: 17 },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
 
   body: { padding: 20, paddingBottom: 8 },
 
@@ -738,10 +738,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
     marginBottom: 4,
   },
-  locationPin: { fontSize: 16 },
-  locationText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  locationPin: { fontSize: 17 },
+  locationText: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
 
-  whenChange: { fontSize: 12, fontWeight: '700' },
+  whenChange: { fontSize: 13, fontWeight: '700' },
   whenHint: {
     color: '#4a5568', fontSize: 11, fontStyle: 'italic',
     marginTop: -2, marginBottom: 4, paddingHorizontal: 4,
@@ -752,7 +752,7 @@ const styles = StyleSheet.create({
   },
 
   sectionLabel: {
-    color: '#94a3b8', fontSize: 12, fontFamily: 'monospace',
+    color: '#94a3b8', fontSize: 13, fontFamily: 'monospace',
     letterSpacing: 1, textTransform: 'uppercase',
     marginBottom: 12, marginTop: 24,
   },
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     // row. Ten emotions divide evenly into two columns instead.
     flexBasis: '48%', flexGrow: 1,
   },
-  emotionEmoji: { fontSize: 16 },
+  emotionEmoji: { fontSize: 17 },
   emotionLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
 
   intensityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -793,13 +793,13 @@ const styles = StyleSheet.create({
   tagInput: {
     flex: 1, backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    color: '#e2e8f0', fontSize: 14,
+    color: '#e2e8f0', fontSize: 15,
   },
   tagAddBtn: {
     borderWidth: 1, borderRadius: 12, paddingHorizontal: 16,
     alignItems: 'center', justifyContent: 'center',
   },
-  tagAddTxt: { fontSize: 14, fontWeight: '600' },
+  tagAddTxt: { fontSize: 15, fontWeight: '600' },
 
   // Photo
   photoAdd: {
@@ -807,8 +807,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, padding: 16, borderStyle: 'dashed',
   },
-  photoAddIcon: { fontSize: 22 },
-  photoAddTxt: { color: '#4a5568', fontSize: 14 },
+  photoAddIcon: { fontSize: 20 },
+  photoAddTxt: { color: '#4a5568', fontSize: 15 },
   photoContainer: { position: 'relative' },
   photoPreview: {
     width: '100%', height: 200, borderRadius: 12,
@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.8)',
     alignItems: 'center', justifyContent: 'center',
   },
-  photoRemoveTxt: { color: '#e2e8f0', fontSize: 14 },
+  photoRemoveTxt: { color: '#e2e8f0', fontSize: 15 },
 
   // Audio
   recordBtn: {
@@ -828,8 +828,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, padding: 16,
   },
-  recordIcon: { fontSize: 22 },
-  recordTxt: { color: '#94a3b8', fontSize: 14 },
+  recordIcon: { fontSize: 20 },
+  recordTxt: { color: '#94a3b8', fontSize: 15 },
   recordingActive: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#ef6f6f',
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
     width: 10, height: 10, borderRadius: 5,
     backgroundColor: '#ef6f6f',
   },
-  recordingTime: { color: '#e2e8f0', fontSize: 16, fontFamily: 'monospace', flex: 1 },
+  recordingTime: { color: '#e2e8f0', fontSize: 17, fontFamily: 'monospace', flex: 1 },
   stopBtn: {
     backgroundColor: '#ef6f6f22', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 6,
@@ -852,14 +852,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#6fe0e6',
     borderRadius: 12, padding: 14,
   },
-  playIcon: { fontSize: 18, color: '#6fe0e6' },
-  playTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
+  playIcon: { fontSize: 17, color: '#6fe0e6' },
+  playTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '500' },
   deleteAudioBtn: {
     width: 46, height: 46, borderRadius: 12,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     alignItems: 'center', justifyContent: 'center',
   },
-  deleteAudioTxt: { fontSize: 18 },
+  deleteAudioTxt: { fontSize: 17 },
 
   // Visibility
   visibilityRow: { flexDirection: 'row', gap: 8 },
@@ -870,14 +870,14 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
   },
   visibilityIcon: { fontSize: 20 },
-  visibilityLabel: { color: '#4a5568', fontSize: 10, fontFamily: 'monospace', textAlign: 'center' },
+  visibilityLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', textAlign: 'center' },
   closeFriendsHint: {
     marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,
     backgroundColor: '#111827', borderRadius: 10,
     borderWidth: 1, borderColor: '#1f2937',
   },
-  closeFriendsHintTxt: { color: '#94a3b8', fontSize: 12, lineHeight: 18 },
-  closeFriendsAction: { fontWeight: '600', fontSize: 12 },
+  closeFriendsHintTxt: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
+  closeFriendsAction: { fontWeight: '600', fontSize: 13 },
 
   footer: { padding: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#1f2937' },
   saveBtn: {
@@ -885,5 +885,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center',
   },
   saveBtnDisabled: { opacity: 0.4 },
-  saveTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  saveTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 });

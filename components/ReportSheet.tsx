@@ -185,8 +185,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', marginBottom: 6,
   },
-  title: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
-  close: { color: '#4a5568', fontSize: 16, padding: 4 },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
+  close: { color: '#4a5568', fontSize: 17, padding: 4 },
   hint: { color: '#4a5568', fontSize: 13, marginBottom: 12 },
   reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   chip: {
@@ -196,7 +196,7 @@ const s = StyleSheet.create({
   chipTxt: { color: '#94a3b8', fontSize: 13 },
   input: {
     backgroundColor: '#0d1117', borderRadius: 12, borderWidth: 1, borderColor: '#1f2937',
-    color: '#e2e8f0', fontSize: 14, padding: 12, minHeight: 84, marginBottom: 14,
+    color: '#e2e8f0', fontSize: 15, padding: 12, minHeight: 84, marginBottom: 14,
   },
   submit: {
     backgroundColor: '#ef4444', borderRadius: 14,

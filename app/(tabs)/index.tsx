@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
   segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
   segmentEmoji: { fontSize: 20 },
   segmentLabel: {
-    color: '#94a3b8', fontSize: 10, fontWeight: '700',
+    color: '#94a3b8', fontSize: 11, fontWeight: '700',
     fontFamily: 'monospace', letterSpacing: 0.5,
   },
   segmentLabelActive: { color: '#0d1117' },
@@ -712,14 +712,14 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     gap: 12, paddingHorizontal: 40,
   },
-  loadingText: { color: '#4a5568', fontSize: 14, marginTop: 12, fontFamily: 'monospace' },
-  errorTitle: { color: '#6fe0e6', fontSize: 18, fontWeight: '600' },
-  errorSub: { color: '#4a5568', fontSize: 14, textAlign: 'center' },
+  loadingText: { color: '#4a5568', fontSize: 15, marginTop: 12, fontFamily: 'monospace' },
+  errorTitle: { color: '#6fe0e6', fontSize: 17, fontWeight: '600' },
+  errorSub: { color: '#4a5568', fontSize: 15, textAlign: 'center' },
   settingsBtn: {
     marginTop: 8, borderRadius: 14,
     paddingVertical: 12, paddingHorizontal: 28,
   },
-  settingsBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
+  settingsBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
 
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -727,14 +727,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.7)',
   },
   headerTitle: {
-    color: '#6fe0e6', fontSize: 18, fontWeight: '700', letterSpacing: 1,
+    color: '#6fe0e6', fontSize: 17, fontWeight: '700', letterSpacing: 1,
   },
   wrappedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999, borderWidth: 1,
   },
-  wrappedPillEmoji: { fontSize: 14 },
+  wrappedPillEmoji: { fontSize: 15 },
   wrappedPillTxt: { fontSize: 13, fontWeight: '700' },
 
   fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
@@ -780,8 +780,8 @@ const styles = StyleSheet.create({
     paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   profileInfo: { flex: 1 },
-  profileName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  profileHandle: { color: '#4a5568', fontSize: 12 },
+  profileName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
+  profileHandle: { color: '#4a5568', fontSize: 13 },
   profileArrow: { color: '#4a5568', fontSize: 20, fontWeight: '300' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   emotionBadge: {
@@ -789,10 +789,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
   },
   badgeEmoji: { fontSize: 20 },
-  badgeLabel: { fontSize: 16, fontWeight: '700' },
+  badgeLabel: { fontSize: 17, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4a5568', fontSize: 18 },
-  dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  closeTxt: { color: '#4a5568', fontSize: 17 },
+  dateText: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
   photo: {
     width: '100%', height: 180, borderRadius: 12,
     backgroundColor: '#0d1117',
@@ -801,15 +801,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d1117', borderRadius: 10,
     padding: 12, borderWidth: 1, borderColor: '#1f2937',
   },
-  noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
+  noteText: { color: '#94a3b8', fontSize: 15, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
   fullCryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     marginTop: 14, paddingVertical: 12,
     borderRadius: 12, borderWidth: 1, borderColor: '#1f2937',
   },
-  fullCryTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
-  fullCryArrow: { color: '#4a5568', fontSize: 16 },
+  fullCryTxt: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
+  fullCryArrow: { color: '#4a5568', fontSize: 17 },
   // First-cry hint
   hintContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
   firstCryHint: {
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12,
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  clusterTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
+  clusterTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   zoomBtn: {
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 16, borderWidth: 1, borderColor: '#1f2937',
@@ -840,12 +840,12 @@ const styles = StyleSheet.create({
   clSep: { height: 1, backgroundColor: '#1f2937', marginLeft: 20 },
   clRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
   clUser: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
-  clHandle: { color: '#4a5568', fontSize: 12, fontWeight: '400' },
+  clHandle: { color: '#4a5568', fontSize: 13, fontWeight: '400' },
   clEmotion: {
-    fontSize: 12, fontWeight: '600',
+    fontSize: 13, fontWeight: '600',
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, overflow: 'hidden',
   },
-  clNote: { color: '#64748b', fontSize: 12 },
+  clNote: { color: '#64748b', fontSize: 13 },
   clDate: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
   clArrow: { color: '#4a5568', fontSize: 20, fontWeight: '300' },
 });

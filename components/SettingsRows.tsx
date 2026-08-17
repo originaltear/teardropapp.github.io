@@ -86,8 +86,8 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#e2e8f0', fontSize: 22 },
-  headerTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
+  backTxt: { color: '#e2e8f0', fontSize: 20 },
+  headerTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   section: {
     color: '#4a5568', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 1, textTransform: 'uppercase',
@@ -105,7 +105,7 @@ const s = StyleSheet.create({
   rowLabel: { color: '#e2e8f0', fontSize: 15, flexWrap: 'wrap' },
   // Room for a line of explanation under a toggle. Several of these settings
   // are about who can see what, and a bare label leaves people guessing.
-  rowHint: { color: '#4a5568', fontSize: 12, lineHeight: 17, marginTop: 3 },
-  rowValue: { color: '#4a5568', fontSize: 14, maxWidth: '55%', textAlign: 'right' },
+  rowHint: { color: '#4a5568', fontSize: 13, lineHeight: 17, marginTop: 3 },
+  rowValue: { color: '#4a5568', fontSize: 15, maxWidth: '55%', textAlign: 'right' },
   rowChevron: { color: '#4a5568', fontSize: 20 },
 });

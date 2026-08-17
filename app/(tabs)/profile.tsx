@@ -378,7 +378,7 @@ export default function ProfileScreen() {
                     <Text style={styles.badgeName}>{def.title}</Text>
                     <Text style={styles.badgeDesc} numberOfLines={1}>"{def.unlockMessage}"</Text>
                   </View>
-                  {def.isTear && <Text style={{ fontSize: 14 }}>{def.tearEmoji}</Text>}
+                  {def.isTear && <Text style={{ fontSize: 15 }}>{def.tearEmoji}</Text>}
                 </TouchableOpacity>
               );
             })}
@@ -412,13 +412,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: '#e2e8f0', fontSize: 26, fontWeight: '700' },
   editBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#1f2937' },
-  editTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  editTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },
   content: { paddingBottom: 48 },
   avatarSection: { alignItems: 'center', paddingVertical: 28, gap: 8 },
-  displayName: { color: '#e2e8f0', fontSize: 22, fontWeight: '700' },
-  usernameLabel: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
-  bio: { color: '#64748b', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 },
-  bioPlaceholder: { color: '#374151', fontSize: 14, fontStyle: 'italic' },
+  displayName: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
+  usernameLabel: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
+  bio: { color: '#64748b', fontSize: 15, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 },
+  bioPlaceholder: { color: '#374151', fontSize: 15, fontStyle: 'italic' },
   statsRow: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 24,
@@ -438,21 +438,21 @@ const styles = StyleSheet.create({
     borderColor: '#6fe0e655', backgroundColor: '#6fe0e614',
   },
   wrappedEmoji: { fontSize: 26 },
-  wrappedTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
+  wrappedTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   wrappedSub: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
-  wrappedChevron: { color: '#6fe0e6', fontSize: 22, fontWeight: '600' },
+  wrappedChevron: { color: '#6fe0e6', fontSize: 20, fontWeight: '600' },
 
   section: { marginHorizontal: 20 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  sectionTitle: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },
-  sectionAction: { color: '#6fe0e6', fontSize: 12, fontWeight: '600' },
+  sectionTitle: { color: '#94a3b8', fontSize: 13, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase' },
+  sectionAction: { color: '#6fe0e6', fontSize: 13, fontWeight: '600' },
   emptyAch: { padding: 20, alignItems: 'center' },
   emptyAchTxt: { color: '#374151', fontSize: 13, textAlign: 'center' },
   badgeList: { backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden' },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1f2937' },
   badgeEmoji: { fontSize: 26, width: 36, textAlign: 'center' },
-  badgeName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  badgeDesc: { color: '#4a5568', fontSize: 12, marginTop: 1, fontStyle: 'italic' },
+  badgeName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
+  badgeDesc: { color: '#4a5568', fontSize: 13, marginTop: 1, fontStyle: 'italic' },
 });
 
 const ls = StyleSheet.create({
@@ -474,12 +474,12 @@ const ls = StyleSheet.create({
   label: { color: '#94a3b8', fontSize: 11, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginTop: 8 },
   input: { backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937', borderRadius: 12, padding: 12, color: '#e2e8f0', fontSize: 15, marginTop: 6 },
   changePhotoBtn: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#6fe0e6' },
-  changePhotoTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  changePhotoTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },
   tearsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
   tearChip: { width: 52, height: 52, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937', backgroundColor: '#0d1117', alignItems: 'center', justifyContent: 'center' },
   tearChipActive: { borderColor: '#f2cf6b', backgroundColor: '#f2cf6b15' },
   tearEmoji: { fontSize: 24 },
-  tearCheck: { position: 'absolute', bottom: 2, right: 4, fontSize: 10, color: '#f2cf6b', fontWeight: '700' },
+  tearCheck: { position: 'absolute', bottom: 2, right: 4, fontSize: 11, color: '#f2cf6b', fontWeight: '700' },
   tearsHint: { color: '#374151', fontSize: 11, marginTop: 6, fontFamily: 'monospace' },
-  tearsPreview: { color: '#4a5568', fontSize: 12, marginTop: 4, fontStyle: 'italic' },
+  tearsPreview: { color: '#4a5568', fontSize: 13, marginTop: 4, fontStyle: 'italic' },
 });

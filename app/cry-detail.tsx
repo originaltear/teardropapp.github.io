@@ -309,7 +309,7 @@ export default function CryDetailScreen() {
 
           {/* Emotion badge */}
           <View style={[s.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
-            <Text style={{ fontSize: 22 }}>{emotion?.emoji ?? '💧'}</Text>
+            <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
             <Text style={[s.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>
               {emotion?.label ?? cry.emotion}
             </Text>
@@ -333,7 +333,7 @@ export default function CryDetailScreen() {
             {!isOwn && session && (
               <>
                 <TouchableOpacity style={s.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
-                  <Text style={{ fontSize: 16 }}>{liked ? '💧' : '🤍'}</Text>
+                  <Text style={{ fontSize: 17 }}>{liked ? '💧' : '🤍'}</Text>
                   <Text style={[s.likeTxt, liked && { color: accent }]}>
                     {liked ? 'Liked' : 'Like'}
                   </Text>
@@ -342,7 +342,7 @@ export default function CryDetailScreen() {
                   style={s.likeBtn} onPress={toggleHug} activeOpacity={0.75}
                   accessibilityRole="button" accessibilityLabel={hugged ? 'Remove hug' : 'Send a hug'}
                 >
-                  <Text style={{ fontSize: 16 }}>🫂</Text>
+                  <Text style={{ fontSize: 17 }}>🫂</Text>
                   <Text style={[s.likeTxt, hugged && { color: accent }]}>
                     {hugged ? 'Hugged' : 'Hug'}
                   </Text>
@@ -538,8 +538,8 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
-  menuTxt: { color: '#4a5568', fontSize: 22, fontWeight: '700' },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
+  menuTxt: { color: '#4a5568', fontSize: 20, fontWeight: '700' },
   headerTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '600' },
 
   content: { padding: 20, gap: 14 },
@@ -551,21 +551,21 @@ const s = StyleSheet.create({
   },
   profileName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
   profileHandle: { color: '#4a5568', fontSize: 13 },
-  profileArrow: { color: '#4a5568', fontSize: 22 },
+  profileArrow: { color: '#4a5568', fontSize: 20 },
 
   emotionBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start',
   },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
-  dateText: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  dateText: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
 
   photo: { width: '100%', height: 200, borderRadius: 14, backgroundColor: '#1f2937' },
   noteBox: {
     backgroundColor: '#111827', borderRadius: 12, padding: 14,
     borderWidth: 1, borderColor: '#1f2937',
   },
-  noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 22 },
+  noteText: { color: '#94a3b8', fontSize: 15, lineHeight: 22 },
 
   likeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   likeBtn: {
@@ -573,7 +573,7 @@ const s = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20,
     borderWidth: 1, borderColor: '#1f2937',
   },
-  likeTxt: { color: '#4a5568', fontSize: 14, fontWeight: '600' },
+  likeTxt: { color: '#4a5568', fontSize: 15, fontWeight: '600' },
   likeTxtActive: { color: '#6fe0e6' },
   likeCount: { color: '#4a5568', fontSize: 13 },
 
@@ -587,12 +587,12 @@ const s = StyleSheet.create({
     flex: 1, backgroundColor: '#111827', borderRadius: 10, padding: 10,
     borderWidth: 1, borderColor: '#1f2937',
   },
-  commentUser: { color: '#6fe0e6', fontSize: 12, fontWeight: '600', marginBottom: 3 },
+  commentUser: { color: '#6fe0e6', fontSize: 13, fontWeight: '600', marginBottom: 3 },
   commentText: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
 
   commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
   commentActions: { flexDirection: 'row', gap: 16, marginTop: 4, marginLeft: 4 },
-  commentAction: { color: '#4a5568', fontSize: 12, fontWeight: '600' },
+  commentAction: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
   // A thread line rather than indentation alone: with replies flattened to one
   // level, plain indentation left it unclear where a thread started and ended.
   replyIndent: {
@@ -606,8 +606,8 @@ const s = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: '#1f2937',
     backgroundColor: '#111827',
   },
-  replyingTxt: { flex: 1, color: '#4a5568', fontSize: 12 },
-  replyingClose: { color: '#4a5568', fontSize: 14, padding: 2 },
+  replyingTxt: { flex: 1, color: '#4a5568', fontSize: 13 },
+  replyingClose: { color: '#4a5568', fontSize: 15, padding: 2 },
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
@@ -618,15 +618,15 @@ const s = StyleSheet.create({
   inputField: {
     flex: 1, backgroundColor: '#111827', borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 10,
-    color: '#e2e8f0', fontSize: 14, maxHeight: 80,
+    color: '#e2e8f0', fontSize: 15, maxHeight: 80,
     borderWidth: 1, borderColor: '#1f2937',
   },
   sendBtn: {
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
   },
-  sendTxt: { color: '#0d1117', fontSize: 18, fontWeight: '700' },
+  sendTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  emptyTxt: { color: '#4a5568', fontSize: 16 },
+  emptyTxt: { color: '#4a5568', fontSize: 17 },
 });

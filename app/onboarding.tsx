@@ -143,7 +143,7 @@ const s = StyleSheet.create({
     paddingBottom: 4,
   },
   skipBtn: { paddingVertical: 6, paddingHorizontal: 4, minWidth: 50, alignItems: 'flex-end' },
-  skipTxt: { color: '#4a5568', fontSize: 14, fontWeight: '500' },
+  skipTxt: { color: '#4a5568', fontSize: 15, fontWeight: '500' },
 
   slide: {
     width: W,
@@ -173,7 +173,7 @@ const s = StyleSheet.create({
   },
   body: {
     color: '#64748b',
-    fontSize: 16,
+    fontSize: 17,
     textAlign: 'center',
     lineHeight: 26,
   },
@@ -209,5 +209,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#111827',
   },
-  nextTxt: { color: '#6fe0e6', fontSize: 16, fontWeight: '600' },
+  nextTxt: { color: '#6fe0e6', fontSize: 17, fontWeight: '600' },
 });

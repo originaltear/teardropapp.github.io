@@ -144,7 +144,7 @@ export default function VisibilitySettingsScreen() {
 
 const s = StyleSheet.create({
   footnote: {
-    color: '#4a5568', fontSize: 12, lineHeight: 18,
+    color: '#4a5568', fontSize: 13, lineHeight: 18,
     paddingHorizontal: 20, paddingTop: 18,
   },
   backdrop: { flex: 1, backgroundColor: '#000000cc', justifyContent: 'center', padding: 24 },
@@ -159,6 +159,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 12, gap: 12,
   },
   pickerLabel: { color: '#e2e8f0', fontSize: 15 },
-  pickerHint: { color: '#4a5568', fontSize: 12, marginTop: 3 },
-  pickerCheck: { fontSize: 16 },
+  pickerHint: { color: '#4a5568', fontSize: 13, marginTop: 3 },
+  pickerCheck: { fontSize: 17 },
 });

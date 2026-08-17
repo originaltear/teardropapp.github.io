@@ -51,6 +51,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d1117', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1,
   },
-  icon: { fontSize: 18 },
-  label: { fontSize: 14, fontWeight: '500' },
+  icon: { fontSize: 17 },
+  label: { fontSize: 15, fontWeight: '500' },
 });

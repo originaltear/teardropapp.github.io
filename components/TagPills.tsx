@@ -19,7 +19,7 @@ export function TagPills({ tags, style }: { tags?: string[] | null; style?: Styl
 const s = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pill: {
-    color: '#94a3b8', fontSize: 12, fontWeight: '500',
+    color: '#94a3b8', fontSize: 13, fontWeight: '500',
     backgroundColor: '#0d1117', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4,
     overflow: 'hidden',

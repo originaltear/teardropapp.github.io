@@ -303,12 +303,12 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 16, paddingBottom: 32 },
 
   backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
-  backArrow: { color: '#6fe0e6', fontSize: 18 },
+  backArrow: { color: '#6fe0e6', fontSize: 17 },
   backTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },
 
   header: { marginBottom: 28, gap: 6 },
   title: { color: '#e2e8f0', fontSize: 28, fontWeight: '800' },
-  sub: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
+  sub: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
 
   oauthGroup: { marginBottom: 4 },
   oauthBtn: {
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 14, paddingVertical: 14,
   },
-  oauthIcon: { fontSize: 16, fontWeight: '800', width: 20, textAlign: 'center' },
+  oauthIcon: { fontSize: 17, fontWeight: '800', width: 20, textAlign: 'center' },
   oauthTxt: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
 
   appleBtn: { width: '100%', height: 50 },
@@ -327,10 +327,10 @@ const styles = StyleSheet.create({
 
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 12 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#1f2937' },
-  dividerTxt: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
+  dividerTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
 
   form: { gap: 4 },
-  label: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  label: { color: '#94a3b8', fontSize: 13, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   input: {
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center',
   },
   revealTxt: { fontSize: 13, fontWeight: '600' },
-  mismatchTxt: { color: '#eab308', fontSize: 12, marginTop: 6 },
+  mismatchTxt: { color: '#eab308', fontSize: 13, marginTop: 6 },
   errorTxt: { color: '#ef6f6f', fontSize: 13, marginTop: 8, lineHeight: 18 },
 
   btn: {
@@ -351,17 +351,17 @@ const styles = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginTop: 24,
   },
   btnDisabled: { opacity: 0.5 },
-  btnTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  btnTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 
   switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
-  switchTxt: { color: '#4a5568', fontSize: 14 },
-  switchLink: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  switchTxt: { color: '#4a5568', fontSize: 15 },
+  switchLink: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },
 
   // Email confirmation screen
   confirmedArea: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 40 },
   confirmedEmoji: { fontSize: 56 },
-  confirmedTitle: { color: '#e2e8f0', fontSize: 22, fontWeight: '700' },
-  confirmedSub: { color: '#4a5568', fontSize: 14, textAlign: 'center', lineHeight: 22 },
+  confirmedTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
+  confirmedSub: { color: '#4a5568', fontSize: 15, textAlign: 'center', lineHeight: 22 },
   confirmedEmail: { color: '#6fe0e6', fontWeight: '600' },
   backBtn: {
     marginTop: 8, backgroundColor: '#6fe0e6', borderRadius: 14,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   },
   backBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
   legal: {
-    color: '#4a5568', fontSize: 12, lineHeight: 18,
+    color: '#4a5568', fontSize: 13, lineHeight: 18,
     textAlign: 'center', marginTop: 14, paddingHorizontal: 4,
   },
   legalLink: { textDecorationLine: 'underline' },

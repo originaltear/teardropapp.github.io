@@ -282,7 +282,7 @@ export default function UserProfileScreen() {
                   onPress={() => router.push(`/cry-detail?id=${cry.id}`)}
                 >
                   <View style={[s.cryDot, { backgroundColor: color + '22' }]}>
-                    <Text style={{ fontSize: 18 }}>{emotion?.emoji ?? '💧'}</Text>
+                    <Text style={{ fontSize: 17 }}>{emotion?.emoji ?? '💧'}</Text>
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[s.cryEmotion, { color }]}>{emotion?.label ?? cry.emotion}</Text>
@@ -331,13 +331,13 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
   headerTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '600' },
   content: { paddingBottom: 48 },
   avatarSection: { alignItems: 'center', paddingVertical: 28, gap: 6 },
-  displayName: { color: '#e2e8f0', fontSize: 22, fontWeight: '700' },
-  handle: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
-  bio: { color: '#64748b', fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginTop: 4 },
+  displayName: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
+  handle: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
+  bio: { color: '#64748b', fontSize: 15, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginTop: 4 },
   statsRow: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 20,
@@ -355,18 +355,18 @@ const s = StyleSheet.create({
     backgroundColor: '#6fe0e6', borderRadius: 14,
     paddingVertical: 14, alignItems: 'center',
   },
-  btnFollowTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  btnFollowTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
   btnFollowing: {
     borderRadius: 14, borderWidth: 1, borderColor: '#ef4444',
     backgroundColor: '#ef444422',
     paddingVertical: 14, alignItems: 'center',
   },
-  btnFollowingTxt: { color: '#ef4444', fontSize: 16, fontWeight: '700' },
+  btnFollowingTxt: { color: '#ef4444', fontSize: 17, fontWeight: '700' },
   btnSecondary: {
     paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937',
     alignItems: 'center', justifyContent: 'center',
   },
-  btnSecondaryTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  btnSecondaryTxt: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
 
   criesHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -376,22 +376,22 @@ const s = StyleSheet.create({
     color: '#4a5568', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 1, textTransform: 'uppercase',
   },
-  criesCount: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
+  criesCount: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
   cryRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 20, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   cryDot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  cryEmotion: { fontSize: 14, fontWeight: '600' },
-  cryNote: { color: '#64748b', fontSize: 12 },
+  cryEmotion: { fontSize: 15, fontWeight: '600' },
+  cryNote: { color: '#64748b', fontSize: 13 },
   cryTime: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
 
   privateBox: { alignItems: 'center', paddingVertical: 32, gap: 8, marginHorizontal: 20 },
   privateEmoji: { fontSize: 36, opacity: 0.4 },
-  privateTxt: { color: '#4a5568', fontSize: 14 },
+  privateTxt: { color: '#4a5568', fontSize: 15 },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
   emptyEmoji: { fontSize: 48, opacity: 0.4 },
-  emptyTxt: { color: '#4a5568', fontSize: 16 },
+  emptyTxt: { color: '#4a5568', fontSize: 17 },
 });

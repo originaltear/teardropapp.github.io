@@ -80,7 +80,7 @@ const d = StyleSheet.create({
     width: 18, height: 18, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
   },
-  dotTxt: { color: '#0d1117', fontSize: 9, fontWeight: '700' },
+  dotTxt: { color: '#0d1117', fontSize: 11, fontWeight: '700' },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ export default function CalendarScreen() {
                 return (
                   <View key={cry.id} style={s.cryItem}>
                     <View style={[s.cryDot, { backgroundColor: color + '33' }]}>
-                      <Text style={{ fontSize: 18 }}>{emotion?.emoji ?? '💧'}</Text>
+                      <Text style={{ fontSize: 17 }}>{emotion?.emoji ?? '💧'}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[s.cryEmotion, { color }]}>{emotion?.label ?? cry.emotion}</Text>
@@ -256,8 +256,8 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
-  title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   content: { padding: 16, gap: 16 },
 
   monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -282,7 +282,7 @@ const s = StyleSheet.create({
   noData: { color: '#374151', fontSize: 13, fontStyle: 'italic' },
   cryItem: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   cryDot: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cryEmotion: { fontSize: 14, fontWeight: '600' },
-  cryTime: { color: '#4a5568', fontSize: 12 },
+  cryEmotion: { fontSize: 15, fontWeight: '600' },
+  cryTime: { color: '#4a5568', fontSize: 13 },
   cryNote: { color: '#64748b', fontSize: 13, lineHeight: 18, marginTop: 2 },
 });

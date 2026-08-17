@@ -274,13 +274,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0d1117' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
   title: { flex: 1, color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
   badge: {
     backgroundColor: '#6fe0e6', borderRadius: 12,
     paddingHorizontal: 8, paddingVertical: 3, minWidth: 24, alignItems: 'center',
   },
-  badgeTxt: { color: '#0d1117', fontSize: 12, fontWeight: '700' },
+  badgeTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
 
   tabs: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 },
   tabBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#1f2937' },
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
     paddingHorizontal: 14,
   },
-  atSign: { color: '#6fe0e6', fontSize: 16, fontWeight: '700' },
+  atSign: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
   searchInput: { flex: 1, color: '#e2e8f0', fontSize: 15, paddingVertical: 12 },
 
   userRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1 },
   userName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
   userHandle: { color: '#4a5568', fontSize: 13 },
-  reqLabel: { color: '#6fe0e6', fontSize: 12, marginTop: 2 },
+  reqLabel: { color: '#6fe0e6', fontSize: 13, marginTop: 2 },
 
   relationBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
   btnFollow: { backgroundColor: '#6fe0e6' },
@@ -313,15 +313,15 @@ const styles = StyleSheet.create({
   btnReject: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: '#374151', alignItems: 'center', justifyContent: 'center' },
   relationTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
   relationTxtUnfollow: { color: '#ef4444', fontSize: 13, fontWeight: '700' },
-  rejectTxt: { color: '#4a5568', fontSize: 14 },
+  rejectTxt: { color: '#4a5568', fontSize: 15 },
 
   reqActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 72 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, padding: 40 },
   emptyEmoji: { fontSize: 40, opacity: 0.5 },
-  emptyTxt: { color: '#4a5568', fontSize: 14, textAlign: 'center' },
-  emptyAction: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginTop: 2 },
+  emptyTxt: { color: '#4a5568', fontSize: 15, textAlign: 'center' },
+  emptyAction: { fontSize: 15, fontWeight: '600', textAlign: 'center', marginTop: 2 },
 
   inviteRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -330,5 +330,5 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderStyle: 'dashed',
   },
   inviteIcon: { fontSize: 15 },
-  inviteTxt: { fontSize: 14, fontWeight: '600' },
+  inviteTxt: { fontSize: 15, fontWeight: '600' },
 });

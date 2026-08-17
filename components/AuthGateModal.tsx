@@ -68,21 +68,21 @@ const s = StyleSheet.create({
   },
   emoji: { fontSize: 40, marginBottom: 4 },
   title: { color: '#e2e8f0', fontSize: 20, fontWeight: '700', textAlign: 'center' },
-  sub: { color: '#64748b', fontSize: 14, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16 },
+  sub: { color: '#64748b', fontSize: 15, textAlign: 'center', lineHeight: 20, paddingHorizontal: 16 },
 
   signupBtn: {
     backgroundColor: '#6fe0e6', borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 48,
     alignItems: 'center', marginTop: 8, width: '100%',
   },
-  signupTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  signupTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 
   loginBtn: {
     backgroundColor: 'transparent', borderRadius: 14, borderWidth: 1, borderColor: '#1f2937',
     paddingVertical: 14, paddingHorizontal: 48,
     alignItems: 'center', width: '100%',
   },
-  loginTxt: { color: '#e2e8f0', fontSize: 16, fontWeight: '600' },
+  loginTxt: { color: '#e2e8f0', fontSize: 17, fontWeight: '600' },
 
   cancelBtn: { paddingVertical: 8 },
   cancelTxt: { color: '#374151', fontSize: 13 },

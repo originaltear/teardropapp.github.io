@@ -634,7 +634,7 @@ const s = StyleSheet.create({
   introSub: { color: MUTED, fontSize: 17, marginTop: 10 },
 
   bigNumber: { color: INK, fontSize: 92, fontWeight: '800', letterSpacing: -4, lineHeight: 96 },
-  heroUnit: { color: MUTED, fontSize: 18 },
+  heroUnit: { color: MUTED, fontSize: 17 },
 
   emotionBig: { fontSize: 62 },
   emotionName: { fontSize: 40, fontWeight: '800', letterSpacing: -1 },
@@ -644,17 +644,17 @@ const s = StyleSheet.create({
   barLabel: { color: INK, fontSize: 13, width: 118 },
   barTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: '#131c26', overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 5 },
-  barValue: { color: MUTED, fontSize: 12, width: 28, textAlign: 'right', fontFamily: 'monospace' },
+  barValue: { color: MUTED, fontSize: 13, width: 28, textAlign: 'right', fontFamily: 'monospace' },
 
   monthChart: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 18, height: 130 },
   monthCol: { flex: 1, alignItems: 'center', gap: 6 },
   monthBar: { width: '100%', borderRadius: 3 },
-  monthLabel: { color: MUTED, fontSize: 10, fontFamily: 'monospace' },
+  monthLabel: { color: MUTED, fontSize: 11, fontFamily: 'monospace' },
 
   countryList: { marginTop: 14, gap: 4 },
   countryItem: { color: MUTED, fontSize: 15 },
 
-  rankLead: { color: MUTED, fontSize: 19, textAlign: 'center' },
+  rankLead: { color: MUTED, fontSize: 20, textAlign: 'center' },
   rankRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   rankTop: { fontSize: 34, fontWeight: '800', letterSpacing: -1 },
 
@@ -667,7 +667,7 @@ const s = StyleSheet.create({
     marginTop: 26, borderRadius: 999, paddingVertical: 16,
     alignItems: 'center', justifyContent: 'center',
   },
-  shareBtnTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  shareBtnTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 
   progressWrap: { position: 'absolute', top: 0, left: 0, right: 0 },
   progressRow: { flexDirection: 'row', gap: 4, paddingHorizontal: 16, paddingTop: 10 },

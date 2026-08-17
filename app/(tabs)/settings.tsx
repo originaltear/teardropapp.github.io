@@ -820,17 +820,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   rowLabel: { color: '#e2e8f0', fontSize: 15, flex: 1, flexWrap: 'wrap' },
-  rowValue: { color: '#4a5568', fontSize: 14, maxWidth: '55%', textAlign: 'right' },
+  rowValue: { color: '#4a5568', fontSize: 15, maxWidth: '55%', textAlign: 'right' },
   rowChevron: { color: '#4a5568', fontSize: 20 },
-  linkTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
+  linkTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   linkedTxt: { color: '#4ade80', fontSize: 13, fontWeight: '600' },
   usernameInputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, paddingHorizontal: 14, marginBottom: 8,
   },
-  usernameAt: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
-  usernameInput: { flex: 1, paddingVertical: 14, color: '#e2e8f0', fontSize: 16, fontFamily: 'monospace' },
+  usernameAt: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
+  usernameInput: { flex: 1, paddingVertical: 14, color: '#e2e8f0', fontSize: 17, fontFamily: 'monospace' },
   usernameStatusOk: { color: '#4ade80', fontSize: 13, marginBottom: 4 },
   usernameStatusErr: { color: '#ef6f6f', fontSize: 13, marginBottom: 4 },
   dangerNote: {
@@ -861,9 +861,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: '#1f2937',
   },
   pickerOptionActive: { backgroundColor: '#6fe0e610' },
-  pickerOptionTxt: { color: '#94a3b8', fontSize: 16 },
+  pickerOptionTxt: { color: '#94a3b8', fontSize: 17 },
   pickerOptionTxtActive: { color: '#6fe0e6' },
-  pickerCheck: { color: '#6fe0e6', fontSize: 16, fontWeight: '700' },
+  pickerCheck: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
   themeCircle: { width: 18, height: 18, borderRadius: 9, marginRight: 4 },
 
   // Bottom sheet
@@ -888,7 +888,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   sheetClose: { color: '#4a5568', fontSize: 20, padding: 4 },
-  emptyText: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace', textAlign: 'center', marginTop: 24 },
+  emptyText: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace', textAlign: 'center', marginTop: 24 },
 
   // Blocked users list
   blockedRow: {
@@ -896,8 +896,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
-  blockedName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  blockedHandle: { color: '#4a5568', fontSize: 12 },
+  blockedName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
+  blockedHandle: { color: '#4a5568', fontSize: 13 },
   unblockBtn: {
     paddingHorizontal: 14, paddingVertical: 7,
     borderRadius: 14, borderWidth: 1, borderColor: '#6fe0e6',

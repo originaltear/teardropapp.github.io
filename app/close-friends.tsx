@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   backTxt: { color: '#6fe0e6', fontSize: 28, lineHeight: 32 },
-  title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   subtitle: {
     color: '#4a5568', fontSize: 13, paddingHorizontal: 20,
     paddingVertical: 12, lineHeight: 18,
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center',
   },
   name: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
-  handle: { color: '#4a5568', fontSize: 12 },
+  handle: { color: '#4a5568', fontSize: 13 },
   toggleBtn: {
     paddingHorizontal: 16, paddingVertical: 8,
     borderRadius: 16, borderWidth: 1, borderColor: '#6fe0e6',

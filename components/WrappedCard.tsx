@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   contentCentered: { alignItems: 'center', paddingHorizontal: 36 },
 
   eyebrow: {
-    color: '#8fa3b0', fontSize: 12, letterSpacing: 3,
+    color: '#8fa3b0', fontSize: 13, letterSpacing: 3,
     fontFamily: 'monospace', textTransform: 'uppercase',
   },
   hero: { gap: 10 },

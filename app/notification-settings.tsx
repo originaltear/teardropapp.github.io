@@ -87,7 +87,7 @@ export default function NotificationSettingsScreen() {
 
 const s = StyleSheet.create({
   footnote: {
-    color: '#4a5568', fontSize: 12, lineHeight: 18,
+    color: '#4a5568', fontSize: 13, lineHeight: 18,
     paddingHorizontal: 20, paddingTop: 18,
   },
 });

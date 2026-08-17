@@ -123,9 +123,9 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
   title: { flex: 1, color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
-  count: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
+  count: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
@@ -140,5 +140,5 @@ const s = StyleSheet.create({
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 74 },
   emptyWrap: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, padding: 40 },
-  emptyTxt: { color: '#4a5568', fontSize: 16 },
+  emptyTxt: { color: '#4a5568', fontSize: 17 },
 });

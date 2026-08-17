@@ -38,5 +38,5 @@ export function TearsBadge({ tears }: Props) {
 
 const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  tear: { fontSize: 14 },
+  tear: { fontSize: 15 },
 });

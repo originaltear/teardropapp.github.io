@@ -155,10 +155,10 @@ const s = StyleSheet.create({
     backgroundColor: '#374151', alignSelf: 'center', marginBottom: 8,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4a5568', fontSize: 18 },
-  sub: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace', marginTop: 2, marginBottom: 16 },
+  closeTxt: { color: '#4a5568', fontSize: 17 },
+  sub: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace', marginTop: 2, marginBottom: 16 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
@@ -167,9 +167,9 @@ const s = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, borderColor: '#1f2937',
     minWidth: 96, justifyContent: 'center',
   },
-  chipEmoji: { fontSize: 18 },
+  chipEmoji: { fontSize: 17 },
   chipLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
 
   fullLink: { alignItems: 'center', marginTop: 18, paddingVertical: 6 },
-  fullLinkTxt: { fontSize: 14, fontWeight: '600' },
+  fullLinkTxt: { fontSize: 15, fontWeight: '600' },
 });

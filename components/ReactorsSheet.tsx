@@ -110,8 +110,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, marginBottom: 8,
   },
-  title: { color: '#e2e8f0', fontSize: 16, fontWeight: '700' },
-  close: { color: '#4a5568', fontSize: 16, padding: 4 },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
+  close: { color: '#4a5568', fontSize: 17, padding: 4 },
   center: { paddingVertical: 32, alignItems: 'center' },
   hidden: {
     color: '#4a5568', fontSize: 13, lineHeight: 20,

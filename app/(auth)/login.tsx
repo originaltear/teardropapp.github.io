@@ -262,10 +262,10 @@ const styles = StyleSheet.create({
   },
   logoEmoji: { fontSize: 36 },
   appName: { color: '#e2e8f0', fontSize: 28, fontWeight: '800', letterSpacing: 0.5 },
-  tagline: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
+  tagline: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
 
   form: { gap: 4 },
-  label: { color: '#94a3b8', fontSize: 12, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  label: { color: '#94a3b8', fontSize: 13, fontFamily: 'monospace', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   input: {
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
@@ -285,18 +285,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginTop: 24,
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  primaryBtnTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 12 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#1f2937' },
-  dividerTxt: { color: '#374151', fontSize: 12, fontFamily: 'monospace' },
+  dividerTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
 
   oauthBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 14, paddingVertical: 14,
   },
-  oauthIcon: { fontSize: 16, fontWeight: '800', width: 20, textAlign: 'center' },
+  oauthIcon: { fontSize: 17, fontWeight: '800', width: 20, textAlign: 'center' },
   oauthTxt: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
 
   appleBtn: { width: '100%', height: 50 },
@@ -306,8 +306,8 @@ const styles = StyleSheet.create({
   },
 
   switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 28 },
-  switchTxt: { color: '#4a5568', fontSize: 14 },
-  switchLink: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  switchTxt: { color: '#4a5568', fontSize: 15 },
+  switchLink: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },
 
   guestBtn: { alignItems: 'center', marginTop: 16, paddingVertical: 8 },
   guestTxt: { color: '#374151', fontSize: 13, textDecorationLine: 'underline' },

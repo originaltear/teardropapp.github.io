@@ -258,10 +258,10 @@ const s = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, paddingHorizontal: 14,
   },
-  atSign: { color: '#6fe0e6', fontSize: 18, fontWeight: '700', marginRight: 4 },
+  atSign: { color: '#6fe0e6', fontSize: 17, fontWeight: '700', marginRight: 4 },
   inputInline: {
     flex: 1, paddingVertical: 14,
-    color: '#e2e8f0', fontSize: 16, fontFamily: 'monospace',
+    color: '#e2e8f0', fontSize: 17, fontFamily: 'monospace',
   },
   input: {
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
@@ -280,9 +280,9 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
     paddingHorizontal: 16, paddingVertical: 14,
   },
-  visIcon: { fontSize: 22 },
+  visIcon: { fontSize: 20 },
   visLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-  visSub: { color: '#374151', fontSize: 12, marginTop: 1 },
+  visSub: { color: '#374151', fontSize: 13, marginTop: 1 },
   visRadio: {
     width: 20, height: 20, borderRadius: 10,
     borderWidth: 2, borderColor: '#374151',
@@ -297,5 +297,5 @@ const s = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginTop: 32,
   },
   btnDisabled: { opacity: 0.4 },
-  btnTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  btnTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 });

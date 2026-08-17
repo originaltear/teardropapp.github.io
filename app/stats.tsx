@@ -92,7 +92,7 @@ function HBar({ label, value, max, color, labelWidth = 80 }: {
 }
 const hb = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  label: { color: '#64748b', fontSize: 12, fontFamily: 'monospace', textAlign: 'right' },
+  label: { color: '#64748b', fontSize: 13, fontFamily: 'monospace', textAlign: 'right' },
   bg: { flex: 1, height: 20, backgroundColor: '#1f2937', borderRadius: 5, overflow: 'hidden' },
   fill: { height: 20, borderRadius: 5, minWidth: 3 },
   val: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', width: 26, textAlign: 'right' },
@@ -125,7 +125,7 @@ function HourChart({ buckets }: { buckets: { hour: number; count: number }[] }) 
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
         {[0, 4, 8, 12, 16, 20, 23].map(h => (
-          <Text key={h} style={{ color: '#374151', fontSize: 9, fontFamily: 'monospace' }}>
+          <Text key={h} style={{ color: '#374151', fontSize: 11, fontFamily: 'monospace' }}>
             {hour12(h)}
           </Text>
         ))}
@@ -507,7 +507,7 @@ export default function StatsScreen() {
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                   {top.map(({ emotion: e, count }) => e ? (
                     <View key={e.id} style={[s.emotionChip, { backgroundColor: e.color + '22' }]}>
-                      <Text style={{ fontSize: 14 }}>{e.emoji}</Text>
+                      <Text style={{ fontSize: 15 }}>{e.emoji}</Text>
                       <Text style={[s.emotionChipLabel, { color: e.color }]}>{e.label}</Text>
                       <Text style={s.emotionChipCount}>{count}</Text>
                     </View>
@@ -543,7 +543,7 @@ function LikerAvatar({ uri }: { uri: string | null }) {
   if (uri) return <Image source={{ uri }} style={s.likerAvatar} />;
   return (
     <View style={[s.likerAvatar, { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' }]}>
-      <Text style={{ fontSize: 16 }}>💧</Text>
+      <Text style={{ fontSize: 17 }}>💧</Text>
     </View>
   );
 }
@@ -559,8 +559,8 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
-  title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
 
   scroll: { padding: 16, gap: 12, paddingBottom: 40 },
 
@@ -572,7 +572,7 @@ const s = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 8, alignItems: 'center', gap: 3,
   },
   statVal: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
-  statLbl: { color: '#4a5568', fontSize: 10, fontFamily: 'monospace', textAlign: 'center' },
+  statLbl: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', textAlign: 'center' },
 
   // Sections
   section: {
@@ -580,10 +580,10 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937', padding: 16,
   },
   sectionTitle: {
-    color: '#4a5568', fontSize: 10, fontFamily: 'monospace',
+    color: '#4a5568', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 1.2, textTransform: 'uppercase',
   },
-  premiumBadge: { fontSize: 12 },
+  premiumBadge: { fontSize: 13 },
 
   // #1 Emotion
   emotionTop: {
@@ -592,7 +592,7 @@ const s = StyleSheet.create({
   },
   emotionTopName: { fontSize: 17, fontWeight: '700' },
   emotionTopCount: { color: '#64748b', fontSize: 13, marginTop: 2 },
-  emotionTopPct: { fontSize: 22, fontWeight: '800' },
+  emotionTopPct: { fontSize: 20, fontWeight: '800' },
 
   // Lock overlay
   lockOverlay: {
@@ -604,7 +604,7 @@ const s = StyleSheet.create({
     gap: 2,
   },
   lockTitle: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
-  lockSub: { color: '#374151', fontSize: 12, fontFamily: 'monospace', marginTop: 2 },
+  lockSub: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
 
   // Peak hour label
   peakLabel: { color: '#64748b', fontSize: 13 },
@@ -613,9 +613,9 @@ const s = StyleSheet.create({
   likerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   likerRank: { color: '#374151', fontSize: 13, fontFamily: 'monospace', width: 24 },
   likerAvatar: { width: 36, height: 36, borderRadius: 18 },
-  likerName: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  likerHandle: { color: '#4a5568', fontSize: 12 },
-  likerCount: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
+  likerName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
+  likerHandle: { color: '#4a5568', fontSize: 13 },
+  likerCount: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
 
   // Countries
   emptyInner: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
@@ -627,12 +627,12 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12,
   },
-  emotionChipLabel: { fontSize: 12, fontWeight: '600' },
+  emotionChipLabel: { fontSize: 13, fontWeight: '600' },
   emotionChipCount: { color: '#4a5568', fontSize: 11 },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 40 },
   emptyTxt: { color: '#4a5568', fontSize: 15 },
-  emptyTitle: { color: '#e2e8f0', fontSize: 22, fontWeight: '700', marginTop: 4 },
+  emptyTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '700', marginTop: 4 },
   emptyMsg: { color: '#4a5568', fontSize: 15, textAlign: 'center', lineHeight: 22, marginTop: 4 },
   emptyBtn: {
     marginTop: 16, paddingHorizontal: 28, paddingVertical: 14,

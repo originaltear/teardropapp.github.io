@@ -338,7 +338,7 @@ const eb = StyleSheet.create({
   },
   emoji: { fontSize: 48, opacity: 0.6 },
   title: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
-  sub: { color: '#4a5568', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  sub: { color: '#4a5568', fontSize: 15, textAlign: 'center', lineHeight: 20 },
   btn: {
     marginTop: 12, backgroundColor: '#6fe0e6', borderRadius: 14,
     paddingVertical: 14, paddingHorizontal: 36,

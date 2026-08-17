@@ -91,11 +91,11 @@ const s = StyleSheet.create({
   },
   glowRingTear: { borderColor: '#f2cf6b40' },
   eyebrow: {
-    color: '#6fe0e6', fontSize: 10, fontFamily: 'monospace',
+    color: '#6fe0e6', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 2, textTransform: 'uppercase',
   },
   emoji: { fontSize: 64, marginVertical: 4 },
-  title: { color: '#e2e8f0', fontSize: 22, fontWeight: '700', textAlign: 'center' },
+  title: { color: '#e2e8f0', fontSize: 20, fontWeight: '700', textAlign: 'center' },
   tearBadge: {
     backgroundColor: '#f2cf6b22', borderRadius: 20,
     borderWidth: 1, borderColor: '#f2cf6b44',
@@ -103,12 +103,12 @@ const s = StyleSheet.create({
   },
   tearBadgeTxt: { color: '#f2cf6b', fontSize: 13, fontWeight: '600' },
   message: {
-    color: '#64748b', fontSize: 14, fontStyle: 'italic',
+    color: '#64748b', fontSize: 15, fontStyle: 'italic',
     textAlign: 'center', lineHeight: 22, paddingHorizontal: 8,
   },
   btn: {
     marginTop: 8, backgroundColor: '#6fe0e6',
     borderRadius: 14, paddingVertical: 12, paddingHorizontal: 40,
   },
-  btnTxt: { color: '#0d1117', fontSize: 16, fontWeight: '700' },
+  btnTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
 });

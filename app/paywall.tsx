@@ -200,7 +200,7 @@ const s = StyleSheet.create({
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center',
   },
-  closeTxt: { color: '#94a3b8', fontSize: 16 },
+  closeTxt: { color: '#94a3b8', fontSize: 17 },
 
   crown: { fontSize: 64, marginTop: 36, marginBottom: 12 },
   heroTitle: { color: '#e2e8f0', fontSize: 30, fontWeight: '800', marginBottom: 6 },
@@ -231,7 +231,7 @@ const s = StyleSheet.create({
     backgroundColor: '#6fe0e6', borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 3,
   },
-  badgeTxt: { color: '#0d1117', fontSize: 10, fontWeight: '800' },
+  badgeTxt: { color: '#0d1117', fontSize: 11, fontWeight: '800' },
   planLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: {
     width: 20, height: 20, borderRadius: 10,
@@ -240,7 +240,7 @@ const s = StyleSheet.create({
   },
   radioActive: { borderColor: '#6fe0e6' },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#6fe0e6' },
-  planTitle: { color: '#94a3b8', fontSize: 16, fontWeight: '600' },
+  planTitle: { color: '#94a3b8', fontSize: 17, fontWeight: '600' },
   planTitleActive: { color: '#e2e8f0' },
   planRight: { alignItems: 'flex-end' },
   planPrice: { color: '#94a3b8', fontSize: 17, fontWeight: '700' },
@@ -255,7 +255,7 @@ const s = StyleSheet.create({
   ctaTxt: { color: '#0d1117', fontSize: 17, fontWeight: '800' },
 
   storeLine: {
-    color: '#4a5568', fontSize: 12, textAlign: 'center',
+    color: '#4a5568', fontSize: 13, textAlign: 'center',
     fontWeight: '500', marginBottom: 12,
   },
   legalNote: {
@@ -266,7 +266,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, marginBottom: 16,
   },
-  legalLink: { color: '#6fe0e6', fontSize: 12, fontWeight: '600' },
-  legalDot: { color: '#374151', fontSize: 12 },
-  restoreTxt: { color: '#4a5568', fontSize: 14, fontWeight: '500', paddingVertical: 8 },
+  legalLink: { color: '#6fe0e6', fontSize: 13, fontWeight: '600' },
+  legalDot: { color: '#374151', fontSize: 13 },
+  restoreTxt: { color: '#4a5568', fontSize: 15, fontWeight: '500', paddingVertical: 8 },
 });

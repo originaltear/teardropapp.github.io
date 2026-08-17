@@ -77,7 +77,7 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }} showsVerticalScrollIndicator={false}>
           <View style={[s.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
-            <Text style={{ fontSize: 22 }}>{emotion?.emoji ?? '💧'}</Text>
+            <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
             <Text style={[s.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>{emotion?.label ?? cry.emotion}</Text>
           </View>
           <Text style={s.dateLabel}>{fullDateTime(cry.createdAt)}</Text>
@@ -321,9 +321,9 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
   title: { flex: 1, color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
-  count: { color: '#4a5568', fontSize: 14, fontFamily: 'monospace' },
+  count: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
 
   filterRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -338,12 +338,12 @@ const s = StyleSheet.create({
   filterChipTxt: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
   filterChipTxtActive: { color: '#6fe0e6' },
   sortBtn: { paddingHorizontal: 10, paddingVertical: 6 },
-  sortTxt: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  sortTxt: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
 
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
 
   // Bulk select
-  selectBtnTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '600' },
+  selectBtnTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },
   rowSelected: { backgroundColor: '#6fe0e610' },
   checkCircle: {
     width: 22, height: 22, borderRadius: 11, alignSelf: 'center',
@@ -362,7 +362,7 @@ const s = StyleSheet.create({
 
   emptyWrap: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, paddingHorizontal: 40 },
-  emptyTxt: { color: '#4a5568', fontSize: 18, fontWeight: '600' },
+  emptyTxt: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
 
   backdrop: { flex: 1 },
@@ -377,19 +377,19 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  closeTxt: { color: '#4a5568', fontSize: 18 },
+  closeTxt: { color: '#4a5568', fontSize: 17 },
   deleteBtn: { paddingVertical: 4, paddingHorizontal: 8 },
-  deleteTxt: { color: '#ef4444', fontSize: 14, fontWeight: '600' },
+  deleteTxt: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
   editBtn: { paddingVertical: 4, paddingHorizontal: 8 },
-  editTxt: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
+  editTxt: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
   emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
-  dateLabel: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  dateLabel: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
   photo: { width: '100%', height: 180, borderRadius: 12, backgroundColor: '#0d1117' },
   noteBox: { backgroundColor: '#0d1117', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#1f2937' },
-  noteText: { color: '#94a3b8', fontSize: 14, lineHeight: 20 },
+  noteText: { color: '#94a3b8', fontSize: 15, lineHeight: 20 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
   audioBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#0d1117', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: '#6fe0e6' },
-  audioIcon: { fontSize: 16, color: '#6fe0e6' },
-  audioTxt: { color: '#6fe0e6', fontSize: 14, fontWeight: '500' },
+  audioIcon: { fontSize: 17, color: '#6fe0e6' },
+  audioTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '500' },
 });

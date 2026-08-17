@@ -45,7 +45,7 @@ function NotifIcon({ color }: { color: ColorValue }) {
           alignItems: 'center', justifyContent: 'center',
           paddingHorizontal: 3,
         }}>
-          <Text style={{ color: '#0d1117', fontSize: 9, fontWeight: '800' }}>
+          <Text style={{ color: '#0d1117', fontSize: 11, fontWeight: '800' }}>
             {count > 99 ? '99+' : count}
           </Text>
         </View>

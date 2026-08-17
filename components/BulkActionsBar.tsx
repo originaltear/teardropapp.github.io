@@ -95,10 +95,10 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#ef4444', borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 9,
   },
-  deleteTxt: { color: '#ef4444', fontSize: 14, fontWeight: '700' },
+  deleteTxt: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
   visBtn: {
     backgroundColor: '#6fe0e6', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 10,
   },
-  visTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
+  visTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
 });

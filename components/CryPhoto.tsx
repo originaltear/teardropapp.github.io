@@ -65,5 +65,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.7)',
     alignItems: 'center', justifyContent: 'center',
   },
-  closeTxt: { color: '#e8eef7', fontSize: 18, fontWeight: '600' },
+  closeTxt: { color: '#e8eef7', fontSize: 17, fontWeight: '600' },
 });

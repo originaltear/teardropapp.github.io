@@ -128,13 +128,13 @@ const s = StyleSheet.create({
 
   hero: { alignItems: 'flex-start' },
   heroNumber: { color: INK, fontSize: 108, fontWeight: '800', letterSpacing: -5, lineHeight: 112 },
-  heroLabel: { color: MUTED, fontSize: 19, marginTop: -2 },
+  heroLabel: { color: MUTED, fontSize: 20, marginTop: -2 },
   emotionPill: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderWidth: 1, borderRadius: 999,
     paddingHorizontal: 16, paddingVertical: 9, marginTop: 22,
   },
-  emotionEmoji: { fontSize: 18 },
+  emotionEmoji: { fontSize: 17 },
   emotionText: { fontSize: 17, fontWeight: '700' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
@@ -142,12 +142,12 @@ const s = StyleSheet.create({
     width: '46%', paddingVertical: 12,
     borderTopWidth: 1, borderTopColor: '#1c2733',
   },
-  statValue: { color: INK, fontSize: 21, fontWeight: '700' },
-  statLabel: { color: MUTED, fontSize: 12, fontFamily: 'monospace', marginTop: 3, letterSpacing: 0.4 },
+  statValue: { color: INK, fontSize: 20, fontWeight: '700' },
+  statLabel: { color: MUTED, fontSize: 13, fontFamily: 'monospace', marginTop: 3, letterSpacing: 0.4 },
 
   footer: { gap: 4 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandDrop: { fontSize: 22 },
-  brandName: { color: INK, fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  brandDrop: { fontSize: 20 },
+  brandName: { color: INK, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   brandTag: { color: MUTED, fontSize: 13, fontFamily: 'monospace' },
 });

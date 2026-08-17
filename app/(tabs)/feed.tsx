@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 13,
   },
   filterBarOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomColor: 'transparent' },
-  filterBarTxt: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
+  filterBarTxt: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
   filterArrow: { color: '#4a5568', fontSize: 11 },
   dropdown: {
     backgroundColor: '#111827',
@@ -538,8 +538,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 13,
     borderTopWidth: 1, borderTopColor: '#1f2937',
   },
-  dropdownTxt: { color: '#94a3b8', fontSize: 14 },
-  dropdownCheck: { color: '#6fe0e6', fontSize: 14, fontWeight: '700' },
+  dropdownTxt: { color: '#94a3b8', fontSize: 15 },
+  dropdownCheck: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   tabChip: {
     flex: 1, paddingVertical: 9, borderRadius: 20,
     borderWidth: 1, borderColor: '#1f2937', alignItems: 'center',
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     marginTop: 8, backgroundColor: '#6fe0e6',
     paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20,
   },
-  emptyBtnTxt: { color: '#0d1117', fontSize: 14, fontWeight: '700' },
+  emptyBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
 
   item: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
@@ -574,14 +574,14 @@ const styles = StyleSheet.create({
   // The name block is flex:1, so without a gap it grows flush against the
   // timestamp and long handles end up touching the date.
   itemTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  itemUser: { color: '#e2e8f0', fontSize: 14, fontWeight: '600', flex: 1 },
+  itemUser: { color: '#e2e8f0', fontSize: 15, fontWeight: '600', flex: 1 },
   itemHandle: { color: '#4a5568', fontWeight: '400' },
   timeAgo: { color: '#374151', fontSize: 11, fontFamily: 'monospace', flexShrink: 0 },
   emotionChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  emotionChipEmoji: { fontSize: 12 },
-  emotionChipLabel: { fontSize: 12, fontWeight: '600' },
+  emotionChipEmoji: { fontSize: 13 },
+  emotionChipLabel: { fontSize: 13, fontWeight: '600' },
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
-  itemTags: { color: '#4a5568', fontSize: 12 },
+  itemTags: { color: '#4a5568', fontSize: 13 },
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
   itemChecked: { backgroundColor: '#6fe0e610' },
   checkCircle: {
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     alignItems: 'center', justifyContent: 'center',
   },
-  quickChipTxt: { fontSize: 18, color: '#4a5568' },
+  quickChipTxt: { fontSize: 17, color: '#4a5568' },
   itemMeta: { flexDirection: 'row', gap: 8, marginTop: 2 },
-  metaTag: { color: '#4a5568', fontSize: 12 },
+  metaTag: { color: '#4a5568', fontSize: 13 },
 });

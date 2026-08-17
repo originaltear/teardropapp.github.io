@@ -220,9 +220,9 @@ const s = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt: { color: '#6fe0e6', fontSize: 22 },
-  title: { color: '#e2e8f0', fontSize: 18, fontWeight: '700' },
-  subtitle: { color: '#4a5568', fontSize: 12, fontFamily: 'monospace' },
+  backTxt: { color: '#6fe0e6', fontSize: 20 },
+  title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
+  subtitle: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   progressWrap: {
@@ -231,7 +231,7 @@ const s = StyleSheet.create({
   },
   progressTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: '#1f2937', overflow: 'hidden' },
   progressFill: { height: 8, borderRadius: 4 },
-  progressPct: { fontSize: 12, fontWeight: '700', fontFamily: 'monospace', width: 40, textAlign: 'right' },
+  progressPct: { fontSize: 13, fontWeight: '700', fontFamily: 'monospace', width: 40, textAlign: 'right' },
 
   list: { paddingVertical: 8 },
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 76 },
@@ -258,11 +258,11 @@ const s = StyleSheet.create({
   },
   tearTagTxt: { color: '#f2cf6b', fontSize: 11, fontWeight: '600' },
 
-  rowDate: { color: '#6fe0e6', fontSize: 12, fontFamily: 'monospace' },
-  rowMsg: { color: '#4a5568', fontSize: 12, fontStyle: 'italic', lineHeight: 16 },
-  rowHow: { color: '#64748b', fontSize: 12, lineHeight: 16 },
+  rowDate: { color: '#6fe0e6', fontSize: 13, fontFamily: 'monospace' },
+  rowMsg: { color: '#4a5568', fontSize: 13, fontStyle: 'italic', lineHeight: 16 },
+  rowHow: { color: '#64748b', fontSize: 13, lineHeight: 16 },
   rankBadge: { color: '#f2cf6b', fontSize: 11, fontWeight: '600', marginTop: 2 },
-  check: { color: '#6fe0e6', fontSize: 18, fontWeight: '700' },
+  check: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
 
   // Detail popup
   popupBackdrop: {
@@ -283,7 +283,7 @@ const s = StyleSheet.create({
   popupEmoji: { fontSize: 40 },
   popupTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '800', textAlign: 'center' },
   popupLabel: {
-    color: '#4a5568', fontSize: 10, fontFamily: 'monospace',
+    color: '#4a5568', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 1.5, marginTop: 12,
   },
   popupHow: { color: '#cbd5e1', fontSize: 15, lineHeight: 21, textAlign: 'center' },

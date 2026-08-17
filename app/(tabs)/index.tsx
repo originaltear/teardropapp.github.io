@@ -75,6 +75,13 @@ const DARK_MAP_STYLE = [
   { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#152030' }] },
   { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1a2535' }] },
   { featureType: 'poi.park', elementType: 'geometry.fill', stylers: [{ color: '#0e2019' }] },
+  // Google's own place markers are hidden. This app is about pins on a map, so
+  // a shop and a nature centre carrying their own pins meant half the markers
+  // on screen belonged to someone else and competed with the cries for
+  // attention. The park and building shapes stay — they give the map its
+  // texture without claiming a point.
+  { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#253247' }] },
   { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a2030' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2c3e5e' }] },

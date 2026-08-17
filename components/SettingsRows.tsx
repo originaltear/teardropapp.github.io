@@ -106,6 +106,10 @@ const s = StyleSheet.create({
   // Room for a line of explanation under a toggle. Several of these settings
   // are about who can see what, and a bare label leaves people guessing.
   rowHint: { color: '#4a5568', fontSize: 13, lineHeight: 17, marginTop: 3 },
-  rowValue: { color: '#4a5568', fontSize: 15, maxWidth: '55%', textAlign: 'right' },
+  // One step below the label on purpose. The scale pass briefly made these the
+  // same size, and the value started competing with the thing it belongs to —
+  // "Who can see what" read as loudly as "Visibility". A value is an answer,
+  // not a heading.
+  rowValue: { color: '#4a5568', fontSize: 13, maxWidth: '55%', textAlign: 'right' },
   rowChevron: { color: '#4a5568', fontSize: 20 },
 });

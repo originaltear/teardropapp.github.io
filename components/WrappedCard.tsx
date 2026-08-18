@@ -177,7 +177,23 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: BG },
   blob: { position: 'absolute', top: 0, left: 0 },
 
-  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 30, paddingBottom: 92, gap: 20 },
+  /**
+   * Padding is deliberately symmetric.
+   *
+   * It used to be 92 at the bottom and nothing at the top, so centring happened
+   * inside a box that was short at one end and the whole card sat 46 above the
+   * middle of the screen — enough to read as a page with its feet cut off. The
+   * progress bar and the close button are absolutely positioned and take no
+   * layout space, so nothing was compensating for them either.
+   *
+   * Even top and bottom puts the block on the true centre line and leaves both
+   * ends real room. The tallest card in the deck is the quoted note at roughly
+   * 600, which still fits the 660 this leaves on a phone of this height.
+   */
+  content: {
+    flex: 1, justifyContent: 'center', paddingHorizontal: 30,
+    paddingTop: 60, paddingBottom: 60, gap: 20,
+  },
   contentCentered: { alignItems: 'center', paddingHorizontal: 36 },
 
   eyebrow: {

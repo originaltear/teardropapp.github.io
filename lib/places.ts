@@ -30,6 +30,8 @@ export interface Place {
   avgIntensity: number;
   /** Resolved lazily; undefined until named. */
   name?: string;
+  /** Kept so two clusters sharing a name can be merged without guessing. */
+  tally: Record<string, number>;
 }
 
 export interface PlaceInsight {
@@ -101,6 +103,10 @@ export function computePlaces(cries: Cry[]): PlaceInsight {
       count: b.items.length,
       dominant: mode(b.items.map(i => i.emotion)) ?? 'mixed',
       avgIntensity: mean(b.items.map(i => i.intensity)) ?? 0,
+      tally: b.items.reduce<Record<string, number>>((t, i) => {
+        t[i.emotion] = (t[i.emotion] ?? 0) + 1;
+        return t;
+      }, {}),
     }))
     .sort((a, b) => b.count - a.count);
 
@@ -164,5 +170,48 @@ export async function namePlaces(places: Place[], limit = 5): Promise<Place[]> {
   if (dirty) {
     try { await AsyncStorage.setItem(NAME_CACHE_KEY, JSON.stringify(cache)); } catch { /* best effort */ }
   }
-  return out;
+  return mergeByName(out);
+}
+
+/**
+ * Folds together places that resolved to the same name.
+ *
+ * The clustering splits on 500 metres, but a name covers a whole district, so
+ * two spots a kilometre apart are two clusters with one name. Left alone the
+ * list reads "Albertslund 2" directly above "Albertslund 1", which does not look
+ * like precision, it looks like the app cannot count.
+ *
+ * Merging uses the kept tallies rather than the per-cluster winners, so the
+ * dominant emotion of the merged place is the true one and not whichever
+ * cluster happened to be larger.
+ */
+function mergeByName(places: Place[]): Place[] {
+  const byName = new Map<string, Place>();
+  const out: Place[] = [];
+
+  for (const p of places) {
+    if (!p.name) { out.push(p); continue; }
+
+    const hit = byName.get(p.name);
+    if (!hit) {
+      const copy = { ...p, tally: { ...p.tally } };
+      byName.set(p.name, copy);
+      out.push(copy);
+      continue;
+    }
+
+    const total = hit.count + p.count;
+    // Weighted so the bigger cluster pulls the centre and the average, which is
+    // what someone would mean by "where this happened".
+    hit.latitude = (hit.latitude * hit.count + p.latitude * p.count) / total;
+    hit.longitude = (hit.longitude * hit.count + p.longitude * p.count) / total;
+    hit.avgIntensity = (hit.avgIntensity * hit.count + p.avgIntensity * p.count) / total;
+    for (const [emotion, n] of Object.entries(p.tally)) {
+      hit.tally[emotion] = (hit.tally[emotion] ?? 0) + n;
+    }
+    hit.count = total;
+    hit.dominant = Object.entries(hit.tally).sort((a, b) => b[1] - a[1])[0]?.[0] ?? hit.dominant;
+  }
+
+  return out.sort((a, b) => b.count - a.count);
 }

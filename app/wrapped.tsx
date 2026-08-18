@@ -18,6 +18,7 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
 import { loadCries, type Cry } from '../lib/storage';
+import { computePlaces, namePlaces, type Place } from '../lib/places';
 import { useAuth } from '../lib/auth';
 import {
   computeWrapped, getWrappedExtras, getWrappedRank, currentWrappedYear,
@@ -55,6 +56,13 @@ const CARD_DURATION_MS = 7500;
  * have been handed.
  */
 const WORDS_CARD_MIN = 100;
+
+/**
+ * A note has to be long enough to be worth reading back. Below this it is a
+ * fragment — "sad", "idk" — and quoting it in a full-screen card gives it a
+ * weight it was never meant to carry.
+ */
+const NOTE_CARD_MIN_CHARS = 60;
 
 // ─── Small building blocks ────────────────────────────────────────────────────
 
@@ -205,6 +213,7 @@ export default function WrappedScreen() {
   const [index, setIndex] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [namedPlaces, setNamedPlaces] = useState<Place[] | null>(null);
 
   /**
    * True while a scroll we started ourselves is still settling.
@@ -249,7 +258,55 @@ export default function WrappedScreen() {
   }, [year, session?.user.id]));
 
   const data: WrappedData = useMemo(() => computeWrapped(cries, year), [cries, year]);
-  const seed = { userId: session?.user.id ?? 'guest', year };
+
+  /**
+   * This year's cries, and the two things derived from them that must never
+   * reach WrappedData.
+   *
+   * The recap's data type is aggregate-only on purpose — counts, labels and
+   * percentages — because the share card is built from it and a shared image
+   * must not be able to carry someone's note or their coordinates. Both live
+   * here in the screen instead, where they can be shown but never captured.
+   */
+  const yearCries = useMemo(
+    () => cries.filter(c => new Date(c.createdAt).getFullYear() === year),
+    [cries, year],
+  );
+
+  const rawPlaces = useMemo(() => computePlaces(yearCries), [yearCries]);
+
+  /**
+   * The longest note of the year, chosen by length rather than by intensity.
+   *
+   * Length says someone had a lot to say that day. Intensity would mean the app
+   * picks out a person's worst day and hands it back to them without warning,
+   * which is not a gift.
+   */
+  const longestNote = useMemo(() => {
+    let best: { text: string; at: string } | null = null;
+    for (const c of yearCries) {
+      const text = c.note?.trim();
+      if (!text) continue;
+      if (!best || text.length > best.text.length) best = { text, at: c.createdAt };
+    }
+    return best;
+  }, [yearCries]);
+
+  // Names arrive after the numbers: the clustering is instant, the geocoder is
+  // not. Failure is silent — an unnamed place simply means no card.
+  useEffect(() => {
+    if (rawPlaces.places.length === 0) { setNamedPlaces(null); return; }
+    let alive = true;
+    namePlaces(rawPlaces.places, 3).then(p => { if (alive) setNamedPlaces(p); }).catch(() => {});
+    return () => { alive = false; };
+  }, [rawPlaces]);
+  // Rebuilt every render before this, which quietly defeated the cards memo
+  // below: a fresh object literal is never equal to the previous one, so the
+  // whole deck was reconstructed on every state change.
+  const seed = useMemo(
+    () => ({ userId: session?.user.id ?? 'guest', year }),
+    [session?.user.id, year],
+  );
   const accent = data.topEmotion?.color ?? DEFAULT_ACCENT;
 
   // ── Share ──
@@ -404,7 +461,10 @@ export default function WrappedScreen() {
       });
     }
 
-    if (data.countries.length > 0) {
+    // One country is not a travel story, it is where you live, and "1 country"
+    // is a card that tells the reader nothing they did not already know. The
+    // places card below carries this ground far better.
+    if (data.countries.length > 1) {
       list.push({
         key: 'geo',
         render: active => (
@@ -426,6 +486,55 @@ export default function WrappedScreen() {
       });
     }
 
+
+    /**
+     * Where it actually happened.
+     *
+     * The one thing no other journal can say. Every cry has carried
+     * coordinates since the first version, and until now the recap only ever
+     * turned them into a country — which for most people is a single row
+     * saying where they live. A named place is a memory instead: a street, a
+     * park, the flat. Named lazily and cached, so this costs one geocoder call
+     * per place, ever.
+     */
+    // Gated on the clustering, which is synchronous, rather than on the names,
+    // which arrive from the geocoder a moment later. Gating on the names meant
+    // a twelfth card appeared in the middle of the deck after the reader had
+    // already started, shifting every card behind it by one and leaving a hole
+    // in the progress bar. The card's existence is decided up front; only its
+    // wording arrives late.
+    if (rawPlaces.places.length > 0 && rawPlaces.places[0].count > 1) {
+      const top = namedPlaces?.[0] ?? rawPlaces.places[0];
+      const rest = (namedPlaces ?? []).slice(1).filter(p => p.name);
+      list.push({
+        key: 'places',
+        render: active => (
+          <WrappedCard
+            active={active} accent={accent} eyebrow="Your places"
+            caption={
+              rest.length > 0
+                ? 'The map remembers where you were.'
+                : 'One place held most of it.'
+            }
+            variant="center"
+          >
+            <BigNumber value={top.count} color={accent} active={active} />
+            <Text style={s.heroUnit}>
+              {top.name
+                ? `${top.count === 1 ? 'time in' : 'times in'} ${top.name}`
+                : 'times in one place'}
+            </Text>
+            {rest.length > 0 && (
+              <View style={s.countryList}>
+                {rest.map(p => (
+                  <Text key={p.name} style={s.countryItem}>{p.name} · {p.count}</Text>
+                ))}
+              </View>
+            )}
+          </WrappedCard>
+        ),
+      });
+    }
 
     // Percentile card — only once enough people share the scope for the number
     // to be meaningful (the RPC returns null below its thresholds).
@@ -476,6 +585,48 @@ export default function WrappedScreen() {
           </WrappedCard>
         ),
       });
+
+      /**
+       * And then one of them, read back.
+       *
+       * A recap that counts your words and shows you none of them has missed
+       * the point: the number is trivia, the sentence is the year. This is the
+       * user's own writing on their own screen, so nothing is inferred and
+       * nothing is judged.
+       *
+       * Chosen by length, never by intensity. Length means someone had a lot to
+       * say that day. Picking the most intense entry would mean the app singles
+       * out a person's worst day and hands it back without warning.
+       */
+      if (longestNote && longestNote.text.length >= NOTE_CARD_MIN_CHARS) {
+        const when = new Date(longestNote.at).toLocaleDateString('en-GB', {
+          day: 'numeric', month: 'long',
+        });
+
+        // The longest note in the database this year runs to 499 characters.
+        // At a fixed size that gets cut off mid-sentence, and being shown your
+        // own words and then trimmed is worse than not being shown them. Short
+        // entries get the room to land; long ones shrink to stay whole.
+        const noteSize = longestNote.text.length > 280 ? 17
+          : longestNote.text.length > 120 ? 21
+          : 26;
+        list.push({
+          key: 'note',
+          render: active => (
+            <WrappedCard
+              active={active} accent={accent} eyebrow="The day you had most to say"
+              caption={`You wrote this on ${when}.`}
+            >
+              <Text
+                style={[s.noteQuote, { fontSize: noteSize, lineHeight: Math.round(noteSize * 1.45) }]}
+                numberOfLines={12}
+              >
+                {longestNote.text}
+              </Text>
+            </WrappedCard>
+          ),
+        });
+      }
     }
 
     if (extras.seenBy + extras.hugsReceived + extras.likesReceived + extras.achievementsUnlocked > 0) {
@@ -559,7 +710,10 @@ export default function WrappedScreen() {
     });
 
     return list;
-  }, [data, extras, rank, accent, sharing, year, seed]);
+    // namedPlaces, rawPlaces and longestNote were missing here. The deck read
+    // them but did not depend on them, and only kept working because the seed
+    // above happened to bust the memo on every render.
+  }, [data, extras, rank, accent, sharing, year, seed, namedPlaces, rawPlaces, longestNote]);
 
   // ── Story playback ──
   const lastIndex = cards.length - 1;
@@ -589,7 +743,13 @@ export default function WrappedScreen() {
   // letting go resumes rather than restarting. The last card never auto-advances
   // — it holds on the share button.
   useEffect(() => {
-    if (loading || !data.hasEnough || index >= lastIndex) return;
+    if (loading || !data.hasEnough) return;
+
+    // The last card holds on the share button rather than advancing, but its
+    // segment still has to look finished. Without this it renders at the 0 the
+    // reset effect just wrote, so arriving at the end of your year is greeted
+    // by an empty final segment.
+    if (index >= lastIndex) { progress.setValue(1); return; }
 
     if (paused) {
       progress.stopAnimation(v => { pausedAt.current = v; });
@@ -698,16 +858,34 @@ export default function WrappedScreen() {
         <View style={s.progressRow}>
           {cards.map((c, i) => (
             <View key={c.key} style={s.segment}>
-              <Animated.View
-                style={[
-                  s.segmentFill,
-                  {
-                    backgroundColor: accent,
-                    transformOrigin: 'left',
-                    transform: [{ scaleX: i === index ? progress : i < index ? 1 : 0 }],
-                  },
-                ]}
-              />
+              {/*
+                Past segments are a plain View, the current one an Animated.View,
+                and they are deliberately different element types.
+
+                Before this they were one Animated.View whose scaleX swapped
+                between the shared progress value and a literal 1. Animated does
+                not reliably release a value from a view when the prop stops
+                being animated, so a segment could keep the last transform it was
+                given — which, right after the reset, is 0. The result was a
+                filled bar with one dead segment sitting in the middle of it.
+
+                Different element types force React to unmount one and mount the
+                other, so nothing stale can survive the handover.
+              */}
+              {i < index ? (
+                <View style={[s.segmentFill, { backgroundColor: accent }]} />
+              ) : i === index ? (
+                <Animated.View
+                  style={[
+                    s.segmentFill,
+                    {
+                      backgroundColor: accent,
+                      transformOrigin: 'left',
+                      transform: [{ scaleX: progress }],
+                    },
+                  ]}
+                />
+              ) : null}
             </View>
           ))}
         </View>
@@ -737,6 +915,7 @@ const s = StyleSheet.create({
 
   bigNumber: { color: INK, fontSize: 92, fontWeight: '800', letterSpacing: -4, lineHeight: 96 },
   heroUnit: { color: MUTED, fontSize: 17 },
+  noteQuote: { color: INK, fontSize: 22, lineHeight: 32, fontWeight: '500' },
 
   emotionBig: { fontSize: 62 },
   emotionName: { fontSize: 40, fontWeight: '800', letterSpacing: -1 },

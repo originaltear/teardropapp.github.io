@@ -37,8 +37,16 @@ const INK = '#e8eef7';
 const MUTED = '#8fa3b0';
 const DEFAULT_ACCENT = '#6fe0e6';
 
-/** How long each card holds before advancing itself. */
-const CARD_DURATION_MS = 5200;
+/**
+ * How long each card holds before advancing itself.
+ *
+ * The asymmetry favours going slower: skipping ahead costs one tap, but being
+ * hurried past your own year cannot be undone as easily. Seven and a half
+ * leaves about six seconds to read once the count-up has settled, which covers
+ * a headline and a two-line caption without turning eleven cards into two
+ * minutes of sitting still.
+ */
+const CARD_DURATION_MS = 7500;
 
 /**
  * Below this the writing card is skipped. Set against real numbers rather than
@@ -197,6 +205,18 @@ export default function WrappedScreen() {
   const [index, setIndex] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [paused, setPaused] = useState(false);
+
+  /**
+   * True while a scroll we started ourselves is still settling.
+   *
+   * Two things set the index: a tap through goTo, and onMomentumScrollEnd
+   * reading where the list landed. Tapping faster than the scroll settles
+   * interrupts the animation, and the momentum handler then fires on an
+   * intermediate offset, rounds it to the wrong card and drags the index back
+   * there — which also restarts the timer and fires a second haptic. Taps win;
+   * the handler only speaks for gestures it did not cause.
+   */
+  const selfScrolling = useRef(false);
 
   const shareRef = useRef<View>(null);
   const listRef = useRef<FlatList<any>>(null);
@@ -373,7 +393,7 @@ export default function WrappedScreen() {
                     index={i}
                     active={active}
                     height={Math.max((m.value / max) * 110, 3)}
-                    color={m.label === data.busiestMonth!.label ? accent : '#1c2733'}
+                    color={m.label === data.busiestMonth!.label ? accent : accent + '3d'}
                   />
                   <Text style={s.monthLabel}>{m.short[0]}</Text>
                 </View>
@@ -527,6 +547,7 @@ export default function WrappedScreen() {
 
   const goTo = useCallback((next: number) => {
     if (next < 0 || next > lastIndex) return;
+    selfScrolling.current = true;
     listRef.current?.scrollToIndex({ index: next, animated: true });
     setIndex(next);
     selection();
@@ -536,6 +557,13 @@ export default function WrappedScreen() {
   useEffect(() => {
     progress.setValue(0);
     pausedAt.current = 0;
+
+    // Safety net for the flag above: a programmatic scroll does not always
+    // report a momentum end — the list can already be at rest when we ask it to
+    // move. Left set, the flag would silently swallow the user's next real
+    // swipe, which is a worse bug than the one it exists to prevent.
+    const clear = setTimeout(() => { selfScrolling.current = false; }, 600);
+    return () => clearTimeout(clear);
   }, [index, progress]);
 
   // Fill the segment, then advance. Holding pauses and keeps the position, so
@@ -597,6 +625,7 @@ export default function WrappedScreen() {
         showsHorizontalScrollIndicator={false}
         getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         onMomentumScrollEnd={e => {
+          if (selfScrolling.current) { selfScrolling.current = false; return; }
           const i = Math.round(e.nativeEvent.contentOffset.x / width);
           if (i !== index) { setIndex(i); selection(); }
         }}
@@ -607,7 +636,7 @@ export default function WrappedScreen() {
                 the horizontal scroll can still steal the gesture on a drag —
                 an overlay outside the list would kill swiping. Skipped on the
                 last card so the share button stays tappable. */}
-            {i !== lastIndex && (
+            {i !== lastIndex ? (
               <View style={s.tapRow}>
                 <Pressable
                   style={s.tapZoneBack}
@@ -628,6 +657,18 @@ export default function WrappedScreen() {
                   accessibilityLabel="Next"
                 />
               </View>
+            ) : (
+              // The last card used to have no tap zones at all, to keep the
+              // share button clear. That made a card you were still reading
+              // unrecoverable: the only way back was to close the whole recap
+              // and watch it again. A narrow strip hard against the left edge
+              // gives the way back without going anywhere near the button.
+              <Pressable
+                style={s.tapZoneBackLast}
+                onPress={() => goTo(i - 1)}
+                accessibilityRole="button"
+                accessibilityLabel="Previous"
+              />
             )}
           </View>
         )}
@@ -706,7 +747,11 @@ const s = StyleSheet.create({
   receivedLabel: { color: MUTED, fontSize: 13 },
 
   shareBtn: {
-    marginTop: 26, borderRadius: 999, paddingVertical: 16,
+    // Horizontal padding was missing entirely, so the pill ended exactly where
+    // the letters did while carrying 16 above and below. On a rounded button
+    // the corners eat into the sides, so the horizontal figure has to be the
+    // larger of the two to read as evenly spaced.
+    marginTop: 26, borderRadius: 999, paddingVertical: 16, paddingHorizontal: 34,
     alignItems: 'center', justifyContent: 'center',
   },
   shareBtnTxt: { color: '#0d1117', fontSize: 17, fontWeight: '700' },
@@ -719,6 +764,7 @@ const s = StyleSheet.create({
   tapRow: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row' },
   tapZoneBack: { flex: 1 },
   tapZoneNext: { flex: 2 },
+  tapZoneBackLast: { position: 'absolute', top: 0, left: 0, bottom: 0, width: '22%' },
   closeBtn: { alignSelf: 'flex-end', padding: 14 },
   closeTxt: { color: MUTED, fontSize: 20 },
 

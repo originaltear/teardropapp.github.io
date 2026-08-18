@@ -220,7 +220,18 @@ export default function CalendarScreen() {
                 const emotion = emotionById(cry.emotion);
                 const color = emotion?.color ?? '#6fe0e6';
                 return (
-                  <View key={cry.id} style={s.cryItem}>
+                  // The calendar used to show a cry and offer no way into it:
+                  // the note was clipped at two lines and that was as far as you
+                  // could get. Finding the day is most of the work, so the row
+                  // has to finish the journey.
+                  <TouchableOpacity
+                    key={cry.id}
+                    style={s.cryItem}
+                    onPress={() => router.push(`/cry-detail?id=${cry.id}`)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open ${emotion?.label ?? cry.emotion} cry`}
+                  >
                     <View style={[s.cryDot, { backgroundColor: color + '33' }]}>
                       <Text style={{ fontSize: 17 }}>{emotion?.emoji ?? '💧'}</Text>
                     </View>
@@ -232,7 +243,8 @@ export default function CalendarScreen() {
                       </Text>
                       {cry.note ? <Text style={s.cryNote} numberOfLines={2}>{cry.note}</Text> : null}
                     </View>
-                  </View>
+                    <Text style={s.cryArrow}>›</Text>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -280,7 +292,10 @@ const s = StyleSheet.create({
   },
   dayDetailTitle: { color: '#e2e8f0', fontSize: 15, fontWeight: '700' },
   noData: { color: '#374151', fontSize: 13, fontStyle: 'italic' },
-  cryItem: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  // paddingVertical gives the row a real touch target; it had none when it was
+  // only something to look at.
+  cryItem: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 6 },
+  cryArrow: { color: '#374151', fontSize: 20, alignSelf: 'center' },
   cryDot: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cryEmotion: { fontSize: 15, fontWeight: '600' },
   cryTime: { color: '#4a5568', fontSize: 13 },

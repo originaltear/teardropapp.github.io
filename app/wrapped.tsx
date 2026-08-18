@@ -500,10 +500,29 @@ export default function WrappedScreen() {
                 </Text>
               </>
             )}
+            {/*
+              Zeros are dropped rather than shown. The card is titled "you were
+              not alone", and a row reading 0 hugs · 0 drops under that heading
+              argues the opposite of the thing the card exists to say. Whatever
+              did happen carries it alone.
+            */}
             <View style={s.receivedRow}>
-              <ReceivedStat value={extras.hugsReceived} label="🫂 hugs" color={accent} active={active} delay={380} />
-              <ReceivedStat value={extras.likesReceived} label="💧 drops" color={accent} active={active} delay={500} />
-              <ReceivedStat value={extras.achievementsUnlocked} label="🏆 unlocked" color={accent} active={active} delay={620} />
+              {[
+                { value: extras.hugsReceived, label: '🫂 hugs' },
+                { value: extras.likesReceived, label: '💧 drops' },
+                { value: extras.achievementsUnlocked, label: '🏆 unlocked' },
+              ]
+                .filter(stat => stat.value > 0)
+                .map((stat, i) => (
+                  <ReceivedStat
+                    key={stat.label}
+                    value={stat.value}
+                    label={stat.label}
+                    color={accent}
+                    active={active}
+                    delay={380 + i * 120}
+                  />
+                ))}
             </View>
           </WrappedCard>
         ),

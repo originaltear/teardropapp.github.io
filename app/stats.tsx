@@ -470,7 +470,7 @@ export default function StatsScreen() {
                 value={emotionCounts[e.id] ?? 0}
                 max={n}
                 color={e.color}
-                labelWidth={100}
+                labelWidth={124}
               />
             ))}
           </View>

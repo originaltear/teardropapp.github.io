@@ -585,48 +585,48 @@ export default function WrappedScreen() {
           </WrappedCard>
         ),
       });
+    }
 
-      /**
-       * And then one of them, read back.
-       *
-       * A recap that counts your words and shows you none of them has missed
-       * the point: the number is trivia, the sentence is the year. This is the
-       * user's own writing on their own screen, so nothing is inferred and
-       * nothing is judged.
-       *
-       * Chosen by length, never by intensity. Length means someone had a lot to
-       * say that day. Picking the most intense entry would mean the app singles
-       * out a person's worst day and hands it back without warning.
-       */
-      if (longestNote && longestNote.text.length >= NOTE_CARD_MIN_CHARS) {
-        const when = new Date(longestNote.at).toLocaleDateString('en-GB', {
-          day: 'numeric', month: 'long',
-        });
+    /**
+     * And then one of them, read back.
+     *
+     * A recap that counts your words and shows you none of them has missed
+     * the point: the number is trivia, the sentence is the year. This is the
+     * user's own writing on their own screen, so nothing is inferred and
+     * nothing is judged.
+     *
+     * Chosen by length, never by intensity. Length means someone had a lot to
+     * say that day. Picking the most intense entry would mean the app singles
+     * out a person's worst day and hands it back without warning.
+     */
+    if (longestNote && longestNote.text.length >= NOTE_CARD_MIN_CHARS) {
+      const when = new Date(longestNote.at).toLocaleDateString('en-GB', {
+        day: 'numeric', month: 'long',
+      });
 
-        // The longest note in the database this year runs to 499 characters.
-        // At a fixed size that gets cut off mid-sentence, and being shown your
-        // own words and then trimmed is worse than not being shown them. Short
-        // entries get the room to land; long ones shrink to stay whole.
-        const noteSize = longestNote.text.length > 280 ? 17
-          : longestNote.text.length > 120 ? 21
-          : 26;
-        list.push({
-          key: 'note',
-          render: active => (
-            <WrappedCard
-              active={active} accent={accent} eyebrow="The day you had most to say"
-              caption={`You wrote this on ${when}.`}
+      // The longest note in the database this year runs to 499 characters.
+      // At a fixed size that gets cut off mid-sentence, and being shown your
+      // own words and then trimmed is worse than not being shown them. Short
+      // entries get the room to land; long ones shrink to stay whole.
+      const noteSize = longestNote.text.length > 280 ? 17
+        : longestNote.text.length > 120 ? 21
+        : 26;
+      list.push({
+        key: 'note',
+        render: active => (
+          <WrappedCard
+            active={active} accent={accent} eyebrow="The day you had most to say"
+            caption={`You wrote this on ${when}.`}
+          >
+            <Text
+              style={[s.noteQuote, { fontSize: noteSize, lineHeight: Math.round(noteSize * 1.45) }]}
+              numberOfLines={12}
             >
-              <Text
-                style={[s.noteQuote, { fontSize: noteSize, lineHeight: Math.round(noteSize * 1.45) }]}
-                numberOfLines={12}
-              >
-                {longestNote.text}
-              </Text>
-            </WrappedCard>
-          ),
-        });
-      }
+              {longestNote.text}
+            </Text>
+          </WrappedCard>
+        ),
+      });
     }
 
     if (extras.seenBy + extras.hugsReceived + extras.likesReceived + extras.achievementsUnlocked > 0) {

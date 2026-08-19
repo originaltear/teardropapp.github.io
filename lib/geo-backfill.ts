@@ -1,25 +1,27 @@
 /**
- * Fills in the country on cries that never got one.
+ * Fills in the country and the country code on cries that are missing either.
  *
- * `reverseCountry` gives up after three seconds and returns undefined, and that
- * undefined is saved as the country with no retry and nothing to notice it. A
- * slow geocoder in the one second someone happened to log a cry costs that cry
- * its country permanently. On the test account it had cost seven of eleven, so
- * the recap counted four cries in two countries while the places card, which
- * reads coordinates, correctly counted ten. Two cards, same year, different
- * answers.
+ * Two separate faults land here.
  *
- * The fix is the field, not the reader. Anything that derives its own country
- * from coordinates would be a second source of truth, which is how the
- * contradiction happened in the first place.
+ * The first: `reverseCountry` gives up after three seconds and returns nothing,
+ * and that nothing was saved as the country with no retry and no sign anything
+ * had gone wrong. A slow geocoder in the one second someone happened to log a
+ * cry cost that cry its country permanently. On the test account it had cost
+ * seven of eleven, so the recap counted four cries across two countries while
+ * the places card, which reads coordinates, correctly counted ten.
+ *
+ * The second: the country was stored as a name, and the device geocoder answers
+ * in the phone's language, so the same nation arrived as "Danmark" and
+ * "Denmark", as "USA" and "United States". `country_code` is the fix, and the
+ * rows that predate it need filling in.
  *
  * Runs on the device using the geocoder the app already uses at log time, so no
  * coordinate is handed to a service that was not already seeing it.
  */
 import * as Location from 'expo-location';
 import { supabase } from './supabase';
-import { reverseCountry } from './geo';
-import { loadCries, type Cry } from './storage';
+import { reverseCountry, type ReverseCountry } from './geo';
+import { loadCries } from './storage';
 
 /**
  * Ceiling per run. A user with a long history should not spend their launch
@@ -39,7 +41,7 @@ let ranThisSession = false;
  * Best-effort and silent: a failure here must never reach the user, who did not
  * ask for this and cannot act on it.
  *
- * @returns how many cries were given a country.
+ * @returns how many cries were repaired.
  */
 export async function backfillCountries(): Promise<number> {
   if (ranThisSession) return 0;
@@ -55,40 +57,46 @@ export async function backfillCountries(): Promise<number> {
     if (typeof Location.reverseGeocodeAsync !== 'function') return 0;
 
     const cries = await loadCries();
-    const missing = cries.filter(
-      c => c.latitude != null && c.longitude != null && !c.country?.trim(),
+    const incomplete = cries.filter(
+      c => c.latitude != null && c.longitude != null
+        && (!c.country?.trim() || !c.countryCode?.trim()),
     ).slice(0, MAX_PER_RUN);
-    if (missing.length === 0) return 0;
+    if (incomplete.length === 0) return 0;
 
-    const cache = new Map<string, string | undefined>();
-    const resolved: { id: string; country: string }[] = [];
+    const cache = new Map<string, ReverseCountry>();
+    const resolved: { id: string; place: ReverseCountry }[] = [];
 
-    for (const c of missing) {
+    for (const c of incomplete) {
       const k = key(c.latitude, c.longitude);
       if (!cache.has(k)) {
         cache.set(k, await reverseCountry(c.latitude, c.longitude));
         await new Promise(r => setTimeout(r, GAP_MS));
       }
-      const country = cache.get(k);
-      if (country) resolved.push({ id: c.id, country });
+      const place = cache.get(k)!;
+      if (place.code || place.name) resolved.push({ id: c.id, place });
     }
 
     if (resolved.length === 0) return 0;
 
-    // One statement per country rather than per cry: a year of cries in one
-    // place is one update, not fifty.
-    const byCountry = new Map<string, string[]>();
+    // One statement per distinct country rather than per cry: a year of crying
+    // in one place is one update, not fifty.
+    const groups = new Map<string, { place: ReverseCountry; ids: string[] }>();
     for (const r of resolved) {
-      const ids = byCountry.get(r.country) ?? [];
-      ids.push(r.id);
-      byCountry.set(r.country, ids);
+      const gk = `${r.place.code ?? ''}|${r.place.name ?? ''}`;
+      const g = groups.get(gk) ?? { place: r.place, ids: [] };
+      g.ids.push(r.id);
+      groups.set(gk, g);
     }
 
     let written = 0;
-    for (const [country, ids] of byCountry) {
+    for (const { place, ids } of groups.values()) {
+      const patch: Record<string, string> = {};
+      if (place.name) patch.country = place.name;
+      if (place.code) patch.country_code = place.code;
+
       const { error } = await supabase
         .from('cries')
-        .update({ country })
+        .update(patch)
         .in('id', ids)
         .eq('user_id', session.user.id);   // belt and braces; RLS enforces it too
       if (error) { console.warn('[backfillCountries]', error.message); continue; }

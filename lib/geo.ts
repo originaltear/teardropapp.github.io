@@ -3,60 +3,63 @@
  */
 import * as Location from 'expo-location';
 
-/**
- * Turns an ISO country code into an English country name.
- *
- * The device geocoder answers in the phone's language, so the same country
- * arrived in the database under whatever the user happened to have set. A count
- * across every cry showed Denmark stored as both "Danmark" (41) and "Denmark"
- * (6), the United States as both "USA" and "United States", Germany as
- * "Tyskland" and China as "中国" — one country counted twice on the recap, and
- * the flag lookup, which matches English names, falling through to a grey globe
- * for most of the data.
- *
- * The ISO code does not move with the phone's language, so it is the thing to
- * trust.
- *
- * MEASURED 2026-08-19 on a Galaxy S23 running this build: Intl.DisplayNames is
- * undefined. Hermes does not ship it here, so today this function always takes
- * the fallback and new cries still store the localised name. It is left in
- * because it costs nothing and starts working the day the engine gains it, but
- * do not mistake it for a fix — the drift is only really solved by storing the
- * ISO code itself and grouping on that.
- */
-function englishCountry(iso?: string | null, fallback?: string | null): string | undefined {
-  if (iso) {
-    try {
-      const DisplayNames = (Intl as unknown as {
-        DisplayNames?: new (l: string[], o: { type: string }) => { of(c: string): string | undefined };
-      }).DisplayNames;
-      if (DisplayNames) {
-        const name = new DisplayNames(['en'], { type: 'region' }).of(iso);
-        // `of` hands back the input unchanged when it does not recognise it.
-        if (name && name !== iso) return name;
-      }
-    } catch { /* fall through to the localised name */ }
-  }
-  return fallback ?? undefined;
+export interface ReverseCountry {
+  /**
+   * The country as the device geocoder gave it, which is in the phone's own
+   * language: a Danish phone says "Danmark", an English one "Denmark", a
+   * Chinese one "中国". Kept as the label, because reading your own country in
+   * your own language is nicer than being shown someone else's word for it.
+   */
+  name?: string;
+  /**
+   * ISO 3166-1 alpha-2. The same two letters whatever the phone's language, so
+   * this is what anything counting by country groups on.
+   *
+   * Before this existed, `country` was doing both jobs and failing the second:
+   * across every cry, Denmark was stored as "Danmark" (41 rows) and "Denmark"
+   * (6), the United States as "USA" and "United States". The recap counted one
+   * nation twice and the flag lookup, which matches English names, fell through
+   * to a grey globe for most of the data.
+   */
+  code?: string;
 }
 
 /**
- * Reverse-geocodes coordinates to a country name. Best-effort and bounded —
- * a hanging geocoder must never leave a save button spinning.
+ * Reverse-geocodes coordinates to a country. Best-effort and bounded — a
+ * hanging geocoder must never leave a save button spinning.
  */
 export async function reverseCountry(
   latitude: number,
   longitude: number,
   timeoutMs = 3000,
-): Promise<string | undefined> {
+): Promise<ReverseCountry> {
   try {
     const geo = await Promise.race([
       Location.reverseGeocodeAsync({ latitude, longitude }),
       new Promise<null>(res => setTimeout(() => res(null), timeoutMs)),
     ]);
     const hit = geo?.[0];
-    return englishCountry(hit?.isoCountryCode, hit?.country);
+    return {
+      name: hit?.country ?? undefined,
+      code: hit?.isoCountryCode?.toUpperCase() ?? undefined,
+    };
   } catch {
-    return undefined; // geocoding failure is never fatal
+    return {}; // geocoding failure is never fatal
   }
+}
+
+/**
+ * The flag for an ISO country code, built from the two regional indicator
+ * letters rather than looked up.
+ *
+ * This replaces a hand-written table of 68 countries that silently returned a
+ * grey globe for everything outside it. Arithmetic covers all of them and can
+ * never fall behind.
+ */
+export function countryFlag(code?: string | null): string {
+  const c = code?.trim().toUpperCase();
+  if (!c || c.length !== 2 || !/^[A-Z]{2}$/.test(c)) return '🌍';
+  return String.fromCodePoint(
+    ...[...c].map(ch => 0x1f1e6 + ch.charCodeAt(0) - 65),
+  );
 }

@@ -46,7 +46,7 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
     selection();
     setSavingId(emotionId);
 
-    const country = await reverseCountry(coords.latitude, coords.longitude);
+    const place = await reverseCountry(coords.latitude, coords.longitude);
 
     const id = generateCryId();
     try {
@@ -57,7 +57,8 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
         longitude: coords.longitude,
         emotion: emotionId,
         intensity: 3,
-        country,
+        country: place.name,
+        countryCode: place.code,
         visibility: visibilityRef.current,
       });
     } catch (e) {

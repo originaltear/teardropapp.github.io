@@ -284,14 +284,17 @@ export default function StatsScreen() {
     const withPhoto = cries.filter(c => c.photoUri).length;
     const withNote  = cries.filter(c => c.note && c.note.trim().length > 0).length;
 
-    // Country counts
-    const countryMap: Record<string, number> = {};
+    // Country counts, grouped by ISO code and labelled by name — the name is
+    // whatever the phone's language called it, so it identifies nothing.
+    const countryMap = new Map<string, { name: string; count: number }>();
     for (const c of cries) {
-      if (c.country) countryMap[c.country] = (countryMap[c.country] ?? 0) + 1;
+      const key = c.countryCode?.trim().toUpperCase() || c.country?.trim();
+      if (!key) continue;
+      const hit = countryMap.get(key);
+      if (hit) hit.count += 1;
+      else countryMap.set(key, { name: c.country?.trim() || key, count: 1 });
     }
-    const countryList = Object.entries(countryMap)
-      .sort(([, a], [, b]) => b - a)
-      .map(([name, count]) => ({ name, count }));
+    const countryList = [...countryMap.values()].sort((a, b) => b.count - a.count);
     const countryCount = countryList.length;
 
     // All 12 months (bar chart)

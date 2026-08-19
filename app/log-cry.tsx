@@ -345,7 +345,7 @@ export default function LogCryScreen() {
     if (!lat || !lng) return;
     setSaving(true);
 
-    const country = await reverseCountry(parseFloat(lat), parseFloat(lng));
+    const place = await reverseCountry(parseFloat(lat), parseFloat(lng));
 
     try {
       await saveCry({
@@ -358,7 +358,8 @@ export default function LogCryScreen() {
         note: note.trim() || undefined,
         photoUri: photoUri ?? undefined,
         audioUri: audioUri ?? undefined,
-        country,
+        country: place.name,
+        countryCode: place.code,
         visibility,
         tags: tags.length ? tags : undefined,
       });

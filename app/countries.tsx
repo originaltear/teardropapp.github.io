@@ -12,50 +12,29 @@ import { useTheme } from '../lib/themes';
 import { ListSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from 'expo-router';
 import { loadCries } from '../lib/storage';
-
-// Map country names to flag emojis via ISO code lookup
-// We'll generate flags from country name using a lookup table of common countries
-const COUNTRY_FLAGS: Record<string, string> = {
-  'Afghanistan': '🇦🇫', 'Albania': '🇦🇱', 'Algeria': '🇩🇿', 'Argentina': '🇦🇷',
-  'Australia': '🇦🇺', 'Austria': '🇦🇹', 'Belgium': '🇧🇪', 'Brazil': '🇧🇷',
-  'Canada': '🇨🇦', 'Chile': '🇨🇱', 'China': '🇨🇳', 'Colombia': '🇨🇴',
-  'Croatia': '🇭🇷', 'Czech Republic': '🇨🇿', 'Denmark': '🇩🇰', 'Egypt': '🇪🇬',
-  'Finland': '🇫🇮', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Greece': '🇬🇷',
-  'Hungary': '🇭🇺', 'India': '🇮🇳', 'Indonesia': '🇮🇩', 'Iran': '🇮🇷',
-  'Iraq': '🇮🇶', 'Ireland': '🇮🇪', 'Israel': '🇮🇱', 'Italy': '🇮🇹',
-  'Japan': '🇯🇵', 'Jordan': '🇯🇴', 'Kenya': '🇰🇪', 'South Korea': '🇰🇷',
-  'Kuwait': '🇰🇼', 'Lebanon': '🇱🇧', 'Malaysia': '🇲🇾', 'Mexico': '🇲🇽',
-  'Morocco': '🇲🇦', 'Netherlands': '🇳🇱', 'New Zealand': '🇳🇿', 'Nigeria': '🇳🇬',
-  'Norway': '🇳🇴', 'Pakistan': '🇵🇰', 'Peru': '🇵🇪', 'Philippines': '🇵🇭',
-  'Poland': '🇵🇱', 'Portugal': '🇵🇹', 'Qatar': '🇶🇦', 'Romania': '🇷🇴',
-  'Russia': '🇷🇺', 'Saudi Arabia': '🇸🇦', 'Serbia': '🇷🇸', 'Singapore': '🇸🇬',
-  'Slovakia': '🇸🇰', 'South Africa': '🇿🇦', 'Spain': '🇪🇸', 'Sweden': '🇸🇪',
-  'Switzerland': '🇨🇭', 'Syria': '🇸🇾', 'Thailand': '🇹🇭', 'Tunisia': '🇹🇳',
-  'Turkey': '🇹🇷', 'Ukraine': '🇺🇦', 'United Arab Emirates': '🇦🇪',
-  'United Kingdom': '🇬🇧', 'United States': '🇺🇸', 'Vietnam': '🇻🇳',
-};
-
-function getFlag(country: string): string {
-  return COUNTRY_FLAGS[country] ?? '🌍';
-}
+import { countryFlag } from '../lib/geo';
 
 export default function CountriesScreen() {
   const router = useRouter();
   const { theme: { accent } } = useTheme();
-  const [rows, setRows] = useState<{ country: string; count: number }[]>([]);
+  const [rows, setRows] = useState<{ code?: string; country: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(useCallback(() => {
     loadCries().then(cries => {
-      const counts: Record<string, number> = {};
+      // Keyed by ISO code, labelled by name. The name arrives from the device
+      // geocoder in the phone's language, so it is a label and never an
+      // identity: grouping on it listed Denmark twice.
+      const counts = new Map<string, { code?: string; country: string; count: number }>();
       for (const c of cries) {
-        if (!c.country) continue;
-        counts[c.country] = (counts[c.country] ?? 0) + 1;
+        const code = c.countryCode?.trim().toUpperCase();
+        const key = code || c.country?.trim();
+        if (!key) continue;
+        const hit = counts.get(key);
+        if (hit) hit.count += 1;
+        else counts.set(key, { code, country: c.country?.trim() || key, count: 1 });
       }
-      const sorted = Object.entries(counts)
-        .map(([country, count]) => ({ country, count }))
-        .sort((a, b) => b.count - a.count);
-      setRows(sorted);
+      setRows([...counts.values()].sort((a, b) => b.count - a.count));
       setLoading(false);
     });
   }, []));
@@ -84,7 +63,7 @@ export default function CountriesScreen() {
       ) : (
         <FlatList
           data={rows}
-          keyExtractor={r => r.country}
+          keyExtractor={r => r.code ?? r.country}
           contentContainerStyle={s.list}
           ItemSeparatorComponent={() => <View style={s.sep} />}
           renderItem={({ item, index }) => (
@@ -93,7 +72,7 @@ export default function CountriesScreen() {
               <Text style={s.rank}>#{index + 1}</Text>
 
               {/* Flag + name */}
-              <Text style={s.flag}>{getFlag(item.country)}</Text>
+              <Text style={s.flag}>{countryFlag(item.code)}</Text>
               <Text style={s.countryName}>{item.country}</Text>
 
               {/* Count + bar */}

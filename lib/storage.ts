@@ -25,6 +25,12 @@ export interface Cry {
   photoUri?: string;
   audioUri?: string;
   country?: string;
+  /**
+   * ISO 3166-1 alpha-2, e.g. "DK". The grouping key for anything that counts by
+   * country, because `country` above holds whatever the phone's language called
+   * it, so one nation arrives under several spellings.
+   */
+  countryCode?: string;
   visibility?: 'everyone' | 'followers' | 'close_friends' | 'only_me';
   tags?: string[];
 }
@@ -123,7 +129,7 @@ async function uploadCryMedia(
 }
 
 const CRY_COLUMNS =
-  'id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, visibility, tags';
+  'id, created_at, latitude, longitude, emotion, intensity, note, photo_uri, audio_uri, country, country_code, visibility, tags';
 
 function fromRow(r: any): Cry {
   return {
@@ -136,7 +142,8 @@ function fromRow(r: any): Cry {
     note:       r.note       ?? undefined,
     photoUri:   r.photo_uri  ?? undefined,
     audioUri:   r.audio_uri  ?? undefined,
-    country:    r.country    ?? undefined,
+    country:     r.country      ?? undefined,
+    countryCode: r.country_code ?? undefined,
     visibility: (r.visibility as Cry['visibility']) ?? 'everyone',
     tags:       r.tags?.length ? r.tags : undefined,
   };
@@ -154,7 +161,8 @@ function toRow(cry: Cry, userId: string) {
     note:       cry.note       ?? null,
     photo_uri:  cry.photoUri   ?? null,
     audio_uri:  cry.audioUri   ?? null,
-    country:    cry.country    ?? null,
+    country:      cry.country     ?? null,
+    country_code: cry.countryCode ?? null,
     visibility: cry.visibility ?? 'everyone',
     tags:       cry.tags       ?? [],
   };

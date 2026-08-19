@@ -226,13 +226,21 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     : null;
 
   // ── Geography ──
-  const countryCounts: Record<string, number> = {};
+  //
+  // Grouped by ISO code, labelled by name. The name comes from the device
+  // geocoder in the phone's own language, so grouping on it counted Denmark
+  // twice for anyone whose history spanned a language change — and across the
+  // whole database it had already produced "Danmark" and "Denmark" as separate
+  // countries. The code is the identity; the name is only what we call it.
+  const countryCounts = new Map<string, { name: string; count: number }>();
   for (const c of cries) {
-    if (c.country) countryCounts[c.country] = (countryCounts[c.country] ?? 0) + 1;
+    const key = c.countryCode?.trim().toUpperCase() || c.country?.trim();
+    if (!key) continue;
+    const hit = countryCounts.get(key);
+    if (hit) hit.count += 1;
+    else countryCounts.set(key, { name: c.country?.trim() || key, count: 1 });
   }
-  const countries = Object.entries(countryCounts)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
+  const countries = [...countryCounts.values()].sort((a, b) => b.count - a.count);
 
   // ── Tags ──
   const tagCounts: Record<string, number> = {};

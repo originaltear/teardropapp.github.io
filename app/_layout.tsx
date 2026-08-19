@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { backfillCountries } from '../lib/geo-backfill';
 import { registerPushToken, clearBadge } from '../lib/notifications';
 import { checkForUpdate } from '../lib/update-check';
 import { setAudioModeAsync } from 'expo-audio';
@@ -79,6 +80,15 @@ function RootNav() {
     } else {
       initPurchases();
     }
+  }, [session?.user.id]);
+
+  // ── Backfill missing countries ────────────────────────────────────────────
+  // Deferred well past startup: this is repair work on old rows, it competes
+  // with nothing, and whatever it does not finish is picked up next launch.
+  useEffect(() => {
+    if (!session?.user.id) return;
+    const t = setTimeout(() => { backfillCountries(); }, 8000);
+    return () => clearTimeout(t);
   }, [session?.user.id]);
 
   // ── Push token registration ───────────────────────────────────────────────

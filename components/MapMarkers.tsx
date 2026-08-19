@@ -24,6 +24,8 @@ import { emotionById } from '../lib/emotions';
 
 const DARK = '#0d1117';
 const TEAR_BLUE = '#6fe0e6';
+/** Everything outside a cluster's three most common emotions. */
+const REST_GREY = '#334155';
 
 // ─── tracksViewChanges: true until first paint, then false ────────────────────
 
@@ -106,13 +108,46 @@ export function ClusterPin({
   const tracks = useTracksOnce();
   const label = count > 999 ? `${Math.floor(count / 1000)}k` : String(count);
 
-  // Whichever emotion appears most in the group decides the colour. Ties fall
-  // to whatever came first, which is fine — the point is a hint, not a
-  // statistic. No tally (older data, or a single point) falls back to blue.
-  const dominant = tally
-    ? Object.entries(tally).sort((a, b) => b[1] - a[1])[0]?.[0]
-    : undefined;
+  // The ring is split into arcs for the three most common emotions inside,
+  // sized by their share of the whole cluster rather than of each other — a
+  // group whose top three account for half of it should look half-described,
+  // not fully explained. Whatever is left over is drawn in a muted grey so the
+  // remainder is visible as remainder.
+  //
+  // A single solid ring said only what the group mostly was. Three arcs say
+  // whether a place is one feeling or an argument between several, which is the
+  // thing worth knowing before deciding to tap.
+  const ranked = tally
+    ? Object.entries(tally).sort((a, b) => b[1] - a[1])
+    : [];
+  const total = ranked.reduce((sum, [, n]) => sum + n, 0);
+  const top = ranked.slice(0, 3);
+  const dominant = top[0]?.[0];
   const ringColor = (dominant && emotionById(dominant)?.color) || TEAR_BLUE;
+
+  // Circumference of the stroked circle, which is what the dash lengths are
+  // measured against.
+  const circumference = 2 * Math.PI * r;
+  // A hairline gap keeps two adjacent arcs from reading as one longer arc.
+  const GAP = 3;
+
+  const segments: { color: string; length: number; offset: number }[] = [];
+  if (total > 0) {
+    let cursor = 0;
+    for (const [id, n] of top) {
+      const length = (n / total) * circumference;
+      segments.push({
+        color: emotionById(id)?.color || TEAR_BLUE,
+        length,
+        offset: cursor,
+      });
+      cursor += length;
+    }
+    const rest = circumference - cursor;
+    // Only worth drawing when there is a meaningful amount left; a sliver of
+    // grey between arcs would just look like a rendering fault.
+    if (rest > GAP * 2) segments.push({ color: REST_GREY, length: rest, offset: cursor });
+  }
 
   return (
     <Marker
@@ -127,11 +162,31 @@ export function ClusterPin({
           {/* A faint halo in the same colour, so a cluster reads as a place
               where more happened rather than as a flat badge. */}
           <Circle cx={c} cy={c} r={r + 5} fill={ringColor} opacity={0.22} />
-          {/* Ring takes the colour of whatever the group mostly is. A cluster
-              used to be a number in a cyan circle, which threw away the one
-              thing worth knowing before you tap it: what kind of days these
-              were. */}
-          <Circle cx={c} cy={c} r={r} fill={DARK} stroke={ringColor} strokeWidth={2.5} />
+          {/* The disc itself. The ring is drawn over it as separate arcs. */}
+          <Circle cx={c} cy={c} r={r} fill={DARK} />
+          {segments.length > 0 ? (
+            segments.map((seg, i) => (
+              <Circle
+                key={i}
+                cx={c}
+                cy={c}
+                r={r}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={2.5}
+                strokeLinecap="butt"
+                // Draw `length` then skip the rest of the way round, and start
+                // the dash where the previous arc ended. The rotation moves the
+                // first arc to twelve o'clock, which is where an eye starts.
+                strokeDasharray={`${Math.max(seg.length - GAP, 0.5)} ${circumference}`}
+                strokeDashoffset={-seg.offset}
+                transform={`rotate(-90 ${c} ${c})`}
+              />
+            ))
+          ) : (
+            // No tally at all: older data, or a cluster of one. A plain ring.
+            <Circle cx={c} cy={c} r={r} fill="none" stroke={ringColor} strokeWidth={2.5} />
+          )}
         </Svg>
         <View style={[styles.overlayBox, styles.fillBox]} pointerEvents="none">
           <Text style={[styles.clusterCount, { fontSize: size * 0.38 }]}>{label}</Text>

@@ -630,17 +630,30 @@ export default function WrappedScreen() {
     }
 
     if (extras.seenBy + extras.hugsReceived + extras.likesReceived + extras.achievementsUnlocked > 0) {
+      // Did another human do anything, as opposed to the app awarding a badge.
+      const someoneWasThere =
+        extras.seenBy + extras.hugsReceived + extras.likesReceived > 0;
+
       list.push({
         key: 'received',
         render: active => (
           <WrappedCard
-            active={active} accent={accent} eyebrow="You were not alone"
-            caption={extras.seenBy > 0
-              // The reaction counts undersell this badly: most people who read
-              // something heavy do not press anything afterwards. Saying so is
-              // what turns a number into a comfort.
-              ? 'Most of them never said anything. They were still there.'
-              : 'People showed up for you this year.'}
+            active={active} accent={accent}
+            // Achievements are not people. Hiding the zeros made it possible to
+            // land on a card headed "you were not alone" showing nothing but a
+            // trophy count, which claims someone was there when nobody was. The
+            // heading has to follow what the card can actually show.
+            eyebrow={someoneWasThere ? 'You were not alone' : 'What you unlocked'}
+            caption={
+              extras.seenBy > 0
+                // The reaction counts undersell this badly: most people who read
+                // something heavy do not press anything afterwards. Saying so is
+                // what turns a number into a comfort.
+                ? 'Most of them never said anything. They were still there.'
+                : someoneWasThere
+                  ? 'People showed up for you this year.'
+                  : 'Small things the app noticed along the way.'
+            }
             variant="center"
           >
             {extras.seenBy > 0 && (

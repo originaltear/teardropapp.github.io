@@ -305,13 +305,22 @@ export default function StatsScreen() {
     const countryList = [...countryMap.values()].sort((a, b) => b.count - a.count);
     const countryCount = countryList.length;
 
-    // All 12 months (bar chart)
-    const monthData = Array.from({ length: 12 }, (_, i) => {
+    // Twelve months back, then trimmed at the front.
+    //
+    // An account that started in June was drawing nine empty bars for the
+    // months before it existed, which made the section three times taller than
+    // its data and read as a wall of nothing. Those months are not a quiet
+    // stretch worth seeing, they are time before this person was here. Empty
+    // months *between* cries are kept, because a gap someone actually lived
+    // through does say something.
+    const allMonths = Array.from({ length: 12 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
       const key = getMonthKey(d);
       const count = cries.filter(c => getMonthKey(new Date(c.createdAt)) === key).length;
       return { label: MONTHS[d.getMonth()], value: count };
     });
+    const firstWithData = allMonths.findIndex(d => d.value > 0);
+    const monthData = firstWithData <= 0 ? allMonths : allMonths.slice(firstWithData);
     const maxMonth = Math.max(...monthData.map(d => d.value), 1);
 
     // Emotion counts
@@ -581,7 +590,18 @@ export default function StatsScreen() {
           </PremiumSection>
         )}
 
-        {/* ── WHO LIKED YOUR CRIES THE MOST 💎 ── */}
+        {/*
+          ── WHO LIKED YOUR CRIES THE MOST 💎 ──
+
+          Skipped entirely once someone has paid and there is still nothing to
+          show. A whole panel saying "no likes yet" is a section spending real
+          height to report its own absence, and on a screen that already has
+          eleven of them that is the difference between a page and a scroll.
+
+          Free users still see it locked, because for them it is part of what is
+          on offer rather than an empty result.
+        */}
+        {(!isPremium || topLikers.length > 0) && (
         <PremiumSection isPremium={isPremium} title="WHO LIKED YOUR CRIES THE MOST" onLockPress={goPaywall}>
           {topLikers.length === 0 ? (
             <Text style={s.emptyInner}>No likes yet 💧</Text>
@@ -599,6 +619,7 @@ export default function StatsScreen() {
             ))
           )}
         </PremiumSection>
+        )}
 
         {/* ── YOUR MOST ACTIVE CRYING HOUR 💎 ── */}
         <PremiumSection isPremium={isPremium} title="YOUR MOST ACTIVE CRYING HOUR" onLockPress={goPaywall}>
@@ -606,7 +627,19 @@ export default function StatsScreen() {
         </PremiumSection>
 
         {/* ── EMOTION TRENDS (LAST 6 MONTHS) 💎 ── */}
-        <PremiumSection isPremium={isPremium} title="EMOTION TRENDS (LAST 6 MONTHS)" onLockPress={goPaywall}>
+        {/*
+          The heading used to say "LAST 6 MONTHS" while the body showed however
+          many months actually had a cry in them, which on this account was
+          three. A title that promises more than the section holds makes the
+          section look broken rather than young.
+        */}
+        <PremiumSection
+          isPremium={isPremium}
+          title={trendData.length > 0
+            ? `EMOTION TRENDS (${trendData.length} ${trendData.length === 1 ? 'MONTH' : 'MONTHS'})`
+            : 'EMOTION TRENDS'}
+          onLockPress={goPaywall}
+        >
           {trendData.length === 0 ? (
             <Text style={s.emptyInner}>Not enough data yet</Text>
           ) : (

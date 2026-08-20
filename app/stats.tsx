@@ -565,10 +565,18 @@ export default function StatsScreen() {
                 <Text style={s.awayValue}>
                   {placeInsight.homeIntensity != null ? placeInsight.homeIntensity.toFixed(1) : '—'}
                 </Text>
-                <Text style={s.awayLabel}>intensity where you usually are</Text>
+                {/*
+                  Both labels are kept short and the same shape on purpose. The
+                  left one used to read "intensity where you usually are", which
+                  wrapped onto a second line while the right one did not, so the
+                  two halves of a deliberately symmetric panel sat at different
+                  heights. The lede above already names the place, so "here"
+                  carries the same meaning in a line that fits.
+                */}
+                <Text style={s.awayLabel}>intensity here</Text>
                 {placeInsight.homeEmotion && (
                   <Text style={s.awayEmotion}>
-                    {emotionById(placeInsight.homeEmotion)?.emoji}{' '}
+                    mostly {emotionById(placeInsight.homeEmotion)?.emoji}{' '}
                     {emotionById(placeInsight.homeEmotion)?.label}
                   </Text>
                 )}
@@ -581,7 +589,7 @@ export default function StatsScreen() {
                 <Text style={s.awayLabel}>intensity elsewhere</Text>
                 {placeInsight.awayEmotion && (
                   <Text style={s.awayEmotion}>
-                    {emotionById(placeInsight.awayEmotion)?.emoji}{' '}
+                    mostly {emotionById(placeInsight.awayEmotion)?.emoji}{' '}
                     {emotionById(placeInsight.awayEmotion)?.label}
                   </Text>
                 )}
@@ -769,8 +777,10 @@ const s = StyleSheet.create({
   awayCell: { flex: 1, alignItems: 'center', gap: 4 },
   awayDivider: { width: 1, backgroundColor: '#1f2937', marginHorizontal: 12 },
   awayValue: { color: '#e2e8f0', fontSize: 24, fontWeight: '800' },
-  awayLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
-  awayEmotion: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
+  // Centred and single-line so the two halves stay level with each other even
+  // if a translation or a large font setting makes one of them longer.
+  awayLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', textAlign: 'center' },
+  awayEmotion: { color: '#94a3b8', fontSize: 13, marginTop: 2, textAlign: 'center' },
 
   // Emotion trends
   trendRow: { paddingVertical: 10, gap: 6, borderTopWidth: 1, borderTopColor: '#1a2233' },

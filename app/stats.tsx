@@ -164,7 +164,15 @@ function PremiumSection({
   return (
     <View style={[s.section, { overflow: 'hidden' }]}>
       <SectionHeader title={title} premium />
-      <View style={{ opacity: isPremium ? 1 : 0.12 }}>
+      {/*
+        Two dimmers stack here: this opacity, and the 0.88 scrim in
+        lockOverlay on top of it. At 0.12 under a 0.88 scrim roughly one and a
+        half percent of the content survived, so a locked section read as an
+        empty panel rather than as something withheld. Nobody buys a blank
+        rectangle. Raised so the shape of the chart is legible while the numbers
+        are not.
+      */}
+      <View style={{ opacity: isPremium ? 1 : 0.22 }}>
         {children}
       </View>
       {!isPremium && <LockedOverlay onPress={onLockPress} />}
@@ -698,7 +706,10 @@ const s = StyleSheet.create({
   // Lock overlay
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(13, 17, 23, 0.88)',
+    // Lightened along with the opacity above, since the two multiply. The scrim
+    // still has to carry the call to action legibly, so it cannot go much
+    // thinner than this.
+    backgroundColor: 'rgba(13, 17, 23, 0.8)',
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',

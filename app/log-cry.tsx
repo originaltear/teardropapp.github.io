@@ -14,7 +14,8 @@ import {
   useAudioRecorder, useAudioRecorderState, RecordingPresets,
   requestRecordingPermissionsAsync, setAudioModeAsync,
 } from 'expo-audio';
-import { EMOTIONS } from '../lib/emotions';
+import { EMOTIONS, emotionById } from '../lib/emotions';
+import { EmotionIcon, Tear } from '../components/EmotionIcon';
 import { saveCry, updateCry, loadCries, getOwnCry, generateCryId, Cry } from '../lib/storage';
 import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
 import { reverseCountry } from '../lib/geo';
@@ -58,10 +59,16 @@ export default function LogCryScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
+  // Intensity is tinted by whatever feeling is picked, so choosing one
+  // colours the whole question rather than only its own pill.
+
   const { queueAchievements } = useAchievementToast();
   const { lat, lng, editId } = useLocalSearchParams<{ lat: string; lng: string; editId: string }>();
   const isEdit = !!editId;
   const [emotion, setEmotion] = useState<string | null>(null);
+  // Intensity is tinted by whatever feeling is picked, so choosing one
+  // colours the whole question rather than only its own pill.
+  const dropColor = (emotion && emotionById(emotion)?.color) || accent;
   const [intensity, setIntensity] = useState(3);
   // When the cry actually happened. Defaults to now, but people often log after
   // the fact ("I forgot to add yesterday's"), so it can be moved back.
@@ -499,7 +506,7 @@ export default function LogCryScreen() {
                   onPress={() => { selection(); setEmotion(e.id); }}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.emotionEmoji}>{e.emoji}</Text>
+                  <EmotionIcon emotion={e.id} size={38} />
                   <Text style={[styles.emotionLabel, selected && { color: e.color }]}>
                     {e.label}
                   </Text>
@@ -512,8 +519,16 @@ export default function LogCryScreen() {
           <Text style={styles.sectionLabel}>Intensity</Text>
           <View style={styles.intensityRow}>
             {[1, 2, 3, 4, 5].map(n => (
-              <TouchableOpacity key={n} onPress={() => { selection(); setIntensity(n); }} style={styles.dropBtn}>
-                <Text style={[styles.drop, { opacity: n <= intensity ? 1 : 0.25 }]}>💧</Text>
+              <TouchableOpacity
+                key={n}
+                onPress={() => { selection(); setIntensity(n); }}
+                style={styles.dropBtn}
+                accessibilityRole="button"
+                accessibilityLabel={`Intensity ${n} of 5`}
+              >
+                {/* Tinted to whatever is picked, so choosing a feeling colours
+                    the whole question rather than just its own pill. */}
+                <Tear size={34} filled={n <= intensity} color={dropColor} />
               </TouchableOpacity>
             ))}
             <Text style={[styles.intensityLabel, { color: accent }]}>{INTENSITY_LABELS[intensity]}</Text>
@@ -762,18 +777,18 @@ const styles = StyleSheet.create({
   emotionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   emotionChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8,
+    paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20, borderWidth: 1, borderColor: '#1f2937',
     // Content-width chips wrapped 3/3/3/1 and left "Idk" orphaned on its own
     // row. Ten emotions divide evenly into two columns instead.
     flexBasis: '48%', flexGrow: 1,
   },
-  emotionEmoji: { fontSize: 17 },
-  emotionLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
+
+  emotionLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
 
   intensityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dropBtn: { padding: 4 },
-  drop: { fontSize: 28 },
+
   intensityLabel: { flex: 1, textAlign: 'right', fontSize: 15, fontWeight: '700' },
 
   noteInput: {

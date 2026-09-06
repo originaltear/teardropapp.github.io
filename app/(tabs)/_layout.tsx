@@ -5,12 +5,13 @@ import { useAuth } from '../../lib/auth';
 import { getUnreadCount, subscribeUnreadCount } from '../../lib/social';
 import { useTheme } from '../../lib/themes';
 import { selection } from '../../lib/haptics';
+import { UiIcon } from '../../components/UiIcon';
 
 const TAB_BAR_BG = '#111827';
 const INACTIVE = '#4a5568';
 
-function TabIcon({ emoji, color }: { emoji: string; color: ColorValue }) {
-  return <Text style={{ fontSize: 20, color }}>{emoji}</Text>;
+function TabIcon({ name, color }: { name: string; color: ColorValue }) {
+  return <UiIcon name={name} size={22} color={String(color)} />;
 }
 
 function NotifIcon({ color }: { color: ColorValue }) {
@@ -36,7 +37,7 @@ function NotifIcon({ color }: { color: ColorValue }) {
 
   return (
     <View>
-      <Text style={{ fontSize: 20, color }}>🔔</Text>
+      <UiIcon name="bell" size={22} color={String(color)} />
       {count > 0 && (
         <View style={{
           position: 'absolute', top: -4, right: -6,
@@ -76,21 +77,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Map',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🌍" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="globe" color={color} />,
         }}
       />
       <Tabs.Screen
         name="feed"
         options={{
           title: 'Feed',
-          tabBarIcon: ({ color }) => <TabIcon emoji="📋" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="list" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <TabIcon emoji="👤" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="user" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -104,7 +105,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color }) => <TabIcon emoji="⚙️" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon name="settings" color={color} />,
         }}
       />
     </Tabs>

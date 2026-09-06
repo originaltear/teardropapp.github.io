@@ -20,6 +20,7 @@ import { useAchievementToast } from './AchievementToastProvider';
 import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/themes';
 import { selection, success, warning } from '../lib/haptics';
+import { EmotionIcon } from './EmotionIcon';
 
 export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
   visible: boolean;
@@ -117,7 +118,7 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
               {savingId === e.id
                 ? <ActivityIndicator size="small" color={e.color} />
                 : <>
-                    <Text style={s.chipEmoji}>{e.emoji}</Text>
+                    <EmotionIcon emotion={e.id} size={32} />
                     <Text style={s.chipLabel}>{e.label}</Text>
                   </>}
             </TouchableOpacity>
@@ -164,12 +165,12 @@ const s = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 10,
+    paddingHorizontal: 12, paddingVertical: 7,
     borderRadius: 20, borderWidth: 1, borderColor: '#1f2937',
     minWidth: 96, justifyContent: 'center',
   },
-  chipEmoji: { fontSize: 17 },
-  chipLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
+
+  chipLabel: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },
 
   fullLink: { alignItems: 'center', marginTop: 18, paddingVertical: 6 },
   fullLinkTxt: { fontSize: 15, fontWeight: '600' },

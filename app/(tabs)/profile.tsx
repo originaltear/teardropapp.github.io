@@ -21,6 +21,7 @@ import { useAchievementToast } from '../../components/AchievementToastProvider';
 import { FeedBanner } from '../../components/FeedBanner';
 import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { supabase } from '../../lib/supabase';
+import { UiIcon } from '../../components/UiIcon';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -267,10 +268,10 @@ export default function ProfileScreen() {
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity onPress={() => router.push('/stats')} style={styles.editBtn} accessibilityRole="button" accessibilityLabel="Statistics">
-            <Text style={styles.editTxt}>📊</Text>
+            <UiIcon name="chartColumn" size={19} color="#6fe0e6" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/calendar')} style={styles.editBtn} accessibilityRole="button" accessibilityLabel="Calendar">
-            <Text style={styles.editTxt}>📅</Text>
+            <UiIcon name="calendar" size={19} color="#6fe0e6" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setEditOpen(true)} style={styles.editBtn}>
             <Text style={styles.editTxt}>Edit</Text>

@@ -24,6 +24,7 @@ import { TagPills } from '../../components/TagPills';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
 import { EmotionIcon } from '../../components/EmotionIcon';
+import { UiIcon } from '../../components/UiIcon';
 import { AudioPlayer } from '../../components/AudioPlayer';
 import { CryPhoto } from '../../components/CryPhoto';
 import { fullDateTime, timeAgo } from '../../lib/format';
@@ -569,9 +570,11 @@ export default function MapScreen() {
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? 'Show cries from people you follow' : 'Show all cries'}
                 >
-                  <Text style={styles.segmentEmoji}>
-                    {f === 'mine' ? '👤' : f === 'following' ? '👥' : '🌍'}
-                  </Text>
+                  <UiIcon
+                    name={f === 'mine' ? 'user' : f === 'following' ? 'users' : 'globe'}
+                    size={19}
+                    color={active ? '#0d1117' : '#94a3b8'}
+                  />
                   <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
                     {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'All'}
                   </Text>

@@ -21,6 +21,7 @@ import { StatsSkeleton } from '../components/Skeleton';
 import { computePlaces, namePlaces, Place } from '../lib/places';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
+import { EmotionIcon } from '../components/EmotionIcon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -462,7 +463,7 @@ export default function StatsScreen() {
           <View style={s.section}>
             <SectionHeader title="#1 EMOTION" />
             <View style={[s.emotionTop, { backgroundColor: topEmotion.color + '18', borderColor: topEmotion.color + '44' }]}>
-              <Text style={{ fontSize: 36 }}>{topEmotion.emoji}</Text>
+              <EmotionIcon emotion={topEmotion.id} size={46} />
               <View style={{ flex: 1 }}>
                 <Text style={[s.emotionTopName, { color: topEmotion.color }]}>{topEmotion.label}</Text>
                 <Text style={s.emotionTopCount}>{emotionCounts[topEmotion.id]} {emotionCounts[topEmotion.id] === 1 ? 'cry' : 'cries'}</Text>

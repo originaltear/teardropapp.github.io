@@ -17,6 +17,8 @@ import { useTheme } from '../../lib/themes';
 import { Avatar } from '../../components/Avatar';
 import { ListSkeleton } from '../../components/Skeleton';
 import { emotionById } from '../../lib/emotions';
+import { EmotionIcon } from '../../components/EmotionIcon';
+import { Drops } from '../../components/Drops';
 import { timeAgo } from '../../lib/format';
 import { tapLight } from '../../lib/haptics';
 
@@ -82,10 +84,13 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
           <Text style={styles.rowComment} numberOfLines={2}>"{notif.comment_content}"</Text>
         )}
         {!notif.comment_content && notif.cry && (
-          <Text style={styles.rowSub}>
-            {cryEmotion ? `${cryEmotion.emoji} ${cryEmotion.label}` : notif.cry.emotion}
-            {' · '}{'💧'.repeat(notif.cry.intensity)}
-          </Text>
+          <View style={styles.rowEmotion}>
+            <EmotionIcon emotion={notif.cry.emotion} size={26} />
+            <Text style={[styles.rowSub, cryEmotion && { color: cryEmotion.color }]}>
+              {cryEmotion?.label ?? notif.cry.emotion}
+            </Text>
+            <Drops intensity={notif.cry.intensity} size={11} color={cryEmotion?.color} />
+          </View>
         )}
         <Text style={styles.rowTime}>{timeAgo(notif.created_at)}</Text>
 
@@ -263,7 +268,8 @@ const styles = StyleSheet.create({
   rowContent: { flex: 1, gap: 2 },
   rowText: { color: '#e2e8f0', fontSize: 15, lineHeight: 20 },
   rowComment: { color: '#64748b', fontSize: 13, fontStyle: 'italic', lineHeight: 18 },
-  rowSub: { color: '#4a5568', fontSize: 13 },
+  rowEmotion: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  rowSub: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
   rowTime: { color: '#374151', fontSize: 11, fontFamily: 'monospace' },
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#6fe0e6' },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' },

@@ -32,6 +32,7 @@ import { WrappedCard } from '../components/WrappedCard';
 import { WrappedShareCard } from '../components/WrappedShareCard';
 import { WrappedConfetti } from '../components/WrappedConfetti';
 import { success, selection } from '../lib/haptics';
+import { EmotionIcon } from '../components/EmotionIcon';
 
 const BG = '#070a14';
 const INK = '#e8eef7';
@@ -370,7 +371,7 @@ export default function WrappedScreen() {
             caption={emotionComment(data.topEmotion!.id, seed)} variant="flood"
           >
             <PopIn active={active}>
-              <Text style={s.emotionBig}>{data.topEmotion!.emoji}</Text>
+              <EmotionIcon emotion={data.topEmotion!.id} size={92} />
             </PopIn>
             <Text style={[s.emotionName, { color: data.topEmotion!.color }]}>
               {data.topEmotion!.label}
@@ -393,7 +394,7 @@ export default function WrappedScreen() {
             caption={timeComment(d.id, seed)}
           >
             <PopIn active={active}>
-              <Text style={s.emotionBig}>{d.emoji}</Text>
+              <EmotionIcon emotion={d.id} size={92} />
             </PopIn>
             <Text style={[s.emotionName, { color: accent }]}>{d.label}</Text>
             <Text style={s.heroUnit}>

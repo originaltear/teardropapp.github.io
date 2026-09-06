@@ -167,7 +167,12 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                         }}
                         delayLongPress={400}
                       >
-                        <Text style={ls.tearEmoji}>{tear}</Text>
+                        <UiIcon
+                          name={info?.icon ?? 'droplets'}
+                          size={24}
+                          color={info?.color ?? '#6fe0e6'}
+                          strokeWidth={2}
+                        />
                         {chosen && <Text style={ls.tearCheck}>✓</Text>}
                       </TouchableOpacity>
                     );
@@ -379,7 +384,10 @@ export default function ProfileScreen() {
                     <Text style={styles.badgeName}>{def.title}</Text>
                     <Text style={styles.badgeDesc} numberOfLines={1}>"{def.unlockMessage}"</Text>
                   </View>
-                  {def.isTear && <Text style={{ fontSize: 15 }}>{def.tearEmoji}</Text>}
+                  {def.isTear && def.tearEmoji && (() => {
+                    const t = getTearInfo(def.tearEmoji);
+                    return <UiIcon name={t?.icon ?? 'droplets'} size={16} color={t?.color ?? '#6fe0e6'} strokeWidth={2.2} />;
+                  })()}
                 </TouchableOpacity>
               );
             })}

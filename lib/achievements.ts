@@ -23,34 +23,46 @@ export interface Achievement {
 // ─── Tear definitions ─────────────────────────────────────────────────────────
 
 export interface TearDef {
+  /** Stored in the database and used as the key everywhere; not what is drawn. */
   emoji: string;
   name: string;
   description: string;         // short label (picker, badges)
   howObtained: string;         // full explanation shown in info popup
   achievementId?: string;      // which achievement unlocks it (undefined = special/auto)
+  /** Name in ./ui-icons. Emblems sit at 15pt beside a username, where an
+      illustration turns to mush and a plain glyph stays readable. */
+  icon: string;
+  /** Each emblem gets its own colour so a row of them reads as things you
+      earned rather than as a row of interface controls. From the palette. */
+  color: string;
 }
 
 export const TEARS: TearDef[] = [
   {
+    icon: 'gem', color: '#6fe0e6',
     emoji: '💎', name: 'Crystal Tear', description: 'Premium member',
     howObtained: 'Obtained by subscribing to Teardrop Pro 💎',
   },
   {
+    icon: 'crown', color: '#f2cf6b',
     emoji: '👑', name: 'Founder', description: 'Among the first 100 users',
     howObtained: 'Obtained from the "Founder" achievement — you were one of the very first 100 people to join Teardrop.',
     achievementId: 'founder',
   },
   {
+    icon: 'droplets', color: '#6fa8e0',
     emoji: '🌊', name: 'First Wave', description: 'Among the first 1000 users',
     howObtained: 'Obtained from the "First Wave" achievement — you joined Teardrop within the first 1000 users.',
     achievementId: 'first_wave',
   },
   {
+    icon: 'globe', color: '#8fe0a8',
     emoji: '🌍', name: 'World Tear', description: 'Cried in 5+ countries',
     howObtained: 'Obtained from the "World Tear" achievement — you logged cries in 5 different countries.',
     achievementId: 'world_tear',
   },
   {
+    icon: 'moon', color: '#a99cf0',
     emoji: '🌙', name: 'Midnight Tear', description: 'Cried between midnight and 4am',
     howObtained: 'Obtained from the "Midnight Tear" achievement — you logged a cry between midnight and 4 AM.',
     achievementId: 'midnight_tear',

@@ -40,8 +40,8 @@
         "expo-build-properties",
         {
           "android": {
-            "enableMinifyInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false,
             "extraProguardRules": "# R8 strips anything it cannot see being called, and everything below is\n# reached by reflection or from native code, so it looks unused to R8.\n\n# Sentry resolves integrations by name and needs readable line numbers for\n# the stack traces to be worth anything.\n-keep class io.sentry.** { *; }\n-keepattributes LineNumberTable,SourceFile\n\n# RevenueCat and Google Mobile Ads both build objects from JSON at runtime.\n-keep class com.revenuecat.purchases.** { *; }\n-keep class com.google.android.gms.ads.** { *; }\n\n# React Native bridge surface: native modules and their exported methods are\n# looked up by name from JavaScript, never called from Java.\n-keep,allowobfuscation @interface com.facebook.proguard.annotations.DoNotStrip\n-keep @com.facebook.proguard.annotations.DoNotStrip class * { *; }\n-keepclassmembers class * { @com.facebook.proguard.annotations.DoNotStrip *; }\n-keepclassmembers class * { @com.facebook.react.bridge.ReactMethod *; }\n-keep class com.facebook.jni.** { *; }\n"
           }
         }

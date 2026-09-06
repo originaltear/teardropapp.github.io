@@ -23,6 +23,7 @@ import { QuickLogSheet } from '../../components/QuickLogSheet';
 import { TagPills } from '../../components/TagPills';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
+import { EmotionIcon } from '../../components/EmotionIcon';
 import { AudioPlayer } from '../../components/AudioPlayer';
 import { CryPhoto } from '../../components/CryPhoto';
 import { fullDateTime, timeAgo } from '../../lib/format';
@@ -124,8 +125,8 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
       )}
 
       <View style={styles.cardHeader}>
-        <View style={[styles.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
-          <Text style={styles.badgeEmoji}>{emotion?.emoji ?? '💧'}</Text>
+        <View style={styles.emotionHead}>
+          <EmotionIcon emotion={cry.emotion} size={56} label={emotion?.label ?? cry.emotion} />
           <Text style={[styles.badgeLabel, { color: emotion?.color ?? '#6fe0e6' }]}>
             {emotion?.label ?? cry.emotion}
           </Text>
@@ -136,7 +137,7 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
       </View>
 
       <Text style={styles.dateText}>{fullDateTime(cry.date)}</Text>
-      <Drops intensity={cry.intensity} />
+      <Drops intensity={cry.intensity} color={emotion?.color} />
 
       <TagPills tags={cry.tags} />
 
@@ -196,7 +197,7 @@ function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: (
           <Text style={[styles.clEmotion, { color, backgroundColor: color + '22' }]}>
             {emotion?.emoji} {emotion?.label ?? cry.emotion}
           </Text>
-          <Drops intensity={cry.intensity} size={11} />
+          <Drops intensity={cry.intensity} size={11} color={color} />
           {cry.photoUri ? <Text style={{ fontSize: 11 }}>📷</Text> : null}
           {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
         </View>
@@ -802,11 +803,7 @@ const styles = StyleSheet.create({
   profileHandle: { color: '#4a5568', fontSize: 13 },
   profileArrow: { color: '#4a5568', fontSize: 20, fontWeight: '300' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  emotionBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-  },
-  badgeEmoji: { fontSize: 20 },
+  emotionHead: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   badgeLabel: { fontSize: 17, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   closeTxt: { color: '#4a5568', fontSize: 17 },

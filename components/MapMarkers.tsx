@@ -13,7 +13,9 @@
  *    rasterised once and then left static (also avoids the Fabric flicker).
  *
  * Design:
- *  - Individual pin: dark teardrop body with an emotion-coloured outline + emoji.
+ *  - Individual pin: the emotion's own teardrop artwork (see ../lib/emotion-icons),
+ *    tip up, resting on its coordinate. Emotions without artwork fall back to the
+ *    older dark teardrop with an emoji inside.
  *  - Cluster: dark circle with the count and a Tear Blue (#6fe0e6) outline.
  */
 import { useEffect, useState } from 'react';
@@ -21,8 +23,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import Svg, { Path, Circle, Ellipse } from 'react-native-svg';
 import { emotionById } from '../lib/emotions';
+import { EMOTION_ICONS, ICON_VIEWBOX } from '../lib/emotion-icons';
 
 const DARK = '#0d1117';
+/** The map's own darkest ink, used to rim a pin so overlaps stay readable. */
+const MAP_INK = '#070a14';
 const TEAR_BLUE = '#6fe0e6';
 /** Everything outside a cluster's three most common emotions. */
 const REST_GREY = '#334155';
@@ -42,9 +47,16 @@ function useTracksOnce(delay = 900): boolean {
 
 const PIN_W = 42;
 const PIN_H = 56;
-// Teardrop padded inside the 42×56 box: bulb centre (21,21) r16, tip at (21,52).
-const PIN_PATH = 'M21 52 C12 40 5 32 5 21 A16 16 0 1 1 37 21 C37 32 30 40 21 52 Z';
-const PIN_ANCHOR = { x: 0.5, y: 52 / PIN_H };
+
+// The artwork's round bottom sits at ~97% of the box height, so that is where a
+// pin meets its coordinate. A tear resting on the spot rather than a nail
+// pointing at it, which is also why the tip is at the top.
+const PIN_ANCHOR = { x: 0.5, y: 0.972 };
+
+// Used for an emotion with no artwork: the earlier dark teardrop with the emoji
+// inside. It tapers to a point at the bottom, so it anchors at that tip.
+const FALLBACK_PATH = 'M21 52 C12 40 5 32 5 21 A16 16 0 1 1 37 21 C37 32 30 40 21 52 Z';
+const FALLBACK_ANCHOR = { x: 0.5, y: 52 / PIN_H };
 
 export function EmotionPin({
   latitude, longitude, emotion, onPress,
@@ -56,27 +68,52 @@ export function EmotionPin({
 }) {
   const e = emotionById(emotion);
   const color = e?.color ?? TEAR_BLUE;
+  const icon = e ? EMOTION_ICONS[e.id] : undefined;
   const tracks = useTracksOnce();
 
   return (
     <Marker
       coordinate={{ latitude, longitude }}
-      anchor={PIN_ANCHOR}
+      anchor={icon ? PIN_ANCHOR : FALLBACK_ANCHOR}
       onPress={onPress}
       tracksViewChanges={tracks}
       zIndex={5}
     >
       <View style={{ width: PIN_W, height: PIN_H }} collapsable={false}>
-        <Svg width={PIN_W} height={PIN_H} viewBox="0 0 42 56">
-          {/* ground shadow */}
-          <Ellipse cx={21} cy={51} rx={5.5} ry={1.8} fill="rgba(0,0,0,0.3)" />
-          {/* dark body + emotion-coloured outline */}
-          <Path d={PIN_PATH} fill={DARK} stroke={color} strokeWidth={2.5} strokeLinejoin="round" />
-        </Svg>
-        {/* emoji overlay, centred on the bulb (y≈21 of 56) */}
-        <View style={[styles.overlayBox, { top: 5, height: 32 }]} pointerEvents="none">
-          <Text style={styles.pinEmoji}>{e?.emoji ?? '💧'}</Text>
-        </View>
+        {icon ? (
+          <Svg width={PIN_W} height={PIN_H} viewBox={ICON_VIEWBOX}>
+            {/* A dark rim behind the body. Pins sitting on the same street
+                overlap constantly, and without an edge two drops of a similar
+                colour merge into one shape. Drawn first so only the half that
+                falls outside the silhouette shows. */}
+            <Path
+              d={icon[0].d}
+              fill="none"
+              stroke={MAP_INK}
+              strokeWidth={46}
+              strokeLinejoin="round"
+            />
+            {icon.map((part, i) => (
+              <Path key={i} d={part.d} fill={part.fill} />
+            ))}
+          </Svg>
+        ) : (
+          <>
+            <Svg width={PIN_W} height={PIN_H} viewBox="0 0 42 56">
+              <Ellipse cx={21} cy={51} rx={5.5} ry={1.8} fill="rgba(0,0,0,0.3)" />
+              <Path
+                d={FALLBACK_PATH}
+                fill={DARK}
+                stroke={color}
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+              />
+            </Svg>
+            <View style={[styles.overlayBox, { top: 5, height: 32 }]} pointerEvents="none">
+              <Text style={styles.pinEmoji}>{e?.emoji ?? '💧'}</Text>
+            </View>
+          </>
+        )}
       </View>
     </Marker>
   );

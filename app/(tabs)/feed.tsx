@@ -12,6 +12,7 @@ import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { TearsBadge } from '../../components/TearsBadge';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
+import { EmotionIcon } from '../../components/EmotionIcon';
 import { ListSkeleton } from '../../components/Skeleton';
 import { timeAgo } from '../../lib/format';
 import { useAuth } from '../../lib/auth';
@@ -56,10 +57,6 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
     <TouchableOpacity
       style={[
         styles.item,
-        // The emotion colour is the app's whole vocabulary, but it only lived in
-        // a small chip, so every row read the same while scrolling. This edge
-        // makes a feed of ten cries look like ten different feelings.
-        { borderLeftColor: color },
         selectMode && checked && styles.itemChecked,
       ]}
       onPress={() => onSelect(cry)}
@@ -72,21 +69,22 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
           {checked && <Text style={styles.checkMark}>✓</Text>}
         </View>
       )}
-      {!hideAuthor && <Avatar uri={cry.profile.avatar_uri} size={44} />}
+      {/* The feeling owns the left rail in both tabs, so your eye learns one place
+          to look. In Following the person moves inline beside their name: this is
+          a map of feelings, and who felt it is the second question, not the first. */}
+      <EmotionIcon emotion={cry.emotion} size={46} label={emotion?.label ?? cry.emotion} />
       <View style={[styles.itemContent, hideAuthor && styles.itemContentBare]}>
         <View style={styles.itemTop}>
           {hideAuthor ? (
             // Without the author line the chip moves up to head the row, and the
             // drops ride alongside it rather than taking a line of their own.
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={[styles.emotionChip, { backgroundColor: color + '22' }]}>
-                <Text style={styles.emotionChipEmoji}>{emotion?.emoji}</Text>
-                <Text style={[styles.emotionChipLabel, { color }]}>{emotion?.label ?? cry.emotion}</Text>
-              </View>
-              <Drops intensity={cry.intensity} size={11} />
+              <Text style={[styles.emotionName, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+              <Drops intensity={cry.intensity} size={13} color={color} />
             </View>
           ) : (
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+              <Avatar uri={cry.profile.avatar_uri} size={22} />
               <Text style={styles.itemUser}>{cry.profile.display_name}</Text>
               <Text style={styles.itemHandle}>@{cry.profile.username}</Text>
               {cry.profile.selected_tears && cry.profile.selected_tears.length > 0 && (
@@ -98,11 +96,8 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
         </View>
         {!hideAuthor && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-            <View style={[styles.emotionChip, { backgroundColor: color + '22' }]}>
-              <Text style={styles.emotionChipEmoji}>{emotion?.emoji}</Text>
-              <Text style={[styles.emotionChipLabel, { color }]}>{emotion?.label ?? cry.emotion}</Text>
-            </View>
-            <Drops intensity={cry.intensity} size={11} />
+            <Text style={[styles.emotionName, { color }]}>{emotion?.label ?? cry.emotion}</Text>
+            <Drops intensity={cry.intensity} size={13} color={color} />
           </View>
         )}
         {cry.note ? <Text style={styles.noteSnippet} numberOfLines={2}>{cry.note}</Text> : null}
@@ -564,7 +559,6 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     paddingLeft: 13, paddingRight: 16, paddingVertical: 14,
-    borderLeftWidth: 3,   // colour is set per row from the emotion
   },
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
   itemContent: { flex: 1, gap: 4 },
@@ -577,9 +571,8 @@ const styles = StyleSheet.create({
   itemUser: { color: '#e2e8f0', fontSize: 15, fontWeight: '600', flex: 1 },
   itemHandle: { color: '#4a5568', fontWeight: '400' },
   timeAgo: { color: '#374151', fontSize: 11, fontFamily: 'monospace', flexShrink: 0 },
-  emotionChip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  emotionChipEmoji: { fontSize: 13 },
-  emotionChipLabel: { fontSize: 13, fontWeight: '600' },
+  // The icon carries the colour now, so the label does not need a pill.
+  emotionName: { fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
   itemTags: { color: '#4a5568', fontSize: 13 },
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },

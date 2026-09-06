@@ -24,6 +24,7 @@ import { useTheme } from '../lib/themes';
 import { Avatar } from '../components/Avatar';
 import { TagPills } from '../components/TagPills';
 import { Drops } from '../components/Drops';
+import { EmotionIcon } from '../components/EmotionIcon';
 import { ReportSheet } from '../components/ReportSheet';
 import { ReactorsSheet } from '../components/ReactorsSheet';
 import { CrySkeleton } from '../components/Skeleton';
@@ -319,16 +320,18 @@ export default function CryDetailScreen() {
             <Text style={s.profileArrow}>›</Text>
           </TouchableOpacity>
 
-          {/* Emotion badge */}
-          <View style={[s.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
-            <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
-            <Text style={[s.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>
-              {emotion?.label ?? cry.emotion}
-            </Text>
+          {/* The whole screen is about one cry, so the feeling heads it rather
+              than sitting in a chip. The date and intensity read as its caption. */}
+          <View style={s.emotionHead}>
+            <EmotionIcon emotion={cry.emotion} size={72} label={emotion?.label ?? cry.emotion} />
+            <View style={{ gap: 6, flex: 1 }}>
+              <Text style={[s.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>
+                {emotion?.label ?? cry.emotion}
+              </Text>
+              <Text style={s.dateText}>{fullDateTime(cry.created_at)}</Text>
+              <Drops intensity={cry.intensity} color={emotion?.color} />
+            </View>
           </View>
-
-          <Text style={s.dateText}>{fullDateTime(cry.created_at)}</Text>
-          <Drops intensity={cry.intensity} />
 
           <TagPills tags={cry.tags} />
 
@@ -576,11 +579,8 @@ const s = StyleSheet.create({
   profileHandle: { color: '#4a5568', fontSize: 13 },
   profileArrow: { color: '#4a5568', fontSize: 20 },
 
-  emotionBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start',
-  },
-  emotionLabel: { fontSize: 17, fontWeight: '700' },
+  emotionHead: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  emotionLabel: { fontSize: 22, fontWeight: '700' },
   dateText: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
 
   photo: { width: '100%', height: 200, borderRadius: 14, backgroundColor: '#1f2937' },

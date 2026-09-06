@@ -19,6 +19,7 @@ import {
 import { emotionById } from '../lib/emotions';
 import { useFocusEffect } from 'expo-router';
 import { Drops } from '../components/Drops';
+import { EmotionIcon } from '../components/EmotionIcon';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { timeAgo, fullDateTime } from '../lib/format';
@@ -76,12 +77,12 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }} showsVerticalScrollIndicator={false}>
-          <View style={[s.emotionBadge, { backgroundColor: (emotion?.color ?? '#6fe0e6') + '22' }]}>
-            <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
+          <View style={s.emotionHead}>
+            <EmotionIcon emotion={cry.emotion} size={64} label={emotion?.label ?? cry.emotion} />
             <Text style={[s.emotionLabel, { color: emotion?.color ?? '#6fe0e6' }]}>{emotion?.label ?? cry.emotion}</Text>
           </View>
           <Text style={s.dateLabel}>{fullDateTime(cry.createdAt)}</Text>
-          <Drops intensity={cry.intensity} />
+          <Drops intensity={cry.intensity} color={emotion?.color} />
           <TagPills tags={cry.tags} />
           {cry.photoUri ? <CryPhoto uri={cry.photoUri} style={s.photo} /> : null}
           {cry.note
@@ -249,15 +250,13 @@ export default function MyCriesScreen() {
                   {checked && <Text style={s.checkMark}>✓</Text>}
                 </View>
               )}
-              <View style={[s.dot, { backgroundColor: color }]}>
-                <Text style={{ fontSize: 20 }}>{emotion?.emoji ?? '💧'}</Text>
-              </View>
+              <EmotionIcon emotion={cry.emotion} size={46} label={emotion?.label ?? cry.emotion} />
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={[s.emotionName, { color }]}>{emotion?.label ?? cry.emotion}</Text>
                   <Text style={s.time}>{timeAgo(cry.createdAt)}</Text>
                 </View>
-                <Drops intensity={cry.intensity} />
+                <Drops intensity={cry.intensity} color={emotion?.color} />
                 {cry.note ? <Text style={s.noteSnippet} numberOfLines={1}>{cry.note}</Text> : null}
                 {(cry.photoUri || cry.audioUri) ? (
                   <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -354,7 +353,6 @@ const s = StyleSheet.create({
   checkMark: { color: '#0d1117', fontSize: 13, fontWeight: '800', lineHeight: 15 },
 
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
-  dot: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   emotionName: { fontSize: 15, fontWeight: '600' },
   time: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
   noteSnippet: { color: '#64748b', fontSize: 13 },
@@ -382,7 +380,7 @@ const s = StyleSheet.create({
   deleteTxt: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
   editBtn: { paddingVertical: 4, paddingHorizontal: 8 },
   editTxt: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
-  emotionBadge: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, alignSelf: 'flex-start' },
+  emotionHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   emotionLabel: { fontSize: 17, fontWeight: '700' },
   dateLabel: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
   photo: { width: '100%', height: 180, borderRadius: 12, backgroundColor: '#0d1117' },

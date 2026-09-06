@@ -14,7 +14,7 @@ import {
   useAudioRecorder, useAudioRecorderState, RecordingPresets,
   requestRecordingPermissionsAsync, setAudioModeAsync,
 } from 'expo-audio';
-import { EMOTIONS, emotionById } from '../lib/emotions';
+import { EMOTIONS } from '../lib/emotions';
 import { EmotionIcon, Tear } from '../components/EmotionIcon';
 import { UiIcon } from '../components/UiIcon';
 import { saveCry, updateCry, loadCries, getOwnCry, generateCryId, Cry } from '../lib/storage';
@@ -67,9 +67,10 @@ export default function LogCryScreen() {
   const { lat, lng, editId } = useLocalSearchParams<{ lat: string; lng: string; editId: string }>();
   const isEdit = !!editId;
   const [emotion, setEmotion] = useState<string | null>(null);
-  // Intensity is tinted by whatever feeling is picked, so choosing one
-  // colours the whole question rather than only its own pill.
-  const dropColor = (emotion && emotionById(emotion)?.color) || accent;
+  // Intensity stays the app's own colour rather than the feeling's. This screen
+  // asks two separate questions, and the chosen pill already answers the first
+  // loudly; tinting five more drops to match just floods the screen in one hue.
+  const dropColor = accent;
   const [intensity, setIntensity] = useState(3);
   // When the cry actually happened. Defaults to now, but people often log after
   // the fact ("I forgot to add yesterday's"), so it can be moved back.
@@ -527,8 +528,6 @@ export default function LogCryScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Intensity ${n} of 5`}
               >
-                {/* Tinted to whatever is picked, so choosing a feeling colours
-                    the whole question rather than just its own pill. */}
                 <Tear size={34} filled={n <= intensity} color={dropColor} />
               </TouchableOpacity>
             ))}

@@ -19,13 +19,32 @@ import { ListSkeleton } from '../../components/Skeleton';
 import { emotionById } from '../../lib/emotions';
 import { EmotionIcon } from '../../components/EmotionIcon';
 import { Drops } from '../../components/Drops';
+import { UiIcon } from '../../components/UiIcon';
+import { Tear } from '../../components/EmotionIcon';
 import { timeAgo } from '../../lib/format';
 import { tapLight } from '../../lib/haptics';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function notifIcon(type: Notification['type']) {
-  return { like: '💧', comment: '💬', reply: '↩️', comment_like: '💧', hug: '🫂', friend_request: '👥', follow: '➕', report: '⚑' }[type];
+/**
+ * The small badge on the corner of an actor's avatar, saying what they did.
+ *
+ * A like is the app's own teardrop rather than a glyph, since that is what the
+ * button itself is. Everything else is an interface icon.
+ */
+function NotifBadge({ type }: { type: Notification['type'] }) {
+  if (type === 'like' || type === 'comment_like') {
+    return <Tear size={13} filled color="#6fe0e6" />;
+  }
+  const name = {
+    comment: 'messageCircle',
+    reply: 'reply',
+    hug: 'heartHandshake',
+    friend_request: 'users',
+    follow: 'userPlus',
+    report: 'flag',
+  }[type as string] ?? 'bell';
+  return <UiIcon name={name} size={13} color="#94a3b8" strokeWidth={2.4} />;
 }
 
 function notifText(n: Notification): string {
@@ -73,7 +92,7 @@ function NotifRow({ notif, onPress, onFollowBack, followBackDone }: {
         <View style={styles.iconBadge}>
           <Avatar uri={notif.actor?.avatar_uri} size={42} />
           <View style={styles.typeIcon}>
-            <Text style={{ fontSize: 13 }}>{notifIcon(notif.type)}</Text>
+            <NotifBadge type={notif.type} />
           </View>
         </View>
       </TouchableOpacity>

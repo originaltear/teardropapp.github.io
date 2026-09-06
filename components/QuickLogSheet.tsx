@@ -21,6 +21,7 @@ import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/themes';
 import { selection, success, warning } from '../lib/haptics';
 import { EmotionIcon } from './EmotionIcon';
+import { UiIcon } from './UiIcon';
 
 export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
   visible: boolean;
@@ -99,7 +100,10 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
       <SafeAreaView edges={['bottom']} style={s.sheet}>
         <View style={s.handle} />
         <View style={s.headerRow}>
-          <Text style={s.title}>⚡ Quick log</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <UiIcon name="zap" size={19} color="#f2a86b" />
+            <Text style={s.title}>Quick log</Text>
+          </View>
           <TouchableOpacity onPress={onClose} style={s.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
             <Text style={s.closeTxt}>✕</Text>
           </TouchableOpacity>

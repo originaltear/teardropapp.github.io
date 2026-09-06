@@ -7,6 +7,7 @@
  */
 import { memo } from 'react';
 import { View, Image, Text } from 'react-native';
+import { Tear } from './EmotionIcon';
 
 export const Avatar = memo(function Avatar({
   uri, size = 36, fallbackColor = '#1f2937',
@@ -30,7 +31,9 @@ export const Avatar = memo(function Avatar({
       width: size, height: size, borderRadius: size / 2,
       backgroundColor: fallbackColor, alignItems: 'center', justifyContent: 'center',
     }}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
+      {/* No picture yet: the app's own drop rather than the water emoji, so a
+          default avatar still belongs to this app. */}
+      <Tear size={size * 0.5} filled color="#6fe0e6" />
     </View>
   );
 });

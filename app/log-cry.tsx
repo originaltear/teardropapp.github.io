@@ -16,6 +16,7 @@ import {
 } from 'expo-audio';
 import { EMOTIONS, emotionById } from '../lib/emotions';
 import { EmotionIcon, Tear } from '../components/EmotionIcon';
+import { UiIcon } from '../components/UiIcon';
 import { saveCry, updateCry, loadCries, getOwnCry, generateCryId, Cry } from '../lib/storage';
 import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
 import { reverseCountry } from '../lib/geo';
@@ -446,7 +447,7 @@ export default function LogCryScreen() {
 
           {/* Location */}
           <View style={styles.locationRow}>
-            <Text style={styles.locationPin}>📍</Text>
+            <UiIcon name="mapPin" size={16} color="#4a5568" />
             <Text style={styles.locationText}>{locationStr}</Text>
           </View>
 
@@ -458,7 +459,7 @@ export default function LogCryScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Happened ${whenLabel(when)}. Tap to change.`}
           >
-            <Text style={styles.locationPin}>🕒</Text>
+            <UiIcon name="clock" size={16} color="#4a5568" />
             <Text style={[styles.locationText, { flex: 1 }]}>{whenLabel(when)}</Text>
             <Text style={[styles.whenChange, { color: accent }]}>Change</Text>
           </TouchableOpacity>
@@ -620,7 +621,7 @@ export default function LogCryScreen() {
             </View>
           ) : (
             <TouchableOpacity style={styles.photoAdd} onPress={handleAddPhoto} activeOpacity={0.75}>
-              <Text style={styles.photoAddIcon}>📷</Text>
+              <UiIcon name="camera" size={26} color="#4a5568" />
               <Text style={styles.photoAddTxt}>Add Photo</Text>
             </TouchableOpacity>
           )}
@@ -631,7 +632,7 @@ export default function LogCryScreen() {
           </Text>
           {!audioUri && !isRecording && (
             <TouchableOpacity style={styles.recordBtn} onPress={startRecording} activeOpacity={0.75}>
-              <Text style={styles.recordIcon}>🎙</Text>
+              <UiIcon name="mic" size={26} color="#4a5568" />
               <Text style={styles.recordTxt}>Record</Text>
             </TouchableOpacity>
           )}
@@ -659,7 +660,7 @@ export default function LogCryScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteAudioBtn} onPress={deleteAudio}>
-                <Text style={styles.deleteAudioTxt}>🗑</Text>
+                <UiIcon name="trash" size={17} color="#ef4444" />
               </TouchableOpacity>
             </View>
           )}

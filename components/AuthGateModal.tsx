@@ -7,6 +7,7 @@
  */
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { UiIcon } from './UiIcon';
 
 interface Props {
   visible: boolean;
@@ -31,7 +32,7 @@ export function AuthGateModal({ visible, onClose }: Props) {
       <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={s.sheet}>
         <View style={s.handle} />
-        <Text style={s.emoji}>👥</Text>
+        <UiIcon name="users" size={40} color="#6fe0e6" strokeWidth={1.7} />
         <Text style={s.title}>Connect with others</Text>
         <Text style={s.sub}>
           Create an account or log in to add friends, see their cries, and more.

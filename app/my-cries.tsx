@@ -19,7 +19,8 @@ import {
 import { emotionById } from '../lib/emotions';
 import { useFocusEffect } from 'expo-router';
 import { Drops } from '../components/Drops';
-import { EmotionIcon } from '../components/EmotionIcon';
+import { EmotionIcon, Tear } from '../components/EmotionIcon';
+import { UiIcon } from '../components/UiIcon';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { timeAgo, fullDateTime } from '../lib/format';
@@ -69,7 +70,10 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
             <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={s.deleteBtn}>
               {deleting
                 ? <ActivityIndicator size="small" color="#ef4444" />
-                : <Text style={s.deleteTxt}>🗑 Delete</Text>}
+                : <View style={s.iconRow}>
+                    <UiIcon name="trash" size={15} color="#ef4444" />
+                    <Text style={s.deleteTxt}>Delete</Text>
+                  </View>}
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
@@ -215,9 +219,12 @@ export default function MyCriesScreen() {
           style={[s.filterChip, filter === 'quick' && s.filterChipActive]}
           onPress={() => setFilter('quick')}
         >
-          <Text style={[s.filterChipTxt, filter === 'quick' && s.filterChipTxtActive]}>
-            ⚡ Quick logs{quickCount > 0 ? ` (${quickCount})` : ''}
-          </Text>
+          <View style={s.iconRow}>
+            <UiIcon name="zap" size={14} color={filter === 'quick' ? '#0d1117' : '#94a3b8'} />
+            <Text style={[s.filterChipTxt, filter === 'quick' && s.filterChipTxtActive]}>
+              Quick logs{quickCount > 0 ? ` (${quickCount})` : ''}
+            </Text>
+          </View>
         </TouchableOpacity>
         <View style={{ flex: 1 }} />
         <TouchableOpacity
@@ -260,8 +267,8 @@ export default function MyCriesScreen() {
                 {cry.note ? <Text style={s.noteSnippet} numberOfLines={1}>{cry.note}</Text> : null}
                 {(cry.photoUri || cry.audioUri) ? (
                   <View style={{ flexDirection: 'row', gap: 4 }}>
-                    {cry.photoUri ? <Text style={{ fontSize: 11 }}>📷</Text> : null}
-                    {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
+                    {cry.photoUri ? <UiIcon name="camera" size={12} color="#4a5568" /> : null}
+                    {cry.audioUri ? <UiIcon name="mic" size={12} color="#4a5568" /> : null}
                   </View>
                 ) : null}
                 {isQuickLog(cry) && (
@@ -275,7 +282,11 @@ export default function MyCriesScreen() {
         contentContainerStyle={cries.length === 0 ? s.emptyWrap : undefined}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={{ fontSize: 48, opacity: 0.3 }}>{filter === 'quick' ? '⚡' : '💧'}</Text>
+            <View style={{ opacity: 0.3 }}>
+              {filter === 'quick'
+                ? <UiIcon name="zap" size={48} color="#94a3b8" strokeWidth={1.6} />
+                : <Tear size={48} filled={false} color="#94a3b8" />}
+            </View>
             <Text style={s.emptyTxt}>{filter === 'quick' ? 'No quick logs' : 'No cries yet'}</Text>
             <Text style={s.emptySub}>
               {filter === 'quick'
@@ -354,6 +365,7 @@ const s = StyleSheet.create({
 
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   emotionName: { fontSize: 15, fontWeight: '600' },
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   time: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
   noteSnippet: { color: '#64748b', fontSize: 13 },
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 72 },

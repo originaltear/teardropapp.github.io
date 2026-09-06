@@ -1,17 +1,22 @@
 /**
- * Interface icons: the tab bar, the profile header and the map filter.
+ * Interface icons: tabs, headers, buttons and the small markers on a row.
  *
  * These are not emotions and must never be drawn as teardrops. A teardrop that
  * means "calendar" says nothing. They are plain outline glyphs from Lucide
  * (ISC licensed), on a 24x24 grid with a 2 unit stroke, which is what keeps
- * them readable at the 20pt the tab bar uses. The emotion artwork cannot
- * survive that size, which is exactly why the two sets are separate.
+ * them readable at the 12 to 22pt they are used at. The emotion artwork cannot
+ * survive those sizes, which is exactly why the two sets are separate.
  *
  * Shapes are stored rather than raw SVG so no transformer or Metro config is
- * needed: 'd' is a path, 'c' is [cx, cy, r], 'r' is [x, y, w, h, rx].
+ * needed: 'd' is a path, 'c' is [cx, cy, r], 'l' is [x1, y1, x2, y2] and 'r' is
+ * [x, y, w, h, rx].
  */
 
-export type UiShape = { d: string } | { c: number[] } | { r: number[] };
+export type UiShape =
+  | { d: string }
+  | { c: number[] }
+  | { l: number[] }
+  | { r: number[] };
 
 /** Every icon is authored on this grid. */
 export const UI_VIEWBOX = '0 0 24 24';
@@ -63,5 +68,59 @@ export const UI_ICONS: Record<string, UiShape[]> = {
     { d: 'M18 17V9' },
     { d: 'M13 17V5' },
     { d: 'M8 17v-3' },
+  ],
+  zap: [
+    { d: 'M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z' },
+  ],
+  mapPin: [
+    { d: 'M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0' },
+    { c: [12, 10, 3] },
+  ],
+  clock: [
+    { c: [12, 12, 10] },
+    { d: 'M12 6v6l4 2' },
+  ],
+  camera: [
+    { d: 'M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z' },
+    { c: [12, 13, 3] },
+  ],
+  mic: [
+    { d: 'M12 19v3' },
+    { d: 'M19 10v2a7 7 0 0 1-14 0v-2' },
+    { r: [9, 2, 6, 13, 3] },
+  ],
+  trash: [
+    { d: 'M10 11v6' },
+    { d: 'M14 11v6' },
+    { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' },
+    { d: 'M3 6h18' },
+    { d: 'M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' },
+  ],
+  reply: [
+    { d: 'M20 18v-2a4 4 0 0 0-4-4H4' },
+    { d: 'm9 17-5-5 5-5' },
+  ],
+  userPlus: [
+    { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' },
+    { c: [9, 7, 4] },
+    { l: [19, 8, 19, 14] },
+    { l: [22, 11, 16, 11] },
+  ],
+  messageCircle: [
+    { d: 'M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719' },
+  ],
+  squareCheck: [
+    { r: [3, 3, 18, 18, 2] },
+    { d: 'm16 9-5.5 5.5L8 12' },
+  ],
+  flag: [
+    { d: 'M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528' },
+  ],
+  heartHandshake: [
+    { d: 'M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762' },
+  ],
+  x: [
+    { d: 'M18 6 6 18' },
+    { d: 'm6 6 12 12' },
   ],
 };

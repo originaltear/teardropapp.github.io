@@ -621,7 +621,7 @@ export default function MapScreen() {
           accessibilityRole="button"
           accessibilityLabel="Quick log a cry"
         >
-          <Text style={styles.quickFabIcon}>⚡</Text>
+          <UiIcon name="zap" size={24} color="#f2a86b" strokeWidth={2.2} />
         </PressableScale>
         <PressableScale
           style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]}

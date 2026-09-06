@@ -5,7 +5,7 @@
  * teardrop's motif disappears, and they name places and actions rather than
  * feelings. See ../lib/ui-icons.
  */
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { UI_ICONS, UI_VIEWBOX } from '../lib/ui-icons';
 
 export function UiIcon({
@@ -35,6 +35,7 @@ export function UiIcon({
         };
         if ('d' in s) return <Path key={i} d={s.d} {...stroke} />;
         if ('c' in s) return <Circle key={i} cx={s.c[0]} cy={s.c[1]} r={s.c[2]} {...stroke} />;
+        if ('l' in s) return <Line key={i} x1={s.l[0]} y1={s.l[1]} x2={s.l[2]} y2={s.l[3]} {...stroke} />;
         return (
           <Rect key={i} x={s.r[0]} y={s.r[1]} width={s.r[2]} height={s.r[3]} rx={s.r[4]} {...stroke} />
         );

@@ -12,7 +12,8 @@ import { emotionById, EMOTIONS } from '../../lib/emotions';
 import { TearsBadge } from '../../components/TearsBadge';
 import { Avatar } from '../../components/Avatar';
 import { Drops } from '../../components/Drops';
-import { EmotionIcon } from '../../components/EmotionIcon';
+import { EmotionIcon, Tear } from '../../components/EmotionIcon';
+import { UiIcon } from '../../components/UiIcon';
 import { ListSkeleton } from '../../components/Skeleton';
 import { timeAgo } from '../../lib/format';
 import { useAuth } from '../../lib/auth';
@@ -112,13 +113,28 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
         <View style={styles.itemMeta}>
           {(cry.photo_uri || cry.audio_uri) ? (
             <>
-              {cry.photo_uri ? <Text style={styles.metaTag}>📷</Text> : null}
-              {cry.audio_uri ? <Text style={styles.metaTag}>🎙</Text> : null}
+              {cry.photo_uri ? <UiIcon name="camera" size={14} color="#4a5568" /> : null}
+              {cry.audio_uri ? <UiIcon name="mic" size={14} color="#4a5568" /> : null}
             </>
           ) : null}
-          {cry.like_count > 0 && <Text style={styles.metaTag}>💧 {cry.like_count}</Text>}
-          {cry.hug_count > 0 && <Text style={styles.metaTag}>🫂 {cry.hug_count}</Text>}
-          {cry.comment_count > 0 && <Text style={styles.metaTag}>💬 {cry.comment_count}</Text>}
+          {cry.like_count > 0 && (
+            <View style={styles.metaCount}>
+              <Tear size={13} filled color="#4a5568" />
+              <Text style={styles.metaTag}>{cry.like_count}</Text>
+            </View>
+          )}
+          {cry.hug_count > 0 && (
+            <View style={styles.metaCount}>
+              <UiIcon name="heartHandshake" size={14} color="#4a5568" />
+              <Text style={styles.metaTag}>{cry.hug_count}</Text>
+            </View>
+          )}
+          {cry.comment_count > 0 && (
+            <View style={styles.metaCount}>
+              <UiIcon name="messageCircle" size={14} color="#4a5568" />
+              <Text style={styles.metaTag}>{cry.comment_count}</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -312,7 +328,10 @@ export default function FeedScreen() {
           activeOpacity={0.7}
           onPress={() => session ? router.push('/friends') : setAuthGate(true)}
         >
-          <Text style={[styles.addFriendsTxt, { color: accent }]}>👥 Friends</Text>
+          <View style={styles.chipRow}>
+            <UiIcon name="users" size={16} color={accent} />
+            <Text style={[styles.addFriendsTxt, { color: accent }]}>Friends</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -325,9 +344,16 @@ export default function FeedScreen() {
               style={[styles.tabChip, tab === t && { backgroundColor: accent, borderColor: accent }]}
               onPress={() => { if (tab !== t) { selection(); setTab(t); } }}
             >
-              <Text style={[styles.tabChipTxt, tab === t && styles.tabChipTxtActive]}>
-                {t === 'mine' ? '👤 Mine' : '👥 Following'}
-              </Text>
+              <View style={styles.chipRow}>
+                <UiIcon
+                  name={t === 'mine' ? 'user' : 'users'}
+                  size={16}
+                  color={tab === t ? '#0d1117' : '#94a3b8'}
+                />
+                <Text style={[styles.tabChipTxt, tab === t && styles.tabChipTxtActive]}>
+                  {t === 'mine' ? 'Mine' : 'Following'}
+                </Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -343,11 +369,16 @@ export default function FeedScreen() {
             onPress={() => setFilterOpen(v => !v)}
             activeOpacity={0.8}
           >
-            <Text style={styles.filterBarTxt}>
+            <View style={styles.chipRow}>
+              {/* The emotion's own emoji at this size, since the artwork's motif
+                  cannot be read at 13pt. "All" gets the plain drop instead. */}
               {selectedEmotion
-                ? `${selectedEmotion.emoji}  ${selectedEmotion.label}`
-                : '💧  All emotions'}
-            </Text>
+                ? <Text style={styles.filterBarTxt}>{selectedEmotion.emoji}</Text>
+                : <Tear size={15} filled={false} color="#94a3b8" />}
+              <Text style={styles.filterBarTxt}>
+                {selectedEmotion ? selectedEmotion.label : 'All emotions'}
+              </Text>
+            </View>
             <Text style={styles.filterArrow}>{filterOpen ? '▲' : '▼'}</Text>
           </TouchableOpacity>
 
@@ -357,9 +388,12 @@ export default function FeedScreen() {
                 style={[styles.dropdownItem, !mineEmotion && { backgroundColor: accent + '10' }]}
                 onPress={() => { setMineEmotion(null); setFilterOpen(false); }}
               >
-                <Text style={[styles.dropdownTxt, !mineEmotion && { color: accent }]}>
-                  💧  All emotions
-                </Text>
+                <View style={styles.chipRow}>
+                  <Tear size={15} filled={false} color={!mineEmotion ? accent : '#94a3b8'} />
+                  <Text style={[styles.dropdownTxt, !mineEmotion && { color: accent }]}>
+                    All emotions
+                  </Text>
+                </View>
                 {!mineEmotion && <Text style={[styles.dropdownCheck, { color: accent }]}>✓</Text>}
               </TouchableOpacity>
               {EMOTIONS.map(e => (
@@ -386,7 +420,7 @@ export default function FeedScreen() {
             accessibilityState={{ selected: mineQuickOnly }}
             accessibilityLabel="Show only quick logs"
           >
-            <Text style={[styles.quickChipTxt, mineQuickOnly && { color: accent }]}>⚡</Text>
+            <UiIcon name="zap" size={17} color={mineQuickOnly ? accent : '#4a5568'} />
           </TouchableOpacity>
 
           {/* Bulk-select toggle (visibility/delete for several cries at once) */}
@@ -448,7 +482,9 @@ export default function FeedScreen() {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>💧</Text>
+              <View style={{ opacity: 0.4 }}>
+                <Tear size={52} filled={false} color="#4a5568" />
+              </View>
               <Text style={styles.emptyTitle}>
                 {!session
                   ? 'Log in to see the feed'
@@ -469,7 +505,10 @@ export default function FeedScreen() {
                   onPress={() => router.push('/friends')}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.emptyBtnTxt}>👥  Find Friends</Text>
+                  <View style={styles.chipRow}>
+                    <UiIcon name="users" size={17} color="#0d1117" />
+                    <Text style={styles.emptyBtnTxt}>Find Friends</Text>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>
@@ -505,6 +544,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, borderColor: '#1f2937',
   },
   addFriendsTxt: { color: '#6fe0e6', fontSize: 13, fontWeight: '600' },
+  chipRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
 
   tabRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
@@ -592,4 +632,5 @@ const styles = StyleSheet.create({
   quickChipTxt: { fontSize: 17, color: '#4a5568' },
   itemMeta: { flexDirection: 'row', gap: 8, marginTop: 2 },
   metaTag: { color: '#4a5568', fontSize: 13 },
+  metaCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

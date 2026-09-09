@@ -6,6 +6,7 @@ import { getUnreadCount, subscribeUnreadCount } from '../../lib/social';
 import { useTheme } from '../../lib/themes';
 import { selection } from '../../lib/haptics';
 import { UiIcon } from '../../components/UiIcon';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TAB_BAR_BG = '#111827';
 const INACTIVE = '#4a5568';
@@ -57,6 +58,10 @@ function NotifIcon({ color }: { color: ColorValue }) {
 
 export default function TabLayout() {
   const { theme: { accent } } = useTheme();
+  // How much of the bottom edge the system already owns. Zero on a phone
+  // using gesture navigation, around 48 on one using three buttons, which
+  // is why a fixed height put the buttons on top of the tab labels.
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenListeners={{ tabPress: () => selection() }}
@@ -66,8 +71,8 @@ export default function TabLayout() {
           backgroundColor: TAB_BAR_BG,
           borderTopColor: '#1f2937',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
         },
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: INACTIVE,

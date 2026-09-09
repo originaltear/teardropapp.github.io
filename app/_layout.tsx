@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../lib/auth';
@@ -314,7 +315,14 @@ function ThemedApp() {
 }
 
 function RootLayout() {
-  return <ThemedApp />;
+  // Every safe-area measurement in the app reads from this provider. Without
+  // it the insets are zero, and anything anchored to a screen edge lands
+  // under the system bars on whichever phone has them.
+  return (
+    <SafeAreaProvider>
+      <ThemedApp />
+    </SafeAreaProvider>
+  );
 }
 
 export default Sentry.wrap(RootLayout);

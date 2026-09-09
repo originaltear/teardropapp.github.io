@@ -6,7 +6,7 @@ import {
 import MapView, { Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
 import * as Location from 'expo-location';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../../lib/storage';
@@ -213,6 +213,11 @@ function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: (
 // ─── Map screen ───────────────────────────────────────────────────────────────
 
 export default function MapScreen() {
+  // The floating controls sit a fixed distance above the bottom edge, and that
+  // edge is not always where the screen ends: a phone on three-button
+  // navigation gives the system the last ~48pt. Everything else on this screen
+  // is a SafeAreaView, but the filter is a plain View and has to add it here.
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
@@ -552,7 +557,10 @@ export default function MapScreen() {
 
       {/* Segmented filter — centered, floating above FAB */}
       {session && (
-        <View style={styles.filterContainer} pointerEvents="box-none">
+        <View
+          style={[styles.filterContainer, { bottom: 110 + insets.bottom }]}
+          pointerEvents="box-none"
+        >
           <View style={styles.segmented}>
             {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => {
               const active = mapFilter === f;

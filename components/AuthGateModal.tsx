@@ -8,6 +8,7 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { UiIcon } from './UiIcon';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   visible: boolean;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function AuthGateModal({ visible, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
 
   function go(path: '/(auth)/login' | '/(auth)/signup') {
@@ -30,7 +32,9 @@ export function AuthGateModal({ visible, onClose }: Props) {
       onRequestClose={onClose}
     >
       <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose} />
-      <View style={s.sheet}>
+      {/* A sheet lands on the bottom edge, and a phone on three-button
+          navigation gives the system the last stretch of it. */}
+      <View style={[s.sheet, { paddingBottom: 36 + insets.bottom }]}>
         <View style={s.handle} />
         <UiIcon name="users" size={40} color="#6fe0e6" strokeWidth={1.7} />
         <Text style={s.title}>Connect with others</Text>

@@ -6,7 +6,7 @@ import {
   Platform, Linking,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import Constants from 'expo-constants';
@@ -119,6 +119,7 @@ const DEFAULT_NOTIF_PREFS: ProfileSettings['notification_preferences'] = {
 };
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const { session } = useAuth();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -668,7 +669,7 @@ export default function SettingsScreen() {
       {/* ── Theme picker modal ── */}
       <Modal visible={showThemePicker} transparent animationType="fade" onRequestClose={() => setShowThemePicker(false)}>
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowThemePicker(false)} />
-        <View style={styles.pickerCard}>
+        <View style={[styles.pickerCard, { bottom: 40 + insets.bottom }]}>
           <Text style={styles.pickerTitle}>Choose theme</Text>
           {THEMES.map(t => (
             <TouchableOpacity
@@ -696,7 +697,7 @@ export default function SettingsScreen() {
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowReport(false)} />
         <KeyboardAvoidingView behavior="padding" automaticOffset>
         <SafeAreaView edges={['bottom']}>
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>Report a problem</Text>
@@ -740,7 +741,7 @@ export default function SettingsScreen() {
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
         <KeyboardAvoidingView behavior="padding" automaticOffset>
         <SafeAreaView edges={['bottom']}>
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>Change username</Text>

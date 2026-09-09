@@ -16,6 +16,12 @@ export const EMOTIONS: Emotion[] = [
   { id: 'overwhelmed',label: 'Overwhelmed',  color: '#f2a86b', emoji: '🌊' },
   { id: 'mixed',      label: 'Mixed',        color: '#6fe0e6', emoji: '💧' },
   { id: 'idk',        label: 'Idk',          color: '#9d92ad', emoji: '❓' },
+  // Added for 1.1.0 on request from the two people who use the app most.
+  // Pain because three notes described it and all three were filed as Mixed;
+  // Cutting Onions for the joke, which is the feeling of knowing exactly what
+  // is wrong and not saying it. That is not the same as Idk.
+  { id: 'pain',       label: 'Pain',         color: '#c9606f', emoji: '🩹' },
+  { id: 'cutting_onions', label: 'Cutting Onions', color: '#c3cd72', emoji: '🧅' },
 ];
 
 // Pre-built index for O(1) lookups — emotionById is called in hot render paths

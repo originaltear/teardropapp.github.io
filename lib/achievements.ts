@@ -121,7 +121,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   // ── Emotion ──
   { id: 'full_spectrum', title: 'Full Spectrum', emoji: '🌈', category: 'emotion', isTear: false,
-    howToUnlock: "Use all 10 emotion types at least once.", unlockMessage: "Congratulations. You contain multitudes." },
+    howToUnlock: "Use 10 different emotion types at least once.", unlockMessage: "Congratulations. You contain multitudes." },
   { id: 'complex_soul', title: 'Complex Soul', emoji: '🌀', category: 'emotion', isTear: false,
     howToUnlock: "Log 20 cries with the 'Mixed' emotion.", unlockMessage: "Even you don't know how you feel. Relatable." },
   { id: 'drama', title: 'Drama', emoji: '🎭', category: 'emotion', isTear: false,
@@ -277,6 +277,9 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
 
   // Emotion
   const emotions = new Set(cries.map(c => c.emotion));
+  // Ten, not EMOTIONS.length: this unlocked at ten when there were ten, and
+  // raising it with the count would take the badge back off the people who
+  // already earned it. The wording says ten rather than "all" for the same reason.
   if (emotions.size >= 10) ok.add('full_spectrum');
   if (cries.filter(c => c.emotion === 'mixed').length >= 20) ok.add('complex_soul');
   if (cries.filter(c => c.emotion === 'rage').length >= 10) ok.add('drama');

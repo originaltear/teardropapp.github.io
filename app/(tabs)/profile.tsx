@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity,
-  TextInput, Platform, Image, Alert,
+  TextInput, Platform, Image, Alert, Modal,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -86,10 +86,13 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
   }
 
   return (
-    // No Modal wrapper — rendered inline with parent SafeAreaView.
-    // In-flow bottom-sheet structure (backdrop flex:1 above, sheet below) —
-    // same keyboard-safe pattern as the feed detail and settings sheets.
-    <View style={[StyleSheet.absoluteFill, ls.overlay]}>
+    // In a Modal, like every other sheet in the app. Rendered inline it filled
+    // only the tab screen, which stops above the tab bar, and automaticOffset
+    // then lifted the sheet by that bar's height and left a dead band under it
+    // with the last line of content clipped. Measured on a device: the screen
+    // area ended at 2144 of 2340 pixels and the sheet stopped at 1942.
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={ls.overlay}>
       <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
       <KeyboardAvoidingView behavior="padding" automaticOffset>
         <SafeAreaView edges={['bottom']} style={ls.sheet}>
@@ -192,7 +195,8 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
           </ScrollView>
         </SafeAreaView>
       </KeyboardAvoidingView>
-    </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -469,7 +473,7 @@ const styles = StyleSheet.create({
 });
 
 const ls = StyleSheet.create({
-  overlay: { backgroundColor: 'rgba(0,0,0,0.6)' },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
     backgroundColor: '#111827', maxHeight: '90%',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,

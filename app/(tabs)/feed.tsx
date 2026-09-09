@@ -370,11 +370,11 @@ export default function FeedScreen() {
             activeOpacity={0.8}
           >
             <View style={styles.chipRow}>
-              {/* The emotion's own emoji at this size, since the artwork's motif
-                  cannot be read at 13pt. "All" gets the plain drop instead. */}
+              {/* The row is 44 tall, so the artwork gets 22 and stays readable.
+                  "All" gets the plain drop instead. */}
               {selectedEmotion
-                ? <Text style={styles.filterBarTxt}>{selectedEmotion.emoji}</Text>
-                : <Tear size={15} filled={false} color="#94a3b8" />}
+                ? <EmotionIcon emotion={selectedEmotion.id} size={22} />
+                : <Tear size={20} filled={false} color="#94a3b8" />}
               <Text style={styles.filterBarTxt}>
                 {selectedEmotion ? selectedEmotion.label : 'All emotions'}
               </Text>
@@ -389,12 +389,12 @@ export default function FeedScreen() {
                 onPress={() => { setMineEmotion(null); setFilterOpen(false); }}
               >
                 <View style={styles.chipRow}>
-                  <Tear size={15} filled={false} color={!mineEmotion ? accent : '#94a3b8'} />
+                  <Tear size={20} filled={false} color={!mineEmotion ? accent : '#94a3b8'} />
                   <Text style={[styles.dropdownTxt, !mineEmotion && { color: accent }]}>
                     All emotions
                   </Text>
                 </View>
-                {!mineEmotion && <Text style={[styles.dropdownCheck, { color: accent }]}>✓</Text>}
+                {!mineEmotion && <UiIcon name="check" size={17} color={accent} />}
               </TouchableOpacity>
               {EMOTIONS.map(e => (
                 <TouchableOpacity
@@ -402,10 +402,13 @@ export default function FeedScreen() {
                   style={[styles.dropdownItem, mineEmotion === e.id && { backgroundColor: accent + '10' }]}
                   onPress={() => { setMineEmotion(e.id); setFilterOpen(false); }}
                 >
-                  <Text style={[styles.dropdownTxt, mineEmotion === e.id && { color: e.color }]}>
-                    {e.emoji}  {e.label}
-                  </Text>
-                  {mineEmotion === e.id && <Text style={[styles.dropdownCheck, { color: e.color }]}>✓</Text>}
+                  <View style={styles.chipRow}>
+                    <EmotionIcon emotion={e.id} size={22} />
+                    <Text style={[styles.dropdownTxt, mineEmotion === e.id && { color: e.color }]}>
+                      {e.label}
+                    </Text>
+                  </View>
+                  {mineEmotion === e.id && <UiIcon name="check" size={17} color={e.color} />}
                 </TouchableOpacity>
               ))}
             </View>
@@ -557,7 +560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#111827', borderRadius: 12,
     borderWidth: 1, borderColor: '#1f2937',
-    paddingHorizontal: 16, paddingVertical: 13,
+    paddingHorizontal: 16, paddingVertical: 11,
   },
   filterBarOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomColor: 'transparent' },
   filterBarTxt: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
@@ -570,11 +573,10 @@ const styles = StyleSheet.create({
   },
   dropdownItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 13,
+    paddingHorizontal: 16, paddingVertical: 11,
     borderTopWidth: 1, borderTopColor: '#1f2937',
   },
   dropdownTxt: { color: '#94a3b8', fontSize: 15 },
-  dropdownCheck: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   tabChip: {
     flex: 1, paddingVertical: 9, borderRadius: 20,
     borderWidth: 1, borderColor: '#1f2937', alignItems: 'center',

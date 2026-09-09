@@ -180,8 +180,14 @@ function preloadInterstitial() {
 // feels ad-heavy. Also hold off for the first stretch after launch — an ad the
 // moment someone opens the app is the classic anti-pattern. Both clocks are
 // app-session scoped.
-const MIN_INTERSTITIAL_INTERVAL_MS = 3 * 60_000;
-const MIN_TIME_SINCE_START_MS = 90_000;
+// Six minutes, not three, and three before the first one rather than ninety
+// seconds. Measured on a real phone: three minutes of ordinary tapping around
+// the app produced two full-screen ads, which is a lot for an app people open
+// because they have just been crying. Fill only started working recently, so
+// this trades a little of brand-new revenue for not being the app that
+// interrupts you twice on the way to your own feed.
+const MIN_INTERSTITIAL_INTERVAL_MS = 6 * 60_000;
+const MIN_TIME_SINCE_START_MS = 3 * 60_000;
 const appStartedAt = Date.now();
 let lastInterstitialAt = 0;
 

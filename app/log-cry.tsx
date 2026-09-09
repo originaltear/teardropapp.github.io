@@ -80,6 +80,11 @@ export default function LogCryScreen() {
   const [saving, setSaving] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>('everyone');
   const [tags, setTags] = useState<string[]>([]);
+  // Tags are the least used field in the app: one cry in ten carries one.
+  // Folded away rather than removed, because the people who do use them use
+  // them properly. Opens by itself when editing a cry that already has some,
+  // so nobody loses sight of what is already on their own cry.
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [tagInput, setTagInput] = useState('');
   // The cry being edited — carries the fields that never change (id, coords,
   // country, createdAt). Null while loading and in create mode.
@@ -120,6 +125,10 @@ export default function LogCryScreen() {
     });
     return () => { cancelled = true; };
   }, [editId]);
+
+  useEffect(() => {
+    if (tags.length > 0) setTagsOpen(true);
+  }, [tags.length]);
 
   // Keep the close-friends count fresh — refetched on focus so it reflects any
   // edits made on the manage screen the user just returned from.
@@ -550,9 +559,33 @@ export default function LogCryScreen() {
           />
 
           {/* ── Tags ── */}
-          <Text style={styles.sectionLabel}>
-            Tags <Text style={styles.optional}>(optional · max {MAX_TAGS})</Text>
-          </Text>
+          <TouchableOpacity
+            style={styles.tagsToggle}
+            onPress={() => { tapLight(); setTagsOpen(v => !v); }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: tagsOpen }}
+            accessibilityLabel={tagsOpen ? 'Hide tags' : 'Add tags'}
+          >
+            <Text style={styles.sectionLabel}>
+              Tags{' '}
+              <Text style={styles.optional}>
+                {tagsOpen
+                  ? `(optional · max ${MAX_TAGS})`
+                  : tags.length > 0
+                    ? `(${tags.length} added)`
+                    : '(optional)'}
+              </Text>
+            </Text>
+            <UiIcon
+              name={tagsOpen ? 'chevronUp' : 'chevronDown'}
+              size={16}
+              color={tags.length > 0 ? accent : '#4a5568'}
+            />
+          </TouchableOpacity>
+
+          {tagsOpen && (
+          <>
           <View style={styles.tagGrid}>
             {/* Custom tags first (selected, removable), then presets */}
             {tags.filter(t => !PRESET_TAGS.includes(t)).map(t => (
@@ -604,6 +637,8 @@ export default function LogCryScreen() {
               <Text style={[styles.tagAddTxt, { color: accent }]}>+ Add</Text>
             </TouchableOpacity>
           </View>
+          </>
+          )}
 
           {/* ── Photo ── */}
           <Text style={styles.sectionLabel}>
@@ -808,6 +843,7 @@ const styles = StyleSheet.create({
   },
   tagChipTxt: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
   tagChipRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tagsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   tagInputRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   tagInput: {
     flex: 1, backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',

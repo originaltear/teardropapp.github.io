@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, useEffect, useMemo, memo } from 'react';
 import { useTheme } from '../../lib/themes';
 import {
   StyleSheet, View, Text, FlatList, TouchableOpacity,
-  Alert, ActivityIndicator, RefreshControl, Animated,
+  Alert, ActivityIndicator, RefreshControl, Animated, ScrollView,
 } from 'react-native';
 import { tapLight, selection } from '../../lib/haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -382,11 +382,19 @@ export default function FeedScreen() {
                 {selectedEmotion ? selectedEmotion.label : 'All emotions'}
               </Text>
             </View>
-            <Text style={styles.filterArrow}>{filterOpen ? '▲' : '▼'}</Text>
+            <UiIcon name={filterOpen ? 'chevronUp' : 'chevronDown'} size={16} color="#4a5568" />
           </TouchableOpacity>
 
           {filterOpen && (
-            <View style={styles.dropdown}>
+            // Twelve emotions no longer fit on a short screen, so the list
+            // scrolls rather than running off the bottom edge.
+            <ScrollView
+              style={styles.dropdown}
+              contentContainerStyle={{ flexGrow: 0 }}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
               <TouchableOpacity
                 style={[styles.dropdownItem, !mineEmotion && { backgroundColor: accent + '10' }]}
                 onPress={() => { setMineEmotion(null); setFilterOpen(false); }}
@@ -414,7 +422,7 @@ export default function FeedScreen() {
                   {mineEmotion === e.id && <UiIcon name="check" size={17} color={e.color} />}
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           )}
           </View>
 
@@ -567,8 +575,10 @@ const styles = StyleSheet.create({
   },
   filterBarOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomColor: 'transparent' },
   filterBarTxt: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
-  filterArrow: { color: '#4a5568', fontSize: 11 },
   dropdown: {
+    // About seven and a half rows: enough that the list clearly continues,
+    // short enough to leave the feed visible behind it.
+    maxHeight: 330,
     backgroundColor: '#111827',
     borderWidth: 1, borderTopWidth: 0, borderColor: '#1f2937',
     borderBottomLeftRadius: 12, borderBottomRightRadius: 12,

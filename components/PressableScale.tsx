@@ -3,8 +3,11 @@
  * content down slightly while pressed (and optionally fires a light haptic),
  * giving buttons a tactile, physical feel instead of a flat opacity fade.
  *
- * The visual style is applied to the inner Animated.View so the transform never
- * fights the Pressable's hit area.
+ * The style goes on the pressable itself, animated in place. It used to sit on
+ * an inner Animated.View, which left the outer Pressable sized to its own
+ * content: a button styled to fill its row came out as a small box with the
+ * label spilling over both edges. The paywall's Get Pro button was the one
+ * that showed it.
  */
 import { useRef } from 'react';
 import {
@@ -12,6 +15,8 @@ import {
   StyleProp, ViewStyle, GestureResponderEvent,
 } from 'react-native';
 import { tapLight } from '../lib/haptics';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Props extends Omit<PressableProps, 'style'> {
   children: React.ReactNode;
@@ -36,7 +41,8 @@ export function PressableScale({
     }).start();
 
   return (
-    <Pressable
+    <AnimatedPressable
+      style={[style, { transform: [{ scale }] }]}
       disabled={disabled}
       onPressIn={() => spring(scaleTo)}
       onPressOut={() => spring(1)}
@@ -46,9 +52,7 @@ export function PressableScale({
       }}
       {...rest}
     >
-      <Animated.View style={[style, { transform: [{ scale }] }]}>
-        {children}
-      </Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressable>
   );
 }

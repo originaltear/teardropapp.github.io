@@ -616,7 +616,7 @@ export default function MapScreen() {
             accessibilityRole="button"
             accessibilityLabel="Centre the map on my location"
           >
-            <Text style={styles.recentreIcon}>📍</Text>
+            <UiIcon name="locateFixed" size={22} color="#94a3b8" />
           </PressableScale>
         </SafeAreaView>
       )}
@@ -775,7 +775,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827ee', borderWidth: 1, borderColor: '#374151',
     alignItems: 'center', justifyContent: 'center',
   },
-  recentreIcon: { fontSize: 20 },
   quickFab: {
     width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(13,17,23,0.92)',

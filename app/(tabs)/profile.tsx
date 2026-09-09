@@ -91,10 +91,10 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
     // then lifted the sheet by that bar's height and left a dead band under it
     // with the last line of content clipped. Measured on a device: the screen
     // area ended at 2144 of 2340 pixels and the sheet stopped at 1942.
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <View style={ls.overlay}>
       <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
-      <KeyboardAvoidingView behavior="padding" automaticOffset>
+      <KeyboardAvoidingView behavior="padding" automaticOffset style={ls.sheetLimit}>
         <SafeAreaView edges={['bottom']} style={ls.sheet}>
           <View style={ls.handle} />
           <View style={ls.sheetHeader}>
@@ -474,8 +474,14 @@ const styles = StyleSheet.create({
 
 const ls = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
+  // The cap belongs here and not on the sheet. On the sheet it was measured
+  // against this wrapper's height, so the ten per cent it gave back stayed
+  // empty underneath and the tab bar showed through it. Here the wrapper
+  // itself shrinks, the backdrop takes the slack, and the sheet ends flush
+  // with the bottom of the screen on any phone.
+  sheetLimit: { maxHeight: '90%' },
   sheet: {
-    backgroundColor: '#111827', maxHeight: '90%',
+    backgroundColor: '#111827',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
     borderTopWidth: 1, borderColor: '#1f2937',
   },

@@ -165,12 +165,17 @@ const s = StyleSheet.create({
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   sub: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace', marginTop: 2, marginBottom: 16 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  // Two fixed columns rather than chips sized to their own labels. Wrapping on
+  // word length left rows ending in different places with holes on the right,
+  // and twelve emotions made it worse: Cutting Onions sat alone on a row of its
+  // own. Two columns is also what the full log screen does, so the two places
+  // you pick a feeling now look like the same app.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
   chip: {
+    width: '48%',
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 7,
     borderRadius: 20, borderWidth: 1, borderColor: '#1f2937',
-    minWidth: 96, justifyContent: 'center',
   },
 
   chipLabel: { color: '#94a3b8', fontSize: 14, fontWeight: '600' },

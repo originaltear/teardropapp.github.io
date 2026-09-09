@@ -16,7 +16,7 @@ import { useTheme } from '../../lib/themes';
 import { PressableScale } from '../../components/PressableScale';
 import { UiIcon } from '../../components/UiIcon';
 
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const TERMS_URL = 'https://teardropapp.com/terms.html';
 
 function openTerms() {
   WebBrowser.openBrowserAsync(TERMS_URL).catch(() => {});

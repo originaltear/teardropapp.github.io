@@ -26,9 +26,13 @@ import { UiIcon } from '../components/UiIcon';
 const STORE_NAME = Platform.OS === 'ios' ? 'App Store' : 'Google Play';
 
 // Required by App Store Review Guideline 3.1.2: the paywall must link to the
-// Terms of Use (EULA) and Privacy Policy. Apple's standard EULA is used as the
-// Terms of Use; the Privacy Policy is hosted on the marketing site.
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+// Terms of Use and Privacy Policy, both on the marketing site. This used to
+// point at Apple's standard EULA, which describes a relationship between the
+// reader and Apple and therefore said nothing true to anyone who bought
+// through Google Play. One document now covers both stores: it carries Apple's
+// required terms in its own section and contradicts nothing in Google's
+// distribution agreement.
+const TERMS_URL = 'https://teardropapp.com/terms.html';
 const PRIVACY_URL = 'https://teardropapp.com/privacy-policy.html';
 
 const PERKS = [

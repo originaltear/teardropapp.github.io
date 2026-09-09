@@ -42,7 +42,7 @@ const PRIVACY_URL = 'https://teardropapp.com/privacy-policy.html';
 // Apple's standard EULA, the same one the paywall links at purchase time.
 // Guideline 1.2 wants the terms reachable from inside the app, not only at the
 // moment someone is about to pay.
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+const TERMS_URL = 'https://teardropapp.com/terms.html';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

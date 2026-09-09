@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Use — Teardrop</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #070a14;
+      --bg-card:   #0d1117;
+      --bg-raised: #111827;
+      --border:    #1f2937;
+      --accent:    #6fe0e6;
+      --accent-dim:#6fe0e630;
+      --text:      #e8eef7;
+      --text-muted:#94a3b8;
+      --text-dim:  #64748b;
+      --gold:      #f2cf6b;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 24px 24px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-drop {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent) 0%, #4ab8be 100%);
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 0 18px var(--accent-dim);
+      flex-shrink: 0;
+    }
+
+    .logo-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Page title ── */
+    .page-title {
+      margin-bottom: 8px;
+      font-size: clamp(26px, 5vw, 36px);
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+      color: var(--text-dim);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    /* ── Sections ── */
+    section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+    }
+
+    section:hover {
+      border-color: #2d3748;
+      transition: border-color 0.2s;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2 .num {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid var(--accent)33;
+      border-radius: 8px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 20px 0 10px;
+    }
+
+    p { color: var(--text-muted); margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    ul, ol {
+      color: var(--text-muted);
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+    li { margin-bottom: 6px; }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    strong { color: var(--text); font-weight: 600; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; margin-top: 16px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead th {
+      background: var(--bg-raised);
+      color: var(--text);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td {
+      color: var(--text-muted);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border)88;
+      vertical-align: top;
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg-raised); }
+
+    /* ── Contact card ── */
+    .contact-card {
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+
+    .contact-card p { margin: 0; }
+
+    .email-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent)44;
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 6px 14px;
+      margin-top: 10px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 13px;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      section { padding: 20px 18px; }
+      h2 { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="#">
+    <div class="logo-drop"></div>
+    <span class="logo-name">Teardrop</span>
+  </a>
+</header>
+
+<main>
+  <h1 class="page-title">Terms of Use</h1>
+  <p class="page-subtitle">Last updated: September 10, 2026</p>
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="num">1</span> About These Terms</h2>
+    <p>These Terms of Use ("Terms") are an agreement between you and the Developer of Teardrop ("we", "our", "us") about your use of the Teardrop mobile application and any related services ("the App").</p>
+    <p>By downloading, opening, or using the App, you agree to these Terms. If you do not agree, please do not use the App.</p>
+    <p>These Terms apply whether you installed the App from the Apple App Store or from Google Play. Section 16 adds terms that apply only to the App Store, and section 17 adds a note that applies only to Google Play.</p>
+    <p>Your privacy is covered separately in our <a href="privacy-policy.html">Privacy Policy</a>, which forms part of these Terms.</p>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="num">2</span> Who We Are</h2>
+    <p>Teardrop is developed and operated by <strong>Ishaq Ahmed</strong> ("the Developer"), based in Denmark.</p>
+    <div class="contact-card">
+      <p>Contact</p>
+      <a class="email-badge" href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="num">3</span> Eligibility and Your Account</h2>
+    <ul>
+      <li>You must be at least <strong>13 years old</strong> to use Teardrop. If the law where you live sets a higher age for agreeing to online services on your own, you must meet that age instead.</li>
+      <li>You are responsible for the information you give when creating an account, and for keeping your password to yourself.</li>
+      <li>An account is for one person. Do not share it, and do not create an account on someone else's behalf.</li>
+      <li>Tell us at the address above if you believe someone else has used your account.</li>
+    </ul>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="num">4</span> What Teardrop Is, and What It Is Not</h2>
+    <p>Teardrop is a journal. It lets you record that you cried, how it felt, and where you were, and to share that with people if you choose to.</p>
+    <p><strong>Teardrop is not a medical service.</strong> It does not provide medical or psychological advice, diagnosis, or treatment, and nothing in the App should be treated as such. It is not monitored by clinicians, and no one is watching your entries for signs of crisis.</p>
+    <p><strong>If you are in danger or thinking about harming yourself, contact your local emergency number or a crisis line right away.</strong> In Denmark, Livslinien can be reached on 70 201 201. Elsewhere, your local emergency number will direct you.</p>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="num">5</span> Your Content</h2>
+    <p>Everything you put into Teardrop — your notes, photos, voice recordings, comments, profile and the entries themselves — stays yours. We do not claim ownership of it.</p>
+    <p>To run the App we need your permission to store your content and show it to the people you have chosen to show it to. By posting content you give us a limited, non-exclusive, royalty-free licence to host, store, copy and display it <strong>only</strong> for the purpose of operating Teardrop and only to the audience your own visibility settings allow. We do not sell your content, and we do not use it to advertise to other people.</p>
+    <p>This licence ends when you delete the content or your account, apart from copies that remain briefly in backups.</p>
+    <p>You are responsible for what you post. Do not post anything you do not have the right to post.</p>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="num">6</span> Rules of Use</h2>
+    <p>Teardrop is a place where people write about crying. That asks for some care. Do not use the App to:</p>
+    <ul>
+      <li>harass, bully, threaten or impersonate anyone</li>
+      <li>post hateful content, or content that attacks people for who they are</li>
+      <li>post sexual content, or any content involving a minor in a sexual way</li>
+      <li>encourage anyone to harm themselves or others</li>
+      <li>post someone else's private information, including photographs of them, without their agreement</li>
+      <li>advertise, spam, or run a commercial operation</li>
+      <li>break the law, or help anyone else break it</li>
+      <li>scrape, reverse engineer, or interfere with the App or the servers behind it</li>
+      <li>use another person's account, or work around blocks, reports or suspensions</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="num">7</span> Reporting, Moderation and Suspension</h2>
+    <p>You can report a cry, a comment or a person from inside the App, and you can block someone so that neither of you sees the other.</p>
+    <p>We review reports and may remove content or restrict an account when these Terms are broken. Where it is reasonable we will say why, and you can reply to us at the address above. We may act without notice where content is clearly illegal or where someone is at risk.</p>
+    <p>We are one person, not a moderation team. We do not read or check content before it is posted, and we cannot promise to catch everything.</p>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span class="num">8</span> Teardrop Pro and Payments</h2>
+    <p>Teardrop is free to use. Some features are part of a paid plan, <strong>Teardrop Pro</strong>, offered as a subscription or as a one-time purchase.</p>
+    <h3>How you are charged</h3>
+    <ul>
+      <li>Prices are shown in the App before you buy, in your own currency, and include any tax where the store shows it that way.</li>
+      <li><strong>Payment is taken by the store you bought through</strong>, Apple or Google, not by us. We never see or handle your card details.</li>
+      <li>Subscriptions renew automatically at the end of each period unless you cancel at least 24 hours before it ends. The renewal price is the price shown when you subscribed unless you are told otherwise in advance.</li>
+    </ul>
+    <h3>Cancelling and refunds</h3>
+    <ul>
+      <li>Cancel any time in your store account: <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener">Apple subscriptions</a> or <a href="https://play.google.com/store/account/subscriptions" target="_blank" rel="noopener">Google Play subscriptions</a>. Cancelling stops the next renewal; it does not shorten the period you have already paid for.</li>
+      <li>Deleting the App does not cancel a subscription.</li>
+      <li><strong>Refunds are handled by the store</strong>, under <a href="https://support.apple.com/en-us/HT204084" target="_blank" rel="noopener">Apple's refund process</a> or <a href="https://support.google.com/googleplay/answer/2479637" target="_blank" rel="noopener">Google Play's</a>. We cannot issue a refund for a purchase we did not take payment for, but write to us if something has gone wrong and we will help you where we can.</li>
+    </ul>
+    <h3>If you are a consumer in the EU or EEA</h3>
+    <p>You normally have 14 days to withdraw from a distance contract. For digital content and services that start immediately, that right can end once delivery has begun with your agreement, which is what you consent to at the moment of purchase. <strong>None of this takes away rights you have under the consumer law of the country you live in</strong>, and where these Terms and that law disagree, that law wins.</p>
+  </section>
+
+  <!-- 9 -->
+  <section>
+    <h2><span class="num">9</span> Changes to the App</h2>
+    <p>Teardrop is actively developed. Features may be added, changed or removed, and the App may be unavailable at times for maintenance or for reasons outside our control.</p>
+    <p>If we ever have to stop running Teardrop altogether, we will give reasonable notice in the App where we can, so you have time to export or save what matters to you. If a paid plan is running at that point, unused time will be dealt with through the store you bought it from.</p>
+  </section>
+
+  <!-- 10 -->
+  <section>
+    <h2><span class="num">10</span> Advertising</h2>
+    <p>The free version of Teardrop shows advertising. We do not control which specific adverts you see. Teardrop Pro removes advertising. How advertising data is handled is described in our <a href="privacy-policy.html">Privacy Policy</a>.</p>
+  </section>
+
+  <!-- 11 -->
+  <section>
+    <h2><span class="num">11</span> Third-Party Services</h2>
+    <p>Teardrop runs on services provided by others, including hosting, maps, crash reporting, advertising and purchase handling. Those services have their own terms and privacy policies, and we are not responsible for how they operate. The <a href="privacy-policy.html">Privacy Policy</a> names them.</p>
+  </section>
+
+  <!-- 12 -->
+  <section>
+    <h2><span class="num">12</span> Our Intellectual Property</h2>
+    <p>The App itself, its name, its artwork including the teardrop emblems, its text and its code belong to the Developer and are protected by copyright and other laws. You may use the App as it is meant to be used. You may not copy, sell, rent, sublicense, or make derivative works from it, and you may not remove notices of ownership from it.</p>
+  </section>
+
+  <!-- 13 -->
+  <section>
+    <h2><span class="num">13</span> Disclaimers</h2>
+    <p>The App is provided "as is" and "as available". We do not promise that it will always work, that it will be free of faults, or that anything you store in it will never be lost. Keep your own copy of anything you cannot afford to lose.</p>
+    <p><strong>Nothing here removes rights you have as a consumer under the law of the country you live in.</strong> If that law gives you guarantees we cannot exclude, those guarantees still apply.</p>
+  </section>
+
+  <!-- 14 -->
+  <section>
+    <h2><span class="num">14</span> Limitation of Liability</h2>
+    <p>To the extent the law allows, we are not liable for indirect or consequential loss, for lost profits, or for loss of data arising from your use of the App.</p>
+    <p><strong>We do not exclude or limit our liability</strong> for death or personal injury caused by our negligence, for fraud, for intentional wrongdoing or gross negligence, or for anything else the law does not allow us to limit.</p>
+    <p>Where our liability can be limited, it is limited to the amount you paid us for the App in the twelve months before the event, or, if you have paid nothing, to the resupply of the service.</p>
+  </section>
+
+  <!-- 15 -->
+  <section>
+    <h2><span class="num">15</span> Ending Your Use</h2>
+    <p>You can stop using Teardrop whenever you want, and you can delete your account from inside the App. Deleting your account removes your entries from the App as described in the <a href="privacy-policy.html">Privacy Policy</a>.</p>
+    <p>We may suspend or close an account that breaks these Terms, or where we are required to by law. Where it is reasonable, we will tell you why first.</p>
+  </section>
+
+  <!-- 16 -->
+  <section>
+    <h2><span class="num">16</span> Additional Terms for the Apple App Store</h2>
+    <p>These apply only if you got Teardrop from the App Store.</p>
+    <ul>
+      <li>These Terms are between you and the Developer only. <strong>Apple is not a party to them.</strong></li>
+      <li>The licence granted to you is a non-transferable licence to use Teardrop on any Apple-branded device that you own or control, as permitted by the App Store Terms of Service.</li>
+      <li><strong>The Developer, not Apple, is solely responsible for the App</strong> and its content, and for any maintenance and support. Apple has no obligation to provide support for the App.</li>
+      <li>If the App fails to conform to any applicable warranty, you may notify Apple, and Apple may refund the purchase price. To the extent the law permits, Apple has no other warranty obligation for the App.</li>
+      <li><strong>The Developer, not Apple, is responsible</strong> for addressing any claim by you or a third party relating to the App, including product liability claims, claims that the App fails to conform to a legal or regulatory requirement, and claims under consumer protection or similar law.</li>
+      <li><strong>The Developer, not Apple, is responsible</strong> for investigating, defending, settling and discharging any third-party claim that the App infringes that party's intellectual property rights.</li>
+      <li>You confirm that you are not located in a country subject to a U.S. Government embargo or designated as a "terrorist supporting" country, and that you are not on any U.S. Government list of prohibited or restricted parties.</li>
+      <li>Any questions, complaints or claims about the App should be sent to <a href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a>.</li>
+      <li><strong>Apple and Apple's subsidiaries are third-party beneficiaries of these Terms</strong>, and upon your acceptance Apple will have the right, and is deemed to have accepted the right, to enforce these Terms against you as a third-party beneficiary.</li>
+    </ul>
+  </section>
+
+  <!-- 17 -->
+  <section>
+    <h2><span class="num">17</span> A Note for Google Play</h2>
+    <p>If you got Teardrop from Google Play, these Terms are between you and the Developer. <strong>Google is not a party to them</strong> and is not responsible for the App.</p>
+    <p>Nothing in these Terms is meant to take away or narrow any right that Google's own terms give you, including the right to reinstall an app you have paid for. Where these Terms and Google's terms disagree on such a right, Google's terms apply.</p>
+  </section>
+
+  <!-- 18 -->
+  <section>
+    <h2><span class="num">18</span> Governing Law and Disputes</h2>
+    <p>These Terms are governed by the law of Denmark.</p>
+    <p><strong>If you are a consumer, this does not deprive you of the protection of the mandatory law of the country where you live</strong>, and you may bring proceedings in the courts of that country.</p>
+    <p>If you want to raise a problem, write to us first at <a href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a>. Most things are quicker to sort out that way. Consumers in the EU can also use the European Commission's <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">Online Dispute Resolution platform</a>.</p>
+  </section>
+
+  <!-- 19 -->
+  <section>
+    <h2><span class="num">19</span> Changes to These Terms</h2>
+    <p>We may update these Terms as the App changes or as the law requires. The date at the top always shows the current version. If a change matters to you in a material way, we will give reasonable notice in the App before it takes effect. Continuing to use Teardrop after that means you accept the new Terms.</p>
+  </section>
+
+  <!-- 20 -->
+  <section>
+    <h2><span class="num">20</span> Contact</h2>
+    <p>Questions about these Terms are welcome.</p>
+    <div class="contact-card">
+      <p><strong>Email</strong></p>
+      <a class="email-badge" href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a>
+      <p style="margin-top:14px;"><strong>App:</strong> Teardrop &mdash; Map Your Emotional Journey</p>
+      <p><strong>Platform:</strong> iOS and Android</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>&copy; 2026 Teardrop &middot; <a href="mailto:hello.teardropapp@gmail.com">hello.teardropapp@gmail.com</a></p>
+  <p style="margin-top:6px;">These Terms of Use were last updated on September 10, 2026.</p>
+</footer>
+
+</body>
+</html>

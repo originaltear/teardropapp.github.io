@@ -11,6 +11,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/themes';
 import { PressableScale } from '../../components/PressableScale';
+import { UiIcon } from '../../components/UiIcon';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -119,10 +120,25 @@ export default function SetupProfileScreen() {
 
   function UsernameStatus() {
     if (!username) return null;
-    if (validationErr) return <Text style={s.statusErr}>✕  {validationErr}</Text>;
+    if (validationErr) return (
+      <View style={s.statusRow}>
+        <UiIcon name="x" size={14} color="#ef6f6f" strokeWidth={2.5} />
+        <Text style={s.statusErr}>{validationErr}</Text>
+      </View>
+    );
     if (checking) return <ActivityIndicator size="small" color={accent} style={{ marginTop: 6 }} />;
-    if (available === true) return <Text style={s.statusOk}>✓  @{username} is available</Text>;
-    if (available === false) return <Text style={s.statusErr}>✕  @{username} is taken</Text>;
+    if (available === true) return (
+      <View style={s.statusRow}>
+        <UiIcon name="check" size={14} color="#4ade80" strokeWidth={2.5} />
+        <Text style={s.statusOk}>@{username} is available</Text>
+      </View>
+    );
+    if (available === false) return (
+      <View style={s.statusRow}>
+        <UiIcon name="x" size={14} color="#ef6f6f" strokeWidth={2.5} />
+        <Text style={s.statusErr}>@{username} is taken</Text>
+      </View>
+    );
     return null;
   }
 
@@ -269,8 +285,9 @@ const s = StyleSheet.create({
     color: '#e2e8f0', fontSize: 15,
   },
 
-  statusOk: { color: '#4ade80', fontSize: 13, marginTop: 6 },
-  statusErr: { color: '#ef6f6f', fontSize: 13, marginTop: 6 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  statusOk: { color: '#4ade80', fontSize: 13 },
+  statusErr: { color: '#ef6f6f', fontSize: 13 },
   hint: { color: '#374151', fontSize: 11, fontFamily: 'monospace', marginTop: 6 },
 
   // Visibility picker

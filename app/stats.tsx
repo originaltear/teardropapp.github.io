@@ -78,14 +78,19 @@ function SectionHeader({ title, premium }: { title: string; premium?: boolean })
 }
 
 /** Horizontal bar row */
-function HBar({ label, value, max, color, labelWidth = 80 }: {
+function HBar({ label, value, max, color, labelWidth = 80, emotion }: {
   label: string; value: number; max: number; color?: string; labelWidth?: number;
+  /** Draws the emotion's own teardrop in front of the label. */
+  emotion?: string;
 }) {
   const { theme: { accent } } = useTheme();
   const fillColor = color ?? accent;
   return (
     <View style={hb.row}>
-      <Text style={[hb.label, { width: labelWidth }]} numberOfLines={1}>{label}</Text>
+      <View style={[hb.labelCell, { width: labelWidth }]}>
+        {emotion ? <EmotionIcon emotion={emotion} size={16} /> : null}
+        <Text style={hb.label} numberOfLines={1}>{label}</Text>
+      </View>
       <View style={hb.bg}>
         <View style={[hb.fill, { width: `${Math.max((value / Math.max(max, 1)) * 100, value > 0 ? 2 : 0)}%`, backgroundColor: fillColor }]} />
       </View>
@@ -95,7 +100,8 @@ function HBar({ label, value, max, color, labelWidth = 80 }: {
 }
 const hb = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  label: { color: '#64748b', fontSize: 13, fontFamily: 'monospace', textAlign: 'right' },
+  labelCell: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 5 },
+  label: { color: '#64748b', fontSize: 13, fontFamily: 'monospace', flexShrink: 1 },
   bg: { flex: 1, height: 20, backgroundColor: '#1f2937', borderRadius: 5, overflow: 'hidden' },
   fill: { height: 20, borderRadius: 5, minWidth: 3 },
   val: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', width: 26, textAlign: 'right' },
@@ -487,7 +493,8 @@ export default function StatsScreen() {
             {emotionList.map(e => (
               <HBar
                 key={e.id}
-                label={`${e.emoji} ${e.label}`}
+                label={e.label}
+                emotion={e.id}
                 value={emotionCounts[e.id] ?? 0}
                 max={n}
                 color={e.color}
@@ -533,7 +540,8 @@ export default function StatsScreen() {
                 return (
                   <HBar
                     key={`${p.latitude},${p.longitude}`}
-                    label={`${e?.emoji ?? '💧'} ${p.name ?? `Place ${i + 1}`}`}
+                    label={p.name ?? `Place ${i + 1}`}
+                    emotion={p.dominant}
                     value={p.count}
                     max={placeInsight.places[0].count}
                     labelWidth={160}
@@ -576,10 +584,13 @@ export default function StatsScreen() {
                 */}
                 <Text style={s.awayLabel}>intensity here</Text>
                 {placeInsight.homeEmotion && (
-                  <Text style={s.awayEmotion}>
-                    mostly {emotionById(placeInsight.homeEmotion)?.emoji}{' '}
-                    {emotionById(placeInsight.homeEmotion)?.label}
-                  </Text>
+                  <View style={s.awayEmotionRow}>
+                    <Text style={s.awayEmotion}>mostly</Text>
+                    <EmotionIcon emotion={placeInsight.homeEmotion} size={15} />
+                    <Text style={s.awayEmotion}>
+                      {emotionById(placeInsight.homeEmotion)?.label}
+                    </Text>
+                  </View>
                 )}
               </View>
               <View style={s.awayDivider} />
@@ -589,10 +600,13 @@ export default function StatsScreen() {
                 </Text>
                 <Text style={s.awayLabel}>intensity elsewhere</Text>
                 {placeInsight.awayEmotion && (
-                  <Text style={s.awayEmotion}>
-                    mostly {emotionById(placeInsight.awayEmotion)?.emoji}{' '}
-                    {emotionById(placeInsight.awayEmotion)?.label}
-                  </Text>
+                  <View style={s.awayEmotionRow}>
+                    <Text style={s.awayEmotion}>mostly</Text>
+                    <EmotionIcon emotion={placeInsight.awayEmotion} size={15} />
+                    <Text style={s.awayEmotion}>
+                      {emotionById(placeInsight.awayEmotion)?.label}
+                    </Text>
+                  </View>
                 )}
               </View>
             </View>
@@ -658,7 +672,7 @@ export default function StatsScreen() {
                 <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
                   {top.map(({ emotion: e, count }) => e ? (
                     <View key={e.id} style={[s.emotionChip, { backgroundColor: e.color + '22' }]}>
-                      <Text style={{ fontSize: 15 }}>{e.emoji}</Text>
+                      <EmotionIcon emotion={e.id} size={20} />
                       <Text style={[s.emotionChipLabel, { color: e.color }]}>{e.label}</Text>
                       <Text style={s.emotionChipCount}>{count}</Text>
                     </View>
@@ -781,7 +795,8 @@ const s = StyleSheet.create({
   // Centred and single-line so the two halves stay level with each other even
   // if a translation or a large font setting makes one of them longer.
   awayLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', textAlign: 'center' },
-  awayEmotion: { color: '#94a3b8', fontSize: 13, marginTop: 2, textAlign: 'center' },
+  awayEmotion: { color: '#94a3b8', fontSize: 13, textAlign: 'center' },
+  awayEmotionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 2 },
 
   // Emotion trends
   trendRow: { paddingVertical: 10, gap: 6, borderTopWidth: 1, borderTopColor: '#1a2233' },

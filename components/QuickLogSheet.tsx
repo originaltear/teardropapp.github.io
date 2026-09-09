@@ -105,7 +105,7 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
             <Text style={s.title}>Quick log</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={s.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
-            <Text style={s.closeTxt}>✕</Text>
+            <UiIcon name="x" size={18} color="#4a5568" />
           </TouchableOpacity>
         </View>
         <Text style={s.sub}>Tap how it felt — saved instantly, details optional</Text>

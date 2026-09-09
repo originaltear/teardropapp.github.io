@@ -415,7 +415,7 @@ export default function LogCryScreen() {
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
             style={styles.closeBtn}
           >
-            <Text style={[styles.closeTxt, { color: accent }]}>✕</Text>
+            <UiIcon name="x" size={18} color={accent} />
           </TouchableOpacity>
           <Text style={styles.title}>Edit Cry</Text>
           <View style={{ width: 36 }} />
@@ -438,7 +438,7 @@ export default function LogCryScreen() {
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
             style={styles.closeBtn}
           >
-            <Text style={[styles.closeTxt, { color: accent }]}>✕</Text>
+            <UiIcon name="x" size={18} color={accent} />
           </TouchableOpacity>
           <Text style={styles.title}>{isEdit ? 'Edit Cry' : 'Log a Cry'}</Text>
           <View style={{ width: 36 }} />
@@ -562,7 +562,10 @@ export default function LogCryScreen() {
                 onPress={() => toggleTag(t)}
                 activeOpacity={0.75}
               >
-                <Text style={[styles.tagChipTxt, { color: accent }]}>#{t}  ✕</Text>
+                <View style={styles.tagChipRow}>
+                  <Text style={[styles.tagChipTxt, { color: accent }]}>#{t}</Text>
+                  <UiIcon name="x" size={12} color={accent} strokeWidth={2.5} />
+                </View>
               </TouchableOpacity>
             ))}
             {PRESET_TAGS.map(t => {
@@ -615,7 +618,7 @@ export default function LogCryScreen() {
                   of mixed aspect ratios reads as a mess. */}
               <Image source={{ uri: photoUri }} style={styles.photoPreview} resizeMode="contain" />
               <TouchableOpacity style={styles.photoRemove} onPress={() => setPhotoUri(null)}>
-                <Text style={styles.photoRemoveTxt}>✕</Text>
+                <UiIcon name="x" size={16} color="#e2e8f0" />
               </TouchableOpacity>
             </View>
           ) : (
@@ -805,6 +808,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
   },
   tagChipTxt: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
+  tagChipRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   tagInputRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
   tagInput: {
     flex: 1, backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',

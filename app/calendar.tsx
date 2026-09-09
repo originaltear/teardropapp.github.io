@@ -13,6 +13,8 @@ import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
 import { FeedBanner } from '../components/FeedBanner';
+import { EmotionIcon } from '../components/EmotionIcon';
+import { Drops } from '../components/Drops';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -233,14 +235,17 @@ export default function CalendarScreen() {
                     accessibilityLabel={`Open ${emotion?.label ?? cry.emotion} cry`}
                   >
                     <View style={[s.cryDot, { backgroundColor: color + '33' }]}>
-                      <Text style={{ fontSize: 17 }}>{emotion?.emoji ?? '💧'}</Text>
+                      <EmotionIcon emotion={cry.emotion} size={28} label={emotion?.label ?? cry.emotion} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[s.cryEmotion, { color }]}>{emotion?.label ?? cry.emotion}</Text>
-                      <Text style={s.cryTime}>
-                        {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                        {' · '}{'💧'.repeat(cry.intensity)}
-                      </Text>
+                      <View style={s.cryTimeRow}>
+                        <Text style={s.cryTime}>
+                          {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                          {' ·'}
+                        </Text>
+                        <Drops intensity={cry.intensity} size={12} color={color} />
+                      </View>
                       {cry.note ? <Text style={s.cryNote} numberOfLines={2}>{cry.note}</Text> : null}
                     </View>
                     <Text style={s.cryArrow}>›</Text>
@@ -296,6 +301,7 @@ const s = StyleSheet.create({
   // only something to look at.
   cryItem: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 6 },
   cryArrow: { color: '#374151', fontSize: 20, alignSelf: 'center' },
+  cryTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cryDot: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cryEmotion: { fontSize: 15, fontWeight: '600' },
   cryTime: { color: '#4a5568', fontSize: 13 },

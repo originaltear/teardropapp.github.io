@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { getCryReactors, Reactor } from '../lib/social';
+import { UiIcon } from './UiIcon';
 
 function Avatar({ uri, size = 38 }: { uri?: string | null; size?: number }) {
   if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
@@ -57,7 +58,7 @@ export function ReactorsSheet({ cryId, visible, onClose }: {
             <View style={s.headerRow}>
               <Text style={s.title}>Reactions</Text>
               <TouchableOpacity onPress={onClose} hitSlop={8}>
-                <Text style={s.close}>✕</Text>
+                <View style={s.close}><UiIcon name="x" size={18} color="#4a5568" /></View>
               </TouchableOpacity>
             </View>
 

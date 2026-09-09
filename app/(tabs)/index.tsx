@@ -133,7 +133,7 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
           </Text>
         </View>
         <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Close">
-          <Text style={styles.closeTxt}>✕</Text>
+          <UiIcon name="x" size={18} color="#4a5568" />
         </TouchableOpacity>
       </View>
 
@@ -196,11 +196,11 @@ function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: (
         ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           <Text style={[styles.clEmotion, { color, backgroundColor: color + '22' }]}>
-            {emotion?.emoji} {emotion?.label ?? cry.emotion}
+            {emotion?.label ?? cry.emotion}
           </Text>
           <Drops intensity={cry.intensity} size={11} color={color} />
-          {cry.photoUri ? <Text style={{ fontSize: 11 }}>📷</Text> : null}
-          {cry.audioUri ? <Text style={{ fontSize: 11 }}>🎙</Text> : null}
+          {cry.photoUri ? <UiIcon name="camera" size={12} color="#4a5568" /> : null}
+          {cry.audioUri ? <UiIcon name="mic" size={12} color="#4a5568" /> : null}
         </View>
         {cry.note ? <Text style={styles.clNote} numberOfLines={1}>{cry.note}</Text> : null}
         <Text style={styles.clDate}>{timeAgo(cry.date)}</Text>

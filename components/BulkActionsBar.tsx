@@ -5,6 +5,7 @@
  */
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import type { Cry } from '../lib/storage';
+import { UiIcon } from './UiIcon';
 
 export type CryVisibility = NonNullable<Cry['visibility']>;
 
@@ -66,7 +67,10 @@ export function BulkActionsBar({ count, applying, onChangeVisibility, onDelete }
         accessibilityRole="button"
         accessibilityLabel="Delete selected cries"
       >
-        <Text style={s.deleteTxt} numberOfLines={1}>🗑 Delete</Text>
+        <View style={s.deleteRow}>
+          <UiIcon name="trash" size={15} color="#ef4444" />
+          <Text style={s.deleteTxt} numberOfLines={1}>Delete</Text>
+        </View>
       </TouchableOpacity>
       <TouchableOpacity
         style={[s.visBtn, disabled && { opacity: 0.4 }]}
@@ -96,6 +100,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 9,
   },
   deleteTxt: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
+  deleteRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   visBtn: {
     backgroundColor: '#6fe0e6', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 10,

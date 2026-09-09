@@ -18,6 +18,7 @@ import { ThemeContext, loadSavedTheme, saveTheme, DEFAULT_THEME, type ThemeDef }
 import { AchievementToastProvider } from '../components/AchievementToastProvider';
 import { SplashGate } from '../components/AppSplash';
 import { ONBOARDING_KEY } from './onboarding';
+import { Tear } from '../components/EmotionIcon';
 
 // ─── Crash reporting ──────────────────────────────────────────────────────────
 // Runs before anything else so an error during startup is still captured.
@@ -338,7 +339,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   Sentry.captureException(error);
   return (
     <View style={eb.container}>
-      <Text style={eb.emoji}>💧</Text>
+      <View style={eb.mark}><Tear size={48} filled={false} color="#6fe0e6" /></View>
       <Text style={eb.title}>Something went wrong</Text>
       <Text style={eb.sub}>An unexpected error occurred. Your cries are safe.</Text>
       <TouchableOpacity style={eb.btn} onPress={retry} activeOpacity={0.85}>
@@ -354,7 +355,7 @@ const eb = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     gap: 12, paddingHorizontal: 40,
   },
-  emoji: { fontSize: 48, opacity: 0.6 },
+  mark: { opacity: 0.6 },
   title: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
   sub: { color: '#4a5568', fontSize: 15, textAlign: 'center', lineHeight: 20 },
   btn: {

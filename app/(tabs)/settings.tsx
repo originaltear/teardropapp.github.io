@@ -31,6 +31,7 @@ import { useTheme, THEMES } from '../../lib/themes';
 import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics';
 import { isPrivacyOptionsRequired, showPrivacyOptions } from '../../lib/ads';
 import { SUPPORT_EMAIL, openSupportEmail } from '../guidelines';
+import { UiIcon } from '../../components/UiIcon';
 
 // Hosted privacy policy (same target as the paywall's legal links). Google Play
 // requires an accessible privacy policy for apps that collect account data, so
@@ -474,9 +475,12 @@ export default function SettingsScreen() {
                           disabled={identities.length <= 1}
                           activeOpacity={0.7}
                         >
-                          <Text style={styles.linkedTxt}>
-                            ✓ Linked{identities.length > 1 ? '  ·  Unlink' : ''}
-                          </Text>
+                          <View style={styles.linkedRow}>
+                            <UiIcon name="check" size={14} color="#4ade80" strokeWidth={2.5} />
+                            <Text style={styles.linkedTxt}>
+                              Linked{identities.length > 1 ? '  ·  Unlink' : ''}
+                            </Text>
+                          </View>
                         </TouchableOpacity>
                       ) : (
                         <TouchableOpacity onPress={() => handleLink(provider)} activeOpacity={0.7}>
@@ -682,7 +686,7 @@ export default function SettingsScreen() {
                 {t.emoji}  {t.name}
                 {t.premium && !isPremium ? '  🔒' : ''}
               </Text>
-              {theme.id === t.id && <Text style={[styles.pickerCheck, { color: t.accent }]}>✓</Text>}
+              {theme.id === t.id && <UiIcon name="check" size={18} color={t.accent} />}
             </TouchableOpacity>
           ))}
         </View>
@@ -702,7 +706,7 @@ export default function SettingsScreen() {
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>Report a problem</Text>
               <TouchableOpacity onPress={() => setShowReport(false)}>
-                <Text style={styles.sheetClose}>✕</Text>
+                <View style={styles.sheetClose}><UiIcon name="x" size={21} color="#4a5568" /></View>
               </TouchableOpacity>
             </View>
             <Text style={styles.reportHint}>
@@ -746,7 +750,7 @@ export default function SettingsScreen() {
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>Change username</Text>
               <TouchableOpacity onPress={() => setShowUsernameModal(false)}>
-                <Text style={styles.sheetClose}>✕</Text>
+                <View style={styles.sheetClose}><UiIcon name="x" size={21} color="#4a5568" /></View>
               </TouchableOpacity>
             </View>
             <View style={styles.usernameInputRow}>
@@ -765,11 +769,20 @@ export default function SettingsScreen() {
               {checkingUsername && <ActivityIndicator size="small" color="#6fe0e6" />}
             </View>
             {usernameErr
-              ? <Text style={styles.usernameStatusErr}>✕  {usernameErr}</Text>
+              ? <View style={styles.usernameStatusRow}>
+                  <UiIcon name="x" size={14} color="#ef6f6f" strokeWidth={2.5} />
+                  <Text style={styles.usernameStatusErr}>{usernameErr}</Text>
+                </View>
               : usernameAvailable === true
-                ? <Text style={styles.usernameStatusOk}>✓  @{newUsername} is available</Text>
+                ? <View style={styles.usernameStatusRow}>
+                    <UiIcon name="check" size={14} color="#4ade80" strokeWidth={2.5} />
+                    <Text style={styles.usernameStatusOk}>@{newUsername} is available</Text>
+                  </View>
                 : usernameAvailable === false
-                  ? <Text style={styles.usernameStatusErr}>✕  @{newUsername} is taken</Text>
+                  ? <View style={styles.usernameStatusRow}>
+                      <UiIcon name="x" size={14} color="#ef6f6f" strokeWidth={2.5} />
+                      <Text style={styles.usernameStatusErr}>@{newUsername} is taken</Text>
+                    </View>
                   : null}
             <Text style={styles.reportHint}>3–20 characters · lowercase letters, numbers and _ only</Text>
             <TouchableOpacity
@@ -825,6 +838,7 @@ const styles = StyleSheet.create({
   rowChevron: { color: '#4a5568', fontSize: 20 },
   linkTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   linkedTxt: { color: '#4ade80', fontSize: 13, fontWeight: '600' },
+  linkedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   usernameInputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
@@ -832,8 +846,9 @@ const styles = StyleSheet.create({
   },
   usernameAt: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
   usernameInput: { flex: 1, paddingVertical: 14, color: '#e2e8f0', fontSize: 17, fontFamily: 'monospace' },
-  usernameStatusOk: { color: '#4ade80', fontSize: 13, marginBottom: 4 },
-  usernameStatusErr: { color: '#ef6f6f', fontSize: 13, marginBottom: 4 },
+  usernameStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  usernameStatusOk: { color: '#4ade80', fontSize: 13 },
+  usernameStatusErr: { color: '#ef6f6f', fontSize: 13 },
   dangerNote: {
     color: '#374151', fontSize: 11, paddingHorizontal: 20, paddingTop: 8, lineHeight: 16,
   },

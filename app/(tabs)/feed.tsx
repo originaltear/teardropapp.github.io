@@ -67,7 +67,7 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
     >
       {selectMode && (
         <View style={[styles.checkCircle, checked && styles.checkCircleOn]}>
-          {checked && <Text style={styles.checkMark}>✓</Text>}
+          {checked && <UiIcon name="check" size={14} color="#0d1117" strokeWidth={3} />}
         </View>
       )}
       {/* The feeling owns the left rail in both tabs, so your eye learns one place
@@ -108,7 +108,10 @@ const FeedItem = memo(function FeedItem({ cry, onSelect, quickBadge, selectMode,
           </Text>
         )}
         {quickBadge && (
-          <Text style={styles.quickBadge}>✏️ no details yet · tap to add</Text>
+          <View style={styles.quickBadgeRow}>
+            <UiIcon name="pencil" size={11} color="#eab308" />
+            <Text style={styles.quickBadge}>no details yet · tap to add</Text>
+          </View>
         )}
         <View style={styles.itemMeta}>
           {(cry.photo_uri || cry.audio_uri) ? (
@@ -618,6 +621,7 @@ const styles = StyleSheet.create({
   noteSnippet: { color: '#64748b', fontSize: 13, lineHeight: 18 },
   itemTags: { color: '#4a5568', fontSize: 13 },
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
+  quickBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   itemChecked: { backgroundColor: '#6fe0e610' },
   checkCircle: {
     width: 22, height: 22, borderRadius: 11, alignSelf: 'center',

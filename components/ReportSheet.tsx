@@ -26,6 +26,7 @@ import { useTheme } from '../lib/themes';
 import { reportContent, blockUser, ReportTarget } from '../lib/social';
 import { selection } from '../lib/haptics';
 import { PressableScale } from './PressableScale';
+import { UiIcon } from './UiIcon';
 
 const REASONS = [
   'Harassment or bullying',
@@ -119,7 +120,7 @@ export function ReportSheet({
               <View style={s.headerRow}>
                 <Text style={s.title}>Report this {label}</Text>
                 <TouchableOpacity onPress={close} hitSlop={8}>
-                  <Text style={s.close}>✕</Text>
+                  <View style={s.close}><UiIcon name="x" size={18} color="#4a5568" /></View>
                 </TouchableOpacity>
               </View>
 

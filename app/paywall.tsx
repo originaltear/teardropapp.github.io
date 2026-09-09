@@ -19,6 +19,7 @@ import {
 } from '../lib/purchases';
 import { useTheme } from '../lib/themes';
 import { PressableScale } from '../components/PressableScale';
+import { UiIcon } from '../components/UiIcon';
 
 // Store name shown in the billing disclosure — must match the platform the
 // purchase is actually processed by.
@@ -87,7 +88,7 @@ export default function PaywallScreen() {
 
       {/* Close */}
       <TouchableOpacity style={s.closeBtn} onPress={() => router.back()} activeOpacity={0.7}>
-        <Text style={s.closeTxt}>✕</Text>
+        <UiIcon name="x" size={18} color="#94a3b8" />
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>

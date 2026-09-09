@@ -11,6 +11,7 @@ import {
   StyleSheet, StyleProp, ImageStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { UiIcon } from './UiIcon';
 
 export function CryPhoto({ uri, style }: { uri: string; style?: StyleProp<ImageStyle> }) {
   const [open, setOpen] = useState(false);
@@ -46,7 +47,7 @@ export function CryPhoto({ uri, style }: { uri: string; style?: StyleProp<ImageS
               accessibilityRole="button"
               accessibilityLabel="Close photo"
             >
-              <Text style={styles.closeTxt}>✕</Text>
+              <UiIcon name="x" size={18} color="#e8eef7" strokeWidth={2.5} />
             </TouchableOpacity>
           </SafeAreaView>
         </View>

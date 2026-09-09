@@ -13,6 +13,7 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../lib/auth';
 import { ACHIEVEMENTS, getUnlockedAchievements, type Achievement } from '../lib/achievements';
 import { supabase } from '../lib/supabase';
+import { UiIcon } from '../components/UiIcon';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -148,7 +149,7 @@ export default function AchievementsScreen() {
                   )}
                 </View>
 
-                {unlocked && <Text style={s.check}>✓</Text>}
+                {unlocked && <UiIcon name="check" size={18} color="#6fe0e6" />}
               </TouchableOpacity>
             );
           }}
@@ -180,9 +181,12 @@ export default function AchievementsScreen() {
 
                   {unlocked ? (
                     <>
-                      <Text style={[s.popupStatus, { color: accent }]}>
-                        ✓ Unlocked {formatDate(unlockedMap[selected.id])}
-                      </Text>
+                      <View style={s.popupStatusRow}>
+                        <UiIcon name="check" size={14} color={accent} strokeWidth={2.5} />
+                        <Text style={[s.popupStatus, { color: accent }]}>
+                          Unlocked {formatDate(unlockedMap[selected.id])}
+                        </Text>
+                      </View>
                       <Text style={s.popupMsg}>"{selected.unlockMessage}"</Text>
                     </>
                   ) : (
@@ -287,7 +291,8 @@ const s = StyleSheet.create({
     letterSpacing: 1.5, marginTop: 12,
   },
   popupHow: { color: '#cbd5e1', fontSize: 15, lineHeight: 21, textAlign: 'center' },
-  popupStatus: { fontSize: 13, fontFamily: 'monospace', fontWeight: '600', marginTop: 12 },
+  popupStatus: { fontSize: 13, fontFamily: 'monospace', fontWeight: '600' },
+  popupStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
   popupMsg: {
     color: '#64748b', fontSize: 13, fontStyle: 'italic',
     lineHeight: 18, textAlign: 'center', marginTop: 2,

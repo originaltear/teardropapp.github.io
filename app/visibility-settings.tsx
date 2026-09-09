@@ -18,6 +18,7 @@ import {
 import {
   SubScreen, SectionLabel, SettingsGroup, SettingsRow, ToggleRow,
 } from '../components/SettingsRows';
+import { UiIcon } from '../components/UiIcon';
 
 const VISIBILITY_LABELS: Record<ProfileSettings['profile_visibility'], string> = {
   everyone:  '🌍  Everyone',
@@ -132,7 +133,7 @@ export default function VisibilitySettingsScreen() {
                   <Text style={s.pickerLabel}>{VISIBILITY_LABELS[v]}</Text>
                   <Text style={s.pickerHint}>{VISIBILITY_HINTS[v]}</Text>
                 </View>
-                {visibility === v && <Text style={[s.pickerCheck, { color: accent }]}>✓</Text>}
+                {visibility === v && <UiIcon name="check" size={18} color={accent} />}
               </TouchableOpacity>
             ))}
           </View>

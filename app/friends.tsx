@@ -13,6 +13,7 @@ import {
 } from '../lib/social';
 import { tapLight } from '../lib/haptics';
 import { inviteAFriend } from '../lib/invite';
+import { UiIcon } from '../components/UiIcon';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -83,7 +84,7 @@ function RequestRow({ req, onRespond }: {
           <Text style={styles.relationTxt}>Accept</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.btnReject} onPress={() => onRespond(req.id, 'rejected')} activeOpacity={0.8}>
-          <Text style={styles.rejectTxt}>✕</Text>
+          <UiIcon name="x" size={16} color="#4a5568" />
         </TouchableOpacity>
       </View>
     </View>
@@ -214,7 +215,7 @@ export default function FriendsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Invite a friend to Teardrop"
           >
-            <Text style={styles.inviteIcon}>💌</Text>
+            <UiIcon name="mail" size={16} color={accent} />
             <Text style={[styles.inviteTxt, { color: accent }]}>Invite a friend</Text>
           </TouchableOpacity>
 
@@ -227,7 +228,9 @@ export default function FriendsScreen() {
             ListEmptyComponent={
               query.trim() && !searching ? (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyEmoji}>🔍</Text>
+                  <View style={styles.emptyEmoji}>
+                    <UiIcon name="search" size={40} color="#4a5568" strokeWidth={1.5} />
+                  </View>
                   <Text style={styles.emptyTxt}>No users found for "@{query}"</Text>
                   {/* Someone searching for a friend who isn't here is the whole
                       reason to have an invite at all. */}
@@ -319,7 +322,7 @@ const styles = StyleSheet.create({
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 72 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   empty: { alignItems: 'center', gap: 10, padding: 40 },
-  emptyEmoji: { fontSize: 40, opacity: 0.5 },
+  emptyEmoji: { opacity: 0.5 },
   emptyTxt: { color: '#4a5568', fontSize: 15, textAlign: 'center' },
   emptyAction: { fontSize: 15, fontWeight: '600', textAlign: 'center', marginTop: 2 },
 
@@ -329,6 +332,5 @@ const styles = StyleSheet.create({
     paddingVertical: 11, borderRadius: 12,
     borderWidth: 1, borderStyle: 'dashed',
   },
-  inviteIcon: { fontSize: 15 },
   inviteTxt: { fontSize: 15, fontWeight: '600' },
 });

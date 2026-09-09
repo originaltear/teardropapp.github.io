@@ -32,6 +32,7 @@ import { AudioPlayer } from '../components/AudioPlayer';
 import { CryPhoto } from '../components/CryPhoto';
 import { fullDateTime } from '../lib/format';
 import { tapLight, tapMedium, success } from '../lib/haptics';
+import { UiIcon } from '../components/UiIcon';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -283,7 +284,7 @@ export default function CryDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel="Edit this cry"
           >
-            <Text style={{ fontSize: 17 }}>✏️</Text>
+            <UiIcon name="pencil" size={18} color="#94a3b8" />
           </TouchableOpacity>
         ) : !isOwn && session && cry ? (
           <TouchableOpacity
@@ -293,7 +294,7 @@ export default function CryDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel="Options, including reporting this cry"
           >
-            <Text style={s.menuTxt}>⋯</Text>
+            <UiIcon name="ellipsis" size={20} color="#4a5568" />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 36 }} />
@@ -445,7 +446,7 @@ export default function CryDetailScreen() {
                 Replying to <Text style={{ color: accent }}>@{replyTo.profile.username}</Text>
               </Text>
               <TouchableOpacity onPress={cancelReply} hitSlop={8}>
-                <Text style={s.replyingClose}>✕</Text>
+                <View style={s.replyingClose}><UiIcon name="x" size={16} color="#4a5568" /></View>
               </TouchableOpacity>
             </View>
           )}

@@ -15,6 +15,7 @@ import { forwardRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import type { WrappedData, WrappedExtras } from '../lib/wrapped';
+import { EmotionIcon } from './EmotionIcon';
 
 const BG = '#070a14';
 const INK = '#ffffff';
@@ -73,7 +74,7 @@ export const WrappedShareCard = forwardRef<View, ShareCardProps>(
             </Text>
             {data.topEmotion && (
               <View style={[s.emotionPill, { backgroundColor: accent + '22', borderColor: accent + '55' }]}>
-                <Text style={s.emotionEmoji}>{data.topEmotion.emoji}</Text>
+                <EmotionIcon emotion={data.topEmotion.id} size={22} />
                 <Text style={[s.emotionText, { color: accent }]}>
                   {data.topEmotion.pct}% {data.topEmotion.label}
                 </Text>
@@ -134,7 +135,6 @@ const s = StyleSheet.create({
     borderWidth: 1, borderRadius: 999,
     paddingHorizontal: 16, paddingVertical: 9, marginTop: 22,
   },
-  emotionEmoji: { fontSize: 17 },
   emotionText: { fontSize: 17, fontWeight: '700' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },

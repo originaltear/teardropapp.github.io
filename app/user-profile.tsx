@@ -23,6 +23,7 @@ import {
 } from '../lib/social';
 import { ReportSheet } from '../components/ReportSheet';
 import { tapLight } from '../lib/haptics';
+import { EmotionIcon } from '../components/EmotionIcon';
 
 interface PublicProfile {
   id: string;
@@ -282,7 +283,7 @@ export default function UserProfileScreen() {
                   onPress={() => router.push(`/cry-detail?id=${cry.id}`)}
                 >
                   <View style={[s.cryDot, { backgroundColor: color + '22' }]}>
-                    <Text style={{ fontSize: 17 }}>{emotion?.emoji ?? '💧'}</Text>
+                    <EmotionIcon emotion={cry.emotion} size={26} label={emotion?.label ?? cry.emotion} />
                   </View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[s.cryEmotion, { color }]}>{emotion?.label ?? cry.emotion}</Text>

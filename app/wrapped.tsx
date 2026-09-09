@@ -33,6 +33,7 @@ import { WrappedShareCard } from '../components/WrappedShareCard';
 import { WrappedConfetti } from '../components/WrappedConfetti';
 import { success, selection } from '../lib/haptics';
 import { EmotionIcon } from '../components/EmotionIcon';
+import { UiIcon } from '../components/UiIcon';
 
 const BG = '#070a14';
 const INK = '#e8eef7';
@@ -116,8 +117,10 @@ function PopIn({ children, active, delay = 300 }: { children: React.ReactNode; a
 }
 
 /** Horizontal bar that grows out from its left edge. */
-function Bar({ pct, color, label, value, active, index = 0 }: {
+function Bar({ pct, color, label, value, active, index = 0, emotion }: {
   pct: number; color: string; label: string; value: string; active: boolean; index?: number;
+  /** Draws the emotion's own teardrop in front of the label. */
+  emotion?: string;
 }) {
   const grow = useRef(new Animated.Value(0)).current;
 
@@ -133,7 +136,10 @@ function Bar({ pct, color, label, value, active, index = 0 }: {
 
   return (
     <View style={s.barRow}>
-      <Text style={s.barLabel} numberOfLines={1}>{label}</Text>
+      <View style={s.barLabelCell}>
+        {emotion ? <EmotionIcon emotion={emotion} size={15} /> : null}
+        <Text style={s.barLabel} numberOfLines={1}>{label}</Text>
+      </View>
       <View style={s.barTrack}>
         <Animated.View
           style={[
@@ -424,7 +430,8 @@ export default function WrappedScreen() {
                   active={active}
                   pct={data.spectrum[0].count > 0 ? (e.count / data.spectrum[0].count) * 100 : 0}
                   color={e.color}
-                  label={`${e.emoji} ${e.label}`}
+                  label={e.label}
+                  emotion={e.id}
                   value={String(e.count)}
                 />
               ))}
@@ -909,7 +916,7 @@ export default function WrappedScreen() {
           accessibilityRole="button"
           accessibilityLabel="Close your year in tears"
         >
-          <Text style={s.closeTxt}>✕</Text>
+          <UiIcon name="x" size={21} color={MUTED} />
         </TouchableOpacity>
       </SafeAreaView>
 
@@ -936,7 +943,8 @@ const s = StyleSheet.create({
 
   bars: { gap: 12 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  barLabel: { color: INK, fontSize: 13, width: 118 },
+  barLabelCell: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 118 },
+  barLabel: { color: INK, fontSize: 13, flexShrink: 1 },
   barTrack: { flex: 1, height: 10, borderRadius: 5, backgroundColor: '#131c26', overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 5 },
   barValue: { color: MUTED, fontSize: 13, width: 28, textAlign: 'right', fontFamily: 'monospace' },

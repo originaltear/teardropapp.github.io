@@ -173,7 +173,11 @@ function EditModal({ profile, earnedTears, selectedTears: initTears, onSave, onC
                           color={info?.color ?? '#6fe0e6'}
                           strokeWidth={2}
                         />
-                        {chosen && <Text style={ls.tearCheck}>✓</Text>}
+                        {chosen && (
+                          <View style={ls.tearCheck}>
+                            <UiIcon name="check" size={11} color="#f2cf6b" strokeWidth={3} />
+                          </View>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -488,7 +492,7 @@ const ls = StyleSheet.create({
   tearChip: { width: 52, height: 52, borderRadius: 14, borderWidth: 1, borderColor: '#1f2937', backgroundColor: '#0d1117', alignItems: 'center', justifyContent: 'center' },
   tearChipActive: { borderColor: '#f2cf6b', backgroundColor: '#f2cf6b15' },
   tearEmoji: { fontSize: 24 },
-  tearCheck: { position: 'absolute', bottom: 2, right: 4, fontSize: 11, color: '#f2cf6b', fontWeight: '700' },
+  tearCheck: { position: 'absolute', bottom: 2, right: 4 },
   tearsHint: { color: '#374151', fontSize: 11, marginTop: 6, fontFamily: 'monospace' },
   tearsPreview: { color: '#4a5568', fontSize: 13, marginTop: 4, fontStyle: 'italic' },
 });

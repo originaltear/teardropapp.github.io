@@ -65,7 +65,10 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
         <View style={s.sheetTop}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             <TouchableOpacity onPress={onEdit} style={s.editBtn} accessibilityRole="button" accessibilityLabel="Edit this cry">
-              <Text style={s.editTxt}>✏️ Edit</Text>
+              <View style={s.iconRow}>
+                <UiIcon name="pencil" size={15} color="#94a3b8" />
+                <Text style={s.editTxt}>Edit</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={s.deleteBtn}>
               {deleting
@@ -77,7 +80,7 @@ function DetailModal({ cry, onClose, onDelete, onEdit }: {
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-            <Text style={s.closeTxt}>✕</Text>
+            <UiIcon name="x" size={18} color="#4a5568" />
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }} showsVerticalScrollIndicator={false}>
@@ -254,7 +257,7 @@ export default function MyCriesScreen() {
             >
               {selectMode && (
                 <View style={[s.checkCircle, checked && s.checkCircleOn]}>
-                  {checked && <Text style={s.checkMark}>✓</Text>}
+                  {checked && <UiIcon name="check" size={14} color="#0d1117" strokeWidth={3} />}
                 </View>
               )}
               <EmotionIcon emotion={cry.emotion} size={46} label={emotion?.label ?? cry.emotion} />
@@ -272,7 +275,10 @@ export default function MyCriesScreen() {
                   </View>
                 ) : null}
                 {isQuickLog(cry) && (
-                  <Text style={s.quickBadge}>✏️ no details yet · tap to add</Text>
+                  <View style={s.quickBadgeRow}>
+                    <UiIcon name="pencil" size={11} color="#eab308" />
+                    <Text style={s.quickBadge}>no details yet · tap to add</Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -351,6 +357,7 @@ const s = StyleSheet.create({
   sortTxt: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
 
   quickBadge: { color: '#eab308', fontSize: 11, fontFamily: 'monospace' },
+  quickBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 
   // Bulk select
   selectBtnTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '600' },

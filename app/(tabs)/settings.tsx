@@ -98,7 +98,6 @@ const LINKABLE_PROVIDERS: LinkableProvider[] = ['apple', 'google'];
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 const DEFAULT_NOTIF_PREFS: ProfileSettings['notification_preferences'] = {
-  new_cries_from_following: true,
   new_likes: true,
   new_comments: true,
   new_followers: true,

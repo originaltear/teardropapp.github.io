@@ -162,6 +162,36 @@ function LockedOverlay({ onPress }: { onPress: () => void }) {
 }
 
 /** Section wrapper that dims + locks content for free users */
+/**
+ * The shape of a locked section, drawn from nothing.
+ *
+ * Dimming the real charts did not work and could not: lowering opacity and
+ * laying a scrim over it makes text darker without removing the difference
+ * between a letter and its background, and on a black screen the eye finds
+ * that difference anyway. Ishaq could read his own locked numbers straight
+ * through it.
+ *
+ * So the real numbers are not drawn at all. These are plain grey blocks: they
+ * carry the rhythm of a chart, which is what makes a locked panel look like
+ * something withheld rather than an empty box, without pretending to be data.
+ * Deliberately not plausible-looking fake statistics, which would be a dark
+ * pattern rather than a teaser.
+ */
+const PREVIEW_WIDTHS = ['92%', '64%', '78%', '45%', '58%'] as const;
+
+function LockedPreview() {
+  return (
+    <View style={s.preview} pointerEvents="none">
+      {PREVIEW_WIDTHS.map((w, i) => (
+        <View key={i} style={s.previewRow}>
+          <View style={s.previewLabel} />
+          <View style={[s.previewBar, { width: w }]} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function PremiumSection({
   isPremium, title, onLockPress, children,
 }: {
@@ -173,17 +203,7 @@ function PremiumSection({
   return (
     <View style={[s.section, { overflow: 'hidden' }]}>
       <SectionHeader title={title} premium />
-      {/*
-        Two dimmers stack here: this opacity, and the 0.88 scrim in
-        lockOverlay on top of it. At 0.12 under a 0.88 scrim roughly one and a
-        half percent of the content survived, so a locked section read as an
-        empty panel rather than as something withheld. Nobody buys a blank
-        rectangle. Raised so the shape of the chart is legible while the numbers
-        are not.
-      */}
-      <View style={{ opacity: isPremium ? 1 : 0.22 }}>
-        {children}
-      </View>
+      {isPremium ? children : <LockedPreview />}
       {!isPremium && <LockedOverlay onPress={onLockPress} />}
     </View>
   );
@@ -769,15 +789,20 @@ const s = StyleSheet.create({
   // Lock overlay
   lockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    // Lightened along with the opacity above, since the two multiply. The scrim
-    // still has to carry the call to action legibly, so it cannot go much
-    // thinner than this.
-    backgroundColor: 'rgba(13, 17, 23, 0.8)',
+    // There is nothing readable underneath any more, so this no longer has to
+    // hide anything. It only has to give the call to action a surface to sit
+    // on, which a lighter scrim does better.
+    backgroundColor: 'rgba(13, 17, 23, 0.55)',
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
+  preview: { gap: 10, paddingVertical: 6 },
+  previewRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  previewLabel: { width: 56, height: 10, borderRadius: 5, backgroundColor: '#1b2432' },
+  previewBar: { height: 18, borderRadius: 5, backgroundColor: '#1b2432' },
+
   lockTitle: { color: '#6fe0e6', fontSize: 15, fontWeight: '700' },
   lockSub: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
 

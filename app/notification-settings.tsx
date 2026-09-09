@@ -12,7 +12,6 @@ import { getProfileSettings, updateProfileSettings, ProfileSettings } from '../l
 import { SubScreen, SectionLabel, SettingsGroup, ToggleRow } from '../components/SettingsRows';
 
 const DEFAULTS: ProfileSettings['notification_preferences'] = {
-  new_cries_from_following: true,
   new_likes: true,
   new_comments: true,
   new_followers: true,
@@ -68,11 +67,6 @@ export default function NotificationSettingsScreen() {
             label="Friend requests"
             value={prefs.friend_requests}
             onChange={v => toggle('friend_requests', v)}
-          />
-          <ToggleRow
-            label="New cries from people I follow"
-            value={prefs.new_cries_from_following}
-            onChange={v => toggle('new_cries_from_following', v)}
           />
         </SettingsGroup>
 

@@ -70,8 +70,13 @@ export interface ProfileSettings {
   show_reactions: boolean;
   /** When false, others see follower counts but cannot open the lists. */
   show_follow_lists: boolean;
+  /**
+   * One key per push type the app actually sends. There is no key for cries
+   * from people you follow: no such push exists, and the switch that used to
+   * offer it turned nothing off. See supabase/functions/send-push for the
+   * mapping this has to stay in step with.
+   */
   notification_preferences: {
-    new_cries_from_following: boolean;
     new_likes: boolean;
     new_comments: boolean;
     new_followers: boolean;
@@ -806,7 +811,6 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
     show_reactions: data.show_reactions ?? true,
     show_follow_lists: data.show_follow_lists ?? true,
     notification_preferences: {
-      new_cries_from_following: true,
       new_likes: true,
       new_comments: true,
       new_followers: true,

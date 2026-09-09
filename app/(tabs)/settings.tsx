@@ -32,6 +32,7 @@ import { loadHapticsPref, setHapticsEnabled, tapLight } from '../../lib/haptics'
 import { isPrivacyOptionsRequired, showPrivacyOptions } from '../../lib/ads';
 import { SUPPORT_EMAIL, openSupportEmail } from '../guidelines';
 import { UiIcon } from '../../components/UiIcon';
+import { Avatar } from '../../components/Avatar';
 
 // Hosted privacy policy (same target as the paywall's legal links). Google Play
 // requires an accessible privacy policy for apps that collect account data, so
@@ -89,22 +90,7 @@ function ToggleRow({ label, value, onChange }: {
   );
 }
 
-function Avatar({ uri, size = 36 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
-    </View>
-  );
-}
 
-// ─── Visibility labels ────────────────────────────────────────────────────────
-
-const VISIBILITY_LABELS: Record<ProfileSettings['profile_visibility'], string> = {
-  everyone:  '🌍  Everyone',
-  followers: '👥  Friends only (mutual follows)',
-  only_me:   '🔒  Only me',
-};
 
 // Providers a user can link to their account in addition to how they signed up.
 const LINKABLE_PROVIDERS: LinkableProvider[] = ['apple', 'google'];
@@ -545,7 +531,10 @@ export default function SettingsScreen() {
               <>
                 <View style={[styles.row, { gap: 8 }]}>
                   <Text style={styles.rowLabel}>Teardrop Pro</Text>
-                  <Text style={{ color: '#6fe0e6', fontSize: 13, fontWeight: '700' }}>💎 Active</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <UiIcon name="gem" size={13} color="#6fe0e6" />
+                    <Text style={{ color: '#6fe0e6', fontSize: 13, fontWeight: '700' }}>Active</Text>
+                  </View>
                 </View>
                 <SettingsRow
                   label="Manage subscription"
@@ -565,7 +554,7 @@ export default function SettingsScreen() {
               </>
             ) : (
               <SettingsRow
-                label="Upgrade to Pro 💎"
+                label="Upgrade to Pro"
                 value="Unlock features ›"
                 onPress={() => router.push('/paywall')}
               />
@@ -879,7 +868,6 @@ const styles = StyleSheet.create({
   pickerOptionActive: { backgroundColor: '#6fe0e610' },
   pickerOptionTxt: { color: '#94a3b8', fontSize: 17 },
   pickerOptionTxtActive: { color: '#6fe0e6' },
-  pickerCheck: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
   themeCircle: { width: 18, height: 18, borderRadius: 9, marginRight: 4 },
 
   // Bottom sheet
@@ -903,7 +891,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sheetTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
-  sheetClose: { color: '#4a5568', fontSize: 20, padding: 4 },
+  sheetClose: { padding: 4 },
   emptyText: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace', textAlign: 'center', marginTop: 24 },
 
   // Blocked users list

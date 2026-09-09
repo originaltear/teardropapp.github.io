@@ -32,10 +32,10 @@ const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stde
 const PRIVACY_URL = 'https://teardropapp.com/privacy-policy.html';
 
 const PERKS = [
-  { icon: '🚫', label: 'Ad-free experience' },
-  { icon: '💎', label: 'Crystal Tear emblem' },
-  { icon: '📊', label: 'Pro Analytics' },
-  { icon: '🎨', label: 'Custom themes (Crimson, Forest, Dusk)' },
+  { icon: 'ban', label: 'Ad-free experience' },
+  { icon: 'gem', label: 'Crystal Tear emblem' },
+  { icon: 'chartColumn', label: 'Pro Analytics' },
+  { icon: 'palette', label: 'Custom themes (Crimson, Forest, Dusk)' },
 ];
 
 export default function PaywallScreen() {
@@ -94,7 +94,7 @@ export default function PaywallScreen() {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Hero */}
-        <Text style={s.crown}>💎</Text>
+        <View style={s.crown}><UiIcon name="gem" size={64} color="#6fe0e6" strokeWidth={1.5} /></View>
         <Text style={s.heroTitle}>Teardrop Pro</Text>
         <Text style={s.heroSub}>Everything you need to go deeper.</Text>
 
@@ -102,7 +102,7 @@ export default function PaywallScreen() {
         <View style={s.perksCard}>
           {PERKS.map(p => (
             <View key={p.label} style={s.perkRow}>
-              <Text style={s.perkIcon}>{p.icon}</Text>
+              <UiIcon name={p.icon} size={19} color="#6fe0e6" />
               <Text style={s.perkLabel}>{p.label}</Text>
             </View>
           ))}
@@ -201,9 +201,8 @@ const s = StyleSheet.create({
     width: 34, height: 34, borderRadius: 17,
     backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center',
   },
-  closeTxt: { color: '#94a3b8', fontSize: 17 },
 
-  crown: { fontSize: 64, marginTop: 36, marginBottom: 12 },
+  crown: { marginTop: 36, marginBottom: 12 },
   heroTitle: { color: '#e2e8f0', fontSize: 30, fontWeight: '800', marginBottom: 6 },
   heroSub: { color: '#4a5568', fontSize: 15, marginBottom: 28, textAlign: 'center' },
 
@@ -215,7 +214,6 @@ const s = StyleSheet.create({
     gap: 4,
   },
   perkRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
-  perkIcon: { fontSize: 20, width: 28, textAlign: 'center' },
   perkLabel: { color: '#94a3b8', fontSize: 15 },
 
   plans: { width: '100%', gap: 10, marginBottom: 24 },

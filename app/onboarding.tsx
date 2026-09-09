@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UiIcon } from '../components/UiIcon';
+import { Tear } from '../components/EmotionIcon';
 
 const { width: W } = Dimensions.get('window');
 
@@ -25,22 +27,22 @@ interface Slide {
 
 const SLIDES: Slide[] = [
   {
-    icon: '💧',
+    icon: 'tear',
     title: 'Map Your Tears',
     body: 'Every cry has a place. Drop a pin wherever life gets to you — and watch your emotional map grow.',
   },
   {
-    icon: '🌍',
+    icon: 'globe',
     title: 'Every Cry Tells a Story',
     body: 'Add what you felt, how intense it was, a note, a photo, or a voice recording. Your story, your way.',
   },
   {
-    icon: '👥',
+    icon: 'users',
     title: "You're Not Alone",
     body: "Follow friends, see where they've cried, and show up for each other — without saying a word.",
   },
   {
-    icon: '🔒',
+    icon: 'lock',
     title: 'Your Privacy, Your Rules',
     body: 'Share with everyone, just your friends, your close circle — or keep it entirely to yourself.',
   },
@@ -99,7 +101,9 @@ export default function OnboardingScreen() {
         renderItem={({ item }) => (
           <View style={s.slide}>
             <View style={s.iconCircle}>
-              <Text style={s.iconText}>{item.icon}</Text>
+              {item.icon === 'tear'
+                ? <Tear size={56} filled={false} color="#6fe0e6" />
+                : <UiIcon name={item.icon} size={52} color="#6fe0e6" strokeWidth={1.5} />}
             </View>
             <Text style={s.title}>{item.title}</Text>
             <Text style={s.body}>{item.body}</Text>
@@ -162,7 +166,6 @@ const s = StyleSheet.create({
     shadowColor: '#6fe0e6', shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.25, shadowRadius: 24, elevation: 10,
   },
-  iconText: { fontSize: 56 },
 
   title: {
     color: '#e2e8f0',

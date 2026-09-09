@@ -14,17 +14,10 @@ import {
 import { tapLight } from '../lib/haptics';
 import { inviteAFriend } from '../lib/invite';
 import { UiIcon } from '../components/UiIcon';
+import { Avatar } from '../components/Avatar';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
-function Avatar({ uri, size = 44 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.45 }}>💧</Text>
-    </View>
-  );
-}
 
 // ─── User row ─────────────────────────────────────────────────────────────────
 
@@ -247,7 +240,9 @@ export default function FriendsScreen() {
                 </View>
               ) : !query ? (
                 <View style={styles.empty}>
-                  <Text style={styles.emptyEmoji}>👥</Text>
+                  <View style={styles.emptyEmoji}>
+                    <UiIcon name="users" size={40} color="#4a5568" strokeWidth={1.5} />
+                  </View>
                   <Text style={styles.emptyTxt}>Search for friends by username</Text>
                 </View>
               ) : null
@@ -263,7 +258,9 @@ export default function FriendsScreen() {
           contentContainerStyle={pendingRequests.length === 0 ? styles.emptyContainer : undefined}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>✉️</Text>
+              <View style={styles.emptyEmoji}>
+                <UiIcon name="mail" size={40} color="#4a5568" strokeWidth={1.5} />
+              </View>
               <Text style={styles.emptyTxt}>No pending friend requests</Text>
             </View>
           }
@@ -316,7 +313,6 @@ const styles = StyleSheet.create({
   btnReject: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: '#374151', alignItems: 'center', justifyContent: 'center' },
   relationTxt: { color: '#0d1117', fontSize: 13, fontWeight: '700' },
   relationTxtUnfollow: { color: '#ef4444', fontSize: 13, fontWeight: '700' },
-  rejectTxt: { color: '#4a5568', fontSize: 15 },
 
   reqActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 72 },

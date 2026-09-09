@@ -16,6 +16,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import type { WrappedData, WrappedExtras } from '../lib/wrapped';
 import { EmotionIcon } from './EmotionIcon';
+import { Tear } from './EmotionIcon';
 
 const BG = '#070a14';
 const INK = '#ffffff';
@@ -105,7 +106,7 @@ export const WrappedShareCard = forwardRef<View, ShareCardProps>(
           {/* Watermark */}
           <View style={s.footer}>
             <View style={s.brand}>
-              <Text style={s.brandDrop}>💧</Text>
+              <Tear size={20} filled color={accent} />
               <Text style={s.brandName}>Teardrop</Text>
             </View>
             <Text style={s.brandTag}>
@@ -147,7 +148,6 @@ const s = StyleSheet.create({
 
   footer: { gap: 4 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  brandDrop: { fontSize: 20 },
   brandName: { color: INK, fontSize: 20, fontWeight: '800', letterSpacing: -0.3 },
   brandTag: { color: MUTED, fontSize: 13, fontFamily: 'monospace' },
 });

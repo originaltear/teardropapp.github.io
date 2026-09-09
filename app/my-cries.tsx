@@ -368,7 +368,6 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkCircleOn: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e6' },
-  checkMark: { color: '#0d1117', fontSize: 13, fontWeight: '800', lineHeight: 15 },
 
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingVertical: 14, gap: 12 },
   emotionName: { fontSize: 15, fontWeight: '600' },
@@ -394,7 +393,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
-  closeTxt: { color: '#4a5568', fontSize: 17 },
   deleteBtn: { paddingVertical: 4, paddingHorizontal: 8 },
   deleteTxt: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
   editBtn: { paddingVertical: 4, paddingHorizontal: 8 },

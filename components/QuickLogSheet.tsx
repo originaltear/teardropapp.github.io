@@ -163,7 +163,6 @@ const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4a5568', fontSize: 17 },
   sub: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace', marginTop: 2, marginBottom: 16 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

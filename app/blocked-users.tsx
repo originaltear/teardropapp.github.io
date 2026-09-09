@@ -13,15 +13,9 @@ import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../lib/auth';
 import { getBlockedUsers, unblockUser, BlockedUser } from '../lib/social';
 import { SubScreen } from '../components/SettingsRows';
+import { Avatar } from '../components/Avatar';
+import { UiIcon } from '../components/UiIcon';
 
-function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[s.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.42 }}>💧</Text>
-    </View>
-  );
-}
 
 export default function BlockedUsersScreen() {
   const { session } = useAuth();
@@ -55,7 +49,9 @@ export default function BlockedUsersScreen() {
         <View style={s.center}><ActivityIndicator color="#6fe0e6" /></View>
       ) : users.length === 0 ? (
         <View style={s.center}>
-          <Text style={s.emptyEmoji}>🚫</Text>
+          <View style={s.emptyEmoji}>
+            <UiIcon name="ban" size={36} color="#4a5568" strokeWidth={1.5} />
+          </View>
           <Text style={s.emptyTxt}>You haven't blocked anyone</Text>
           <Text style={s.emptySub}>
             You can block someone from their profile, or straight after reporting them.
@@ -86,7 +82,7 @@ export default function BlockedUsersScreen() {
 
 const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 40 },
-  emptyEmoji: { fontSize: 36, opacity: 0.35 },
+  emptyEmoji: { opacity: 0.35 },
   emptyTxt: { color: '#94a3b8', fontSize: 15 },
   emptySub: { color: '#4a5568', fontSize: 13, textAlign: 'center', lineHeight: 19 },
   row: {

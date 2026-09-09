@@ -21,9 +21,13 @@ import {
 import { UiIcon } from '../components/UiIcon';
 
 const VISIBILITY_LABELS: Record<ProfileSettings['profile_visibility'], string> = {
-  everyone:  '🌍  Everyone',
-  followers: '👥  Friends only (mutual follows)',
-  only_me:   '🔒  Only me',
+  everyone:  'Everyone',
+  followers: 'Friends only (mutual follows)',
+  only_me:   'Only me',
+};
+
+const VISIBILITY_ICONS: Record<ProfileSettings['profile_visibility'], string> = {
+  everyone: 'globe', followers: 'users', only_me: 'lock',
 };
 
 const VISIBILITY_HINTS: Record<ProfileSettings['profile_visibility'], string> = {
@@ -129,6 +133,7 @@ export default function VisibilitySettingsScreen() {
             <Text style={s.pickerTitle}>Who can see my profile</Text>
             {(Object.keys(VISIBILITY_LABELS) as ProfileSettings['profile_visibility'][]).map(v => (
               <TouchableOpacity key={v} style={s.pickerRow} onPress={() => pick(v)} activeOpacity={0.7}>
+                <UiIcon name={VISIBILITY_ICONS[v]} size={18} color={visibility === v ? accent : '#4a5568'} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.pickerLabel}>{VISIBILITY_LABELS[v]}</Text>
                   <Text style={s.pickerHint}>{VISIBILITY_HINTS[v]}</Text>
@@ -161,5 +166,4 @@ const s = StyleSheet.create({
   },
   pickerLabel: { color: '#e2e8f0', fontSize: 15 },
   pickerHint: { color: '#4a5568', fontSize: 13, marginTop: 3 },
-  pickerCheck: { fontSize: 17 },
 });

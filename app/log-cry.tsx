@@ -46,10 +46,10 @@ function whenLabel(d: Date): string {
 }
 
 const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] = [
-  { value: 'everyone',      icon: '🌍', label: 'Everyone' },
-  { value: 'followers',     icon: '👥', label: 'Friends' },
-  { value: 'close_friends', icon: '🔒', label: 'Close friends' },
-  { value: 'only_me',       icon: '🫥', label: 'Only me' },
+  { value: 'everyone',      icon: 'globe',  label: 'Everyone' },
+  { value: 'followers',     icon: 'users',  label: 'Friends' },
+  { value: 'close_friends', icon: 'lock',   label: 'Close friends' },
+  { value: 'only_me',       icon: 'eyeOff', label: 'Only me' },
 ];
 
 // (Achievement toast is now handled by AchievementToast modal component)
@@ -679,7 +679,7 @@ export default function LogCryScreen() {
                   onPress={() => setVisibility(opt.value)}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.visibilityIcon}>{opt.icon}</Text>
+                  <UiIcon name={opt.icon} size={20} color={selected ? accent : '#4a5568'} />
                   <Text style={[styles.visibilityLabel, selected && { color: accent }]}>
                     {opt.label}
                   </Text>
@@ -745,7 +745,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   closeBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#6fe0e6', fontSize: 17 },
   title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
 
   body: { padding: 20, paddingBottom: 8 },
@@ -840,7 +839,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.8)',
     alignItems: 'center', justifyContent: 'center',
   },
-  photoRemoveTxt: { color: '#e2e8f0', fontSize: 15 },
 
   // Audio
   recordBtn: {
@@ -889,7 +887,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderRadius: 12,
     borderWidth: 1, borderColor: '#1f2937',
   },
-  visibilityIcon: { fontSize: 20 },
   visibilityLabel: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace', textAlign: 'center' },
   closeFriendsHint: {
     marginTop: 10, paddingVertical: 9, paddingHorizontal: 12,

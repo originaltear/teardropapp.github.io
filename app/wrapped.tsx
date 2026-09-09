@@ -34,6 +34,7 @@ import { WrappedConfetti } from '../components/WrappedConfetti';
 import { success, selection } from '../lib/haptics';
 import { EmotionIcon } from '../components/EmotionIcon';
 import { UiIcon } from '../components/UiIcon';
+import { Tear } from '../components/EmotionIcon';
 
 const BG = '#070a14';
 const INK = '#e8eef7';
@@ -190,14 +191,19 @@ function MonthBar({ height, color, active, index }: {
 }
 
 /** One counting stat in the "you were not alone" row. */
-function ReceivedStat({ value, label, color, active, delay }: {
+function ReceivedStat({ value, label, color, active, delay, icon }: {
   value: number; label: string; color: string; active: boolean; delay: number;
+  /** Glyph from lib/ui-icons, drawn in front of the label. */
+  icon?: string;
 }) {
   const shown = useCountUp(value, active, delay, 900);
   return (
     <View style={s.receivedItem}>
       <Text style={[s.receivedValue, { color }]}>{shown}</Text>
-      <Text style={s.receivedLabel}>{label}</Text>
+      <View style={s.receivedLabelRow}>
+        {icon ? <UiIcon name={icon} size={13} color="#64748b" /> : null}
+        <Text style={s.receivedLabel}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -680,9 +686,9 @@ export default function WrappedScreen() {
             */}
             <View style={s.receivedRow}>
               {[
-                { value: extras.hugsReceived, label: '🫂 hugs' },
-                { value: extras.likesReceived, label: '💧 drops' },
-                { value: extras.achievementsUnlocked, label: '🏆 unlocked' },
+                { value: extras.hugsReceived, label: 'hugs', icon: 'heartHandshake' },
+                { value: extras.likesReceived, label: 'drops', icon: 'droplets' },
+                { value: extras.achievementsUnlocked, label: 'unlocked', icon: 'trophy' },
               ]
                 .filter(stat => stat.value > 0)
                 .map((stat, i) => (
@@ -801,7 +807,9 @@ export default function WrappedScreen() {
     return (
       <SafeAreaView style={s.fill} edges={['top', 'bottom']}>
         <View style={s.emptyWrap}>
-          <Text style={s.emptyEmoji}>💧</Text>
+          <View style={s.emptyEmoji}>
+            <Tear size={54} filled={false} color={accent} />
+          </View>
           <Text style={s.emptyTitle}>Not enough yet</Text>
           <Text style={s.emptySub}>
             Log a few more cries this year and your recap will be waiting here.
@@ -965,6 +973,7 @@ const s = StyleSheet.create({
   receivedItem: { gap: 4 },
   receivedValue: { fontSize: 40, fontWeight: '800', letterSpacing: -1 },
   receivedLabel: { color: MUTED, fontSize: 13 },
+  receivedLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 
   shareBtn: {
     // Horizontal padding was missing entirely, so the pill ended exactly where
@@ -986,10 +995,9 @@ const s = StyleSheet.create({
   tapZoneNext: { flex: 2 },
   tapZoneBackLast: { position: 'absolute', top: 0, left: 0, bottom: 0, width: '22%' },
   closeBtn: { alignSelf: 'flex-end', padding: 14 },
-  closeTxt: { color: MUTED, fontSize: 20 },
 
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12 },
-  emptyEmoji: { fontSize: 54 },
+  emptyEmoji: {},
   emptyTitle: { color: INK, fontSize: 24, fontWeight: '700' },
   emptySub: { color: MUTED, fontSize: 15, textAlign: 'center', lineHeight: 22 },
   emptyBtn: { marginTop: 14, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 999, backgroundColor: '#1c2733' },

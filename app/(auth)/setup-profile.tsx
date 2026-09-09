@@ -12,6 +12,7 @@ import { useAuth } from '../../lib/auth';
 import { useTheme } from '../../lib/themes';
 import { PressableScale } from '../../components/PressableScale';
 import { UiIcon } from '../../components/UiIcon';
+import { Tear } from '../../components/EmotionIcon';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -29,9 +30,9 @@ function validateUsername(u: string): string | null {
 type Visibility = 'everyone' | 'followers' | 'only_me';
 
 const VISIBILITY_OPTS: { value: Visibility; icon: string; label: string; sub: string }[] = [
-  { value: 'everyone',  icon: '🌍', label: 'Everyone',    sub: 'Anyone on Teardrop can see your cries' },
-  { value: 'followers', icon: '👥', label: 'Friends only', sub: 'Only mutual follows (both follow each other)' },
-  { value: 'only_me',   icon: '🔒', label: 'Only me',     sub: 'Completely private — only you can see them' },
+  { value: 'everyone',  icon: 'globe', label: 'Everyone',    sub: 'Anyone on Teardrop can see your cries' },
+  { value: 'followers', icon: 'users', label: 'Friends only', sub: 'Only mutual follows (both follow each other)' },
+  { value: 'only_me',   icon: 'lock',  label: 'Only me',     sub: 'Completely private — only you can see them' },
 ];
 
 export default function SetupProfileScreen() {
@@ -161,7 +162,7 @@ export default function SetupProfileScreen() {
           {/* Logo */}
           <View style={s.logoArea}>
             <View style={[s.logoCircle, { backgroundColor: accent, shadowColor: accent }]}>
-              <Text style={s.logoEmoji}>💧</Text>
+              <Tear size={36} filled color="#6fe0e6" />
             </View>
             <Text style={s.title}>Set up your profile</Text>
             <Text style={s.sub}>Choose a unique username to get started</Text>
@@ -215,7 +216,7 @@ export default function SetupProfileScreen() {
                     onPress={() => setVisibility(opt.value)}
                     activeOpacity={0.75}
                   >
-                    <Text style={s.visIcon}>{opt.icon}</Text>
+                    <UiIcon name={opt.icon} size={20} color={sel ? accent : '#4a5568'} />
                     <View style={{ flex: 1 }}>
                       <Text style={[s.visLabel, sel && { color: accent }]}>{opt.label}</Text>
                       <Text style={s.visSub}>{opt.sub}</Text>
@@ -261,7 +262,6 @@ const s = StyleSheet.create({
     shadowColor: '#6fe0e6', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4, shadowRadius: 20, elevation: 12,
   },
-  logoEmoji: { fontSize: 36 },
   title: { color: '#e2e8f0', fontSize: 26, fontWeight: '800' },
   sub: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace', textAlign: 'center' },
 
@@ -297,7 +297,6 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#1f2937',
     paddingHorizontal: 16, paddingVertical: 14,
   },
-  visIcon: { fontSize: 20 },
   visLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
   visSub: { color: '#374151', fontSize: 13, marginTop: 1 },
   visRadio: {

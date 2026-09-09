@@ -13,6 +13,7 @@ import { ListSkeleton } from '../components/Skeleton';
 import { useFocusEffect } from 'expo-router';
 import { loadCries } from '../lib/storage';
 import { countryFlag } from '../lib/geo';
+import { UiIcon } from '../components/UiIcon';
 
 export default function CountriesScreen() {
   const router = useRouter();
@@ -56,7 +57,9 @@ export default function CountriesScreen() {
         <ListSkeleton rows={6} />
       ) : rows.length === 0 ? (
         <View style={s.empty}>
-          <Text style={s.emptyEmoji}>🌍</Text>
+          <View style={s.emptyEmoji}>
+            <UiIcon name="globe" size={52} color="#4a5568" strokeWidth={1.5} />
+          </View>
           <Text style={s.emptyTitle}>No countries yet</Text>
           <Text style={s.emptySub}>Your cries will appear here once they have location data.</Text>
         </View>
@@ -118,7 +121,7 @@ const s = StyleSheet.create({
   bar: { height: 4, backgroundColor: '#6fe0e6', borderRadius: 2 },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 40 },
-  emptyEmoji: { fontSize: 52, opacity: 0.3 },
+  emptyEmoji: { opacity: 0.3 },
   emptyTitle: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });

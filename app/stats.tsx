@@ -22,6 +22,8 @@ import { computePlaces, namePlaces, Place } from '../lib/places';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../lib/themes';
 import { EmotionIcon } from '../components/EmotionIcon';
+import { Tear } from '../components/EmotionIcon';
+import { UiIcon } from '../components/UiIcon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,7 +74,7 @@ function SectionHeader({ title, premium }: { title: string; premium?: boolean })
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
       <Text style={s.sectionTitle}>{title}</Text>
-      {premium && <Text style={s.premiumBadge}>💎</Text>}
+      {premium && <UiIcon name="gem" size={13} color="#6fe0e6" />}
     </View>
   );
 }
@@ -152,7 +154,7 @@ function LockedOverlay({ onPress }: { onPress: () => void }) {
       onPress={onPress}
       activeOpacity={0.9}
     >
-      <Text style={{ fontSize: 32, marginBottom: 8 }}>💎</Text>
+      <View style={{ marginBottom: 8 }}><UiIcon name="gem" size={32} color="#6fe0e6" strokeWidth={1.5} /></View>
       <Text style={[s.lockTitle, { color: accent }]}>Unlock with Crystal Tear</Text>
       <Text style={s.lockSub}>Tap to upgrade</Text>
     </TouchableOpacity>
@@ -398,7 +400,7 @@ export default function StatsScreen() {
       <SafeAreaView style={s.container} edges={['top']}>
         <Header onBack={() => router.back()} />
         <View style={s.empty}>
-          <Text style={{ fontSize: 52 }}>📊</Text>
+          <UiIcon name="chartColumn" size={52} color="#4a5568" strokeWidth={1.5} />
           <Text style={s.emptyTitle}>Statistics</Text>
           <Text style={s.emptyMsg}>
             Create an account to track your cry history, patterns, and emotions over time.
@@ -420,7 +422,7 @@ export default function StatsScreen() {
       <SafeAreaView style={s.container} edges={['top']}>
         <Header onBack={() => router.back()} />
         <View style={s.empty}>
-          <Text style={{ fontSize: 48, opacity: 0.25 }}>📊</Text>
+          <View style={{ opacity: 0.25 }}><UiIcon name="chartColumn" size={48} color="#4a5568" strokeWidth={1.5} /></View>
           <Text style={s.emptyTxt}>No cries logged yet</Text>
         </View>
       </SafeAreaView>
@@ -520,7 +522,7 @@ export default function StatsScreen() {
           ) : (
             <View style={{ gap: 0 }}>
               {countryList.map(({ name, count }) => (
-                <HBar key={name} label={`🌍 ${name}`} value={count} max={n} labelWidth={160} />
+                <HBar key={name} label={name} value={count} max={n} labelWidth={160} />
               ))}
             </View>
           )}
@@ -627,7 +629,10 @@ export default function StatsScreen() {
         {(!isPremium || topLikers.length > 0) && (
         <PremiumSection isPremium={isPremium} title="WHO LIKED YOUR CRIES THE MOST" onLockPress={goPaywall}>
           {topLikers.length === 0 ? (
-            <Text style={s.emptyInner}>No likes yet 💧</Text>
+            <View style={s.emptyInnerRow}>
+              <Text style={s.emptyInner}>No likes yet</Text>
+              <Tear size={13} filled={false} color="#374151" />
+            </View>
           ) : (
             topLikers.map((liker, i) => (
               <View key={liker.actor_id} style={[s.likerRow, i > 0 && { borderTopWidth: 1, borderTopColor: '#1a2233' }]}>
@@ -637,7 +642,10 @@ export default function StatsScreen() {
                   <Text style={s.likerName}>{liker.display_name || liker.username}</Text>
                   <Text style={s.likerHandle}>@{liker.username}</Text>
                 </View>
-                <Text style={[s.likerCount, { color: accent }]}>{liker.count} 💧</Text>
+                <View style={s.likerCountRow}>
+                  <Text style={[s.likerCount, { color: accent }]}>{liker.count}</Text>
+                  <Tear size={14} filled color={accent} />
+                </View>
               </View>
             ))
           )}
@@ -708,7 +716,7 @@ function LikerAvatar({ uri }: { uri: string | null }) {
   if (uri) return <Image source={{ uri }} style={s.likerAvatar} />;
   return (
     <View style={[s.likerAvatar, { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' }]}>
-      <Text style={{ fontSize: 17 }}>💧</Text>
+      <Tear size={17} filled color="#6fe0e6" />
     </View>
   );
 }
@@ -748,7 +756,6 @@ const s = StyleSheet.create({
     color: '#4a5568', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 1.2, textTransform: 'uppercase',
   },
-  premiumBadge: { fontSize: 13 },
 
   // #1 Emotion
   emotionTop: {
@@ -787,6 +794,8 @@ const s = StyleSheet.create({
 
   // Countries
   emptyInner: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  emptyInnerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  likerCountRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   placeLede: { color: '#94a3b8', fontSize: 13, lineHeight: 19, marginBottom: 16 },
   awayRow: { flexDirection: 'row', alignItems: 'stretch' },
   awayCell: { flex: 1, alignItems: 'center', gap: 4 },

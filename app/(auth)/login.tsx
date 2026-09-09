@@ -14,6 +14,7 @@ import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
 import { signInWithApple } from '../../lib/apple-auth';
 import { useTheme } from '../../lib/themes';
 import { PressableScale } from '../../components/PressableScale';
+import { Tear } from '../../components/EmotionIcon';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -107,7 +108,7 @@ export default function LoginScreen() {
             transform: [{ translateY: intro.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
           }]}>
             <View style={[styles.logoCircle, { backgroundColor: accent, shadowColor: accent }]}>
-              <Text style={styles.logoEmoji}>💧</Text>
+              <Tear size={36} filled color="#6fe0e6" />
             </View>
             <Text style={styles.appName}>Teardrop</Text>
             <Text style={styles.tagline}>Your emotional atlas</Text>
@@ -260,7 +261,6 @@ const styles = StyleSheet.create({
     shadowColor: '#6fe0e6', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4, shadowRadius: 20, elevation: 12,
   },
-  logoEmoji: { fontSize: 36 },
   appName: { color: '#e2e8f0', fontSize: 28, fontWeight: '800', letterSpacing: 0.5 },
   tagline: { color: '#4a5568', fontSize: 15, fontFamily: 'monospace' },
 

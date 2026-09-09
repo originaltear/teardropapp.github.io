@@ -30,6 +30,7 @@ import { CryPhoto } from '../../components/CryPhoto';
 import { fullDateTime, timeAgo } from '../../lib/format';
 import { tapLight, tapMedium, selection } from '../../lib/haptics';
 import { useTheme } from '../../lib/themes';
+import { Tear } from '../../components/EmotionIcon';
 
 // ─── Normalize Cry | SocialCry → common shape ─────────────────────────────────
 
@@ -454,7 +455,7 @@ export default function MapScreen() {
   if (permissionDenied) {
     return (
       <View style={styles.center}>
-        <Text style={{ fontSize: 48 }}>📍</Text>
+        <UiIcon name="mapPin" size={48} color="#4a5568" strokeWidth={1.5} />
         <Text style={styles.errorTitle}>Location needed</Text>
         <Text style={styles.errorSub}>Enable location in Settings to log where you cried.</Text>
         <TouchableOpacity
@@ -537,7 +538,10 @@ export default function MapScreen() {
       {/* Header — title, plus the recap entry once it's switched on */}
       <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="box-none">
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: accent }]}>💧 Teardrop</Text>
+          <View style={styles.brandRow}>
+            <Tear size={17} filled color={accent} />
+            <Text style={[styles.headerTitle, { color: accent }]}>Teardrop</Text>
+          </View>
           {wrappedOn && (
             <TouchableOpacity
               style={[styles.wrappedPill, { borderColor: accent + '66', backgroundColor: accent + '1a' }]}
@@ -546,7 +550,7 @@ export default function MapScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Open your ${currentWrappedYear()} year in tears`}
             >
-              <Text style={styles.wrappedPillEmoji}>🎁</Text>
+              <UiIcon name="gift" size={15} color={accent} />
               <Text style={[styles.wrappedPillTxt, { color: accent }]}>
                 Your {currentWrappedYear()}
               </Text>
@@ -598,7 +602,10 @@ export default function MapScreen() {
       {gpsReady && cries.length === 0 && mapFilter === 'mine' && (
         <SafeAreaView edges={['bottom']} style={styles.hintContainer} pointerEvents="none">
           <View style={styles.firstCryHint}>
-            <Text style={styles.firstCryHintTxt}>💧 Tap + to log your first cry</Text>
+            <View style={styles.brandRow}>
+              <Tear size={13} filled color="#e2e8f0" />
+              <Text style={styles.firstCryHintTxt}>Tap + to log your first cry</Text>
+            </View>
           </View>
         </SafeAreaView>
       )}
@@ -764,7 +771,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999, borderWidth: 1,
   },
-  wrappedPillEmoji: { fontSize: 15 },
   wrappedPillTxt: { fontSize: 13, fontWeight: '700' },
 
   fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
@@ -816,7 +822,6 @@ const styles = StyleSheet.create({
   emotionHead: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   badgeLabel: { fontSize: 17, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  closeTxt: { color: '#4a5568', fontSize: 17 },
   dateText: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace' },
   photo: {
     width: '100%', height: 180, borderRadius: 12,
@@ -844,6 +849,7 @@ const styles = StyleSheet.create({
     marginRight: 24, marginBottom: 160,
   },
   firstCryHintTxt: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 
   // Cluster contents sheet
   clusterCard: {

@@ -214,7 +214,9 @@ export default function NotificationsScreen() {
           <Text style={styles.headerTitle}>Notifications</Text>
         </View>
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🔔</Text>
+          <View style={styles.emptyEmoji}>
+            <UiIcon name="bell" size={48} color="#4a5568" strokeWidth={1.5} />
+          </View>
           <Text style={styles.emptyTitle}>Log in to see notifications</Text>
           <Text style={styles.emptySub}>Likes, comments and friend requests will appear here.</Text>
         </View>
@@ -258,7 +260,9 @@ export default function NotificationsScreen() {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🔔</Text>
+              <View style={styles.emptyEmoji}>
+                <UiIcon name="bell" size={48} color="#4a5568" strokeWidth={1.5} />
+              </View>
               <Text style={styles.emptyTitle}>No notifications yet</Text>
               <Text style={styles.emptySub}>Likes, comments and friend requests will appear here.</Text>
             </View>
@@ -311,7 +315,7 @@ const styles = StyleSheet.create({
   sep: { height: 1, backgroundColor: '#1f2937', marginLeft: 70 },
   emptyFlex: { flexGrow: 1, justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 40 },
-  emptyEmoji: { fontSize: 48, opacity: 0.4 },
+  emptyEmoji: { opacity: 0.4 },
   emptyTitle: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', lineHeight: 20 },
 });

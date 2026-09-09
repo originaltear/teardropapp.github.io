@@ -437,7 +437,7 @@ export default function FeedScreen() {
             accessibilityState={{ selected: selectMode }}
             accessibilityLabel={selectMode ? 'Exit select mode' : 'Select multiple cries'}
           >
-            <Text style={[styles.quickChipTxt, selectMode && { color: accent }]}>☑</Text>
+            <UiIcon name="squareCheck" size={19} color={selectMode ? accent : '#4a5568'} />
           </TouchableOpacity>
           </View>
         </View>
@@ -629,7 +629,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   checkCircleOn: { borderColor: '#6fe0e6', backgroundColor: '#6fe0e6' },
-  checkMark: { color: '#0d1117', fontSize: 13, fontWeight: '800', lineHeight: 15 },
   quickChip: {
     width: 48, height: 48, borderRadius: 12,
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',

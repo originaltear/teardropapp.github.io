@@ -14,6 +14,7 @@ import { runOAuth, friendlyOAuthError } from '../../lib/oauth';
 import { signInWithApple } from '../../lib/apple-auth';
 import { useTheme } from '../../lib/themes';
 import { PressableScale } from '../../components/PressableScale';
+import { UiIcon } from '../../components/UiIcon';
 
 const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
@@ -92,7 +93,9 @@ export default function SignupScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.confirmedArea}>
-          <Text style={styles.confirmedEmoji}>✉️</Text>
+          <View style={styles.confirmedEmoji}>
+            <UiIcon name="mail" size={44} color="#6fe0e6" strokeWidth={1.5} />
+          </View>
           <Text style={styles.confirmedTitle}>Check your email</Text>
           <Text style={styles.confirmedSub}>
             We sent a confirmation link to{'\n'}
@@ -359,7 +362,7 @@ const styles = StyleSheet.create({
 
   // Email confirmation screen
   confirmedArea: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, paddingHorizontal: 40 },
-  confirmedEmoji: { fontSize: 56 },
+  confirmedEmoji: {},
   confirmedTitle: { color: '#e2e8f0', fontSize: 20, fontWeight: '700' },
   confirmedSub: { color: '#4a5568', fontSize: 15, textAlign: 'center', lineHeight: 22 },
   confirmedEmail: { color: '#6fe0e6', fontWeight: '600' },

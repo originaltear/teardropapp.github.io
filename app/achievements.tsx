@@ -190,7 +190,10 @@ export default function AchievementsScreen() {
                       <Text style={s.popupMsg}>"{selected.unlockMessage}"</Text>
                     </>
                   ) : (
-                    <Text style={s.popupLocked}>🔒 Not unlocked yet</Text>
+                    <View style={s.popupLockedRow}>
+                      <UiIcon name="lock" size={14} color="#4a5568" />
+                      <Text style={s.popupLocked}>Not unlocked yet</Text>
+                    </View>
                   )}
 
                   {showRank && (
@@ -266,7 +269,6 @@ const s = StyleSheet.create({
   rowMsg: { color: '#4a5568', fontSize: 13, fontStyle: 'italic', lineHeight: 16 },
   rowHow: { color: '#64748b', fontSize: 13, lineHeight: 16 },
   rankBadge: { color: '#f2cf6b', fontSize: 11, fontWeight: '600', marginTop: 2 },
-  check: { color: '#6fe0e6', fontSize: 17, fontWeight: '700' },
 
   // Detail popup
   popupBackdrop: {
@@ -297,7 +299,8 @@ const s = StyleSheet.create({
     color: '#64748b', fontSize: 13, fontStyle: 'italic',
     lineHeight: 18, textAlign: 'center', marginTop: 2,
   },
-  popupLocked: { color: '#4a5568', fontSize: 13, marginTop: 12 },
+  popupLocked: { color: '#4a5568', fontSize: 13 },
+  popupLockedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
   popupClose: {
     borderRadius: 14, paddingVertical: 13, paddingHorizontal: 40,
     alignItems: 'center', marginTop: 20, alignSelf: 'stretch',

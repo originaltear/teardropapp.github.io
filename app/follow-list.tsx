@@ -14,15 +14,9 @@ import { getFollowList, followUser, unfollowUser, UserResult } from '../lib/soci
 import { useTheme } from '../lib/themes';
 import { ListSkeleton } from '../components/Skeleton';
 import { useAuth } from '../lib/auth';
+import { UiIcon } from '../components/UiIcon';
+import { Avatar } from '../components/Avatar';
 
-function Avatar({ uri, size = 46 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[s.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.42 }}>💧</Text>
-    </View>
-  );
-}
 
 export default function FollowListScreen() {
   const { userId, type } = useLocalSearchParams<{ userId: string; type: 'followers' | 'following' }>();
@@ -102,7 +96,9 @@ export default function FollowListScreen() {
           contentContainerStyle={users.length === 0 ? s.emptyWrap : undefined}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Text style={{ fontSize: 40, opacity: 0.4 }}>👥</Text>
+              <View style={{ opacity: 0.4 }}>
+                <UiIcon name="users" size={40} color="#4a5568" strokeWidth={1.5} />
+              </View>
               <Text style={s.emptyTxt}>
                 {type === 'followers' ? 'No followers yet' : 'Not following anyone'}
               </Text>

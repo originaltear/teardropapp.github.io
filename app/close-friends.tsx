@@ -18,15 +18,9 @@ import {
   getCloseFriends, addCloseFriend, removeCloseFriend,
   getFollowList, UserResult,
 } from '../lib/social';
+import { UiIcon } from '../components/UiIcon';
+import { Avatar } from '../components/Avatar';
 
-function Avatar({ uri, size = 40 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.4 }}>💧</Text>
-    </View>
-  );
-}
 
 export default function CloseFriendsScreen() {
   const router = useRouter();
@@ -104,7 +98,9 @@ export default function CloseFriendsScreen() {
         </View>
       ) : followers.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={styles.emptyEmoji}>👥</Text>
+          <View style={styles.emptyEmoji}>
+            <UiIcon name="users" size={48} color="#4a5568" strokeWidth={1.5} />
+          </View>
           <Text style={styles.emptyTitle}>No followers yet</Text>
           <Text style={styles.emptySub}>
             You can only add followers to your close friends list.
@@ -136,9 +132,17 @@ export default function CloseFriendsScreen() {
                 >
                   {isLoading
                     ? <ActivityIndicator size="small" color={isClose ? '#0d1117' : '#6fe0e6'} />
-                    : <Text style={[styles.toggleTxt, isClose && styles.toggleTxtActive]}>
-                      {isClose ? '★ Added' : '☆ Add'}
-                    </Text>
+                    : <View style={styles.toggleRow}>
+                        <UiIcon
+                          name="star"
+                          size={13}
+                          filled={isClose}
+                          color={isClose ? '#0d1117' : '#6fe0e6'}
+                        />
+                        <Text style={[styles.toggleTxt, isClose && styles.toggleTxtActive]}>
+                          {isClose ? 'Added' : 'Add'}
+                        </Text>
+                      </View>
                   }
                 </TouchableOpacity>
               </View>
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1f2937',
   },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyEmoji: { fontSize: 48, opacity: 0.4 },
+  emptyEmoji: { opacity: 0.4 },
   emptyTitle: { color: '#4a5568', fontSize: 17, fontWeight: '600' },
   emptySub: { color: '#374151', fontSize: 13, textAlign: 'center', paddingHorizontal: 40 },
 
@@ -196,5 +200,6 @@ const styles = StyleSheet.create({
   },
   toggleBtnActive: { backgroundColor: '#6fe0e6', borderColor: '#6fe0e6' },
   toggleTxt: { color: '#6fe0e6', fontSize: 13, fontWeight: '600' },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   toggleTxtActive: { color: '#0d1117' },
 });

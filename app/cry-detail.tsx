@@ -33,6 +33,7 @@ import { CryPhoto } from '../components/CryPhoto';
 import { fullDateTime } from '../lib/format';
 import { tapLight, tapMedium, success } from '../lib/haptics';
 import { UiIcon } from '../components/UiIcon';
+import { Tear } from '../components/EmotionIcon';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -262,7 +263,7 @@ export default function CryDetailScreen() {
           </TouchableOpacity>
         </View>
         <View style={s.empty}>
-          <Text style={{ fontSize: 40, opacity: 0.3 }}>💧</Text>
+          <View style={{ opacity: 0.3 }}><Tear size={40} filled={false} color="#4a5568" /></View>
           <Text style={s.emptyTxt}>Cry not found</Text>
         </View>
       </SafeAreaView>
@@ -349,7 +350,7 @@ export default function CryDetailScreen() {
             {!isOwn && session && (
               <>
                 <TouchableOpacity style={s.likeBtn} onPress={toggleLike} activeOpacity={0.75}>
-                  <Text style={{ fontSize: 17 }}>{liked ? '💧' : '🤍'}</Text>
+                  <Tear size={18} filled={liked} color={liked ? '#6fe0e6' : '#4a5568'} />
                   <Text style={[s.likeTxt, liked && { color: accent }]}>
                     {liked ? 'Liked' : 'Like'}
                   </Text>
@@ -358,7 +359,7 @@ export default function CryDetailScreen() {
                   style={s.likeBtn} onPress={toggleHug} activeOpacity={0.75}
                   accessibilityRole="button" accessibilityLabel={hugged ? 'Remove hug' : 'Send a hug'}
                 >
-                  <Text style={{ fontSize: 17 }}>🫂</Text>
+                  <UiIcon name="heartHandshake" size={18} color="#4a5568" />
                   <Text style={[s.likeTxt, hugged && { color: accent }]}>
                     {hugged ? 'Hugged' : 'Hug'}
                   </Text>
@@ -397,7 +398,10 @@ export default function CryDetailScreen() {
           {/* Comments — one-level threads: top-level comments with replies below */}
           <Text style={s.sectionLabel}>COMMENTS</Text>
           {commentsDisabled ? (
-            <Text style={s.commentsOffTxt}>💬  Comments have been turned off</Text>
+            <View style={s.commentsOffRow}>
+              <UiIcon name="messageCircle" size={14} color="#374151" />
+              <Text style={s.commentsOffTxt}>Comments have been turned off</Text>
+            </View>
           ) : comments.length === 0 ? (
             <Text style={s.noComments}>No comments yet</Text>
           ) : (
@@ -534,9 +538,14 @@ function CommentItem({ comment, accent, isOwn, canInteract, onLike, onReply, onD
         {canInteract && (
           <View style={s.commentActions}>
             <TouchableOpacity onPress={onLike} hitSlop={8} accessibilityRole="button" accessibilityLabel="Like comment">
-              <Text style={[s.commentAction, comment.liked_by_me && { color: accent }]}>
-                {comment.liked_by_me ? '💧' : '🤍'}{comment.like_count > 0 ? ` ${comment.like_count}` : ''}
-              </Text>
+              <View style={s.commentLikeRow}>
+                <Tear size={14} filled={comment.liked_by_me} color={comment.liked_by_me ? accent : '#4a5568'} />
+                {comment.like_count > 0 ? (
+                  <Text style={[s.commentAction, comment.liked_by_me && { color: accent }]}>
+                    {comment.like_count}
+                  </Text>
+                ) : null}
+              </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={onReply} hitSlop={8} accessibilityRole="button" accessibilityLabel="Reply to comment">
               <Text style={s.commentAction}>Reply</Text>
@@ -566,7 +575,6 @@ const s = StyleSheet.create({
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   backTxt: { color: '#6fe0e6', fontSize: 20 },
-  menuTxt: { color: '#4a5568', fontSize: 20, fontWeight: '700' },
   headerTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '600' },
 
   content: { padding: 20, gap: 14 },
@@ -616,8 +624,10 @@ const s = StyleSheet.create({
   commentUser: { color: '#6fe0e6', fontSize: 13, fontWeight: '600', marginBottom: 3 },
   commentText: { color: '#94a3b8', fontSize: 13, lineHeight: 18 },
 
-  commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace', marginTop: 2 },
+  commentsOffTxt: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
+  commentsOffRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   commentActions: { flexDirection: 'row', gap: 16, marginTop: 4, marginLeft: 4 },
+  commentLikeRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   commentAction: { color: '#4a5568', fontSize: 13, fontWeight: '600' },
   // A thread line rather than indentation alone: with replies flattened to one
   // level, plain indentation left it unclear where a thread started and ended.
@@ -633,7 +643,7 @@ const s = StyleSheet.create({
     backgroundColor: '#111827',
   },
   replyingTxt: { flex: 1, color: '#4a5568', fontSize: 13 },
-  replyingClose: { color: '#4a5568', fontSize: 15, padding: 2 },
+  replyingClose: { padding: 2 },
 
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,

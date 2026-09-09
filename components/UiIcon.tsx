@@ -14,11 +14,14 @@ export function UiIcon({
   color,
   /** Lucide draws at 2 units on a 24 grid; thinner reads lighter when inactive. */
   strokeWidth = 2,
+  filled = false,
 }: {
   name: keyof typeof UI_ICONS | string;
   size?: number;
   color: string;
   strokeWidth?: number;
+  /** Fills the glyph in its own colour — for a chosen star, not for line icons. */
+  filled?: boolean;
 }) {
   const shapes = UI_ICONS[name];
   if (!shapes) return null;
@@ -31,7 +34,7 @@ export function UiIcon({
           strokeWidth,
           strokeLinecap: 'round' as const,
           strokeLinejoin: 'round' as const,
-          fill: 'none',
+          fill: filled ? color : 'none',
         };
         if ('d' in s) return <Path key={i} d={s.d} {...stroke} />;
         if ('c' in s) return <Circle key={i} cx={s.c[0]} cy={s.c[1]} r={s.c[2]} {...stroke} />;

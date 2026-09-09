@@ -17,15 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { getCryReactors, Reactor } from '../lib/social';
 import { UiIcon } from './UiIcon';
+import { Tear } from './EmotionIcon';
+import { Avatar } from './Avatar';
 
-function Avatar({ uri, size = 38 }: { uri?: string | null; size?: number }) {
-  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
-  return (
-    <View style={[s.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontSize: size * 0.42 }}>💧</Text>
-    </View>
-  );
-}
 
 export function ReactorsSheet({ cryId, visible, onClose }: {
   cryId: string; visible: boolean; onClose: () => void;
@@ -82,9 +76,10 @@ export function ReactorsSheet({ cryId, visible, onClose }: {
                       <Text style={s.name} numberOfLines={1}>{item.display_name}</Text>
                       <Text style={s.handle2} numberOfLines={1}>@{item.username}</Text>
                     </View>
-                    <Text style={s.marks}>
-                      {item.liked ? '💧' : ''}{item.hugged ? '🫂' : ''}
-                    </Text>
+                    <View style={s.marks}>
+                      {item.liked ? <Tear size={15} filled color="#6fe0e6" /> : null}
+                      {item.hugged ? <UiIcon name="heartHandshake" size={15} color="#6fe0e6" /> : null}
+                    </View>
                   </TouchableOpacity>
                 )}
               />
@@ -112,7 +107,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, marginBottom: 8,
   },
   title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
-  close: { color: '#4a5568', fontSize: 17, padding: 4 },
+  close: { padding: 4 },
   center: { paddingVertical: 32, alignItems: 'center' },
   hidden: {
     color: '#4a5568', fontSize: 13, lineHeight: 20,
@@ -125,5 +120,5 @@ const s = StyleSheet.create({
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
   name: { color: '#e2e8f0', fontSize: 15 },
   handle2: { color: '#4a5568', fontSize: 13, marginTop: 2 },
-  marks: { fontSize: 15, letterSpacing: 2 },
+  marks: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

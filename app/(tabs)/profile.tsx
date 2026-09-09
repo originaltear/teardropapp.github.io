@@ -22,6 +22,7 @@ import { FeedBanner } from '../../components/FeedBanner';
 import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { supabase } from '../../lib/supabase';
 import { UiIcon } from '../../components/UiIcon';
+import { Tear } from '../../components/EmotionIcon';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ function Avatar({ uri, size = 88 }: { uri?: string; size?: number }) {
       width: size, height: size, borderRadius: size / 2,
       backgroundColor: '#6fe0e6', alignItems: 'center', justifyContent: 'center',
     }}>
-      <Text style={{ fontSize: size * 0.48 }}>💧</Text>
+      <Tear size={size * 0.5} filled color="#0d1117" />
     </View>
   );
 }
@@ -347,7 +348,7 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Open your ${currentWrappedYear()} year in tears`}
           >
-            <Text style={styles.wrappedEmoji}>🎁</Text>
+            <UiIcon name="gift" size={26} color="#6fe0e6" />
             <View style={{ flex: 1 }}>
               <Text style={styles.wrappedTitle}>Your {currentWrappedYear()} in Tears</Text>
               <Text style={styles.wrappedSub}>Your year, wrapped up. Tap to open.</Text>
@@ -450,7 +451,6 @@ const styles = StyleSheet.create({
     borderRadius: 16, borderWidth: 1,
     borderColor: '#6fe0e655', backgroundColor: '#6fe0e614',
   },
-  wrappedEmoji: { fontSize: 26 },
   wrappedTitle: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   wrappedSub: { color: '#94a3b8', fontSize: 13, marginTop: 2 },
   wrappedChevron: { color: '#6fe0e6', fontSize: 20, fontWeight: '600' },

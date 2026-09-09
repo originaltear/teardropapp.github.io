@@ -24,6 +24,8 @@ import {
 import { ReportSheet } from '../components/ReportSheet';
 import { tapLight } from '../lib/haptics';
 import { EmotionIcon } from '../components/EmotionIcon';
+import { UiIcon } from '../components/UiIcon';
+import { Tear } from '../components/EmotionIcon';
 
 interface PublicProfile {
   id: string;
@@ -161,7 +163,9 @@ export default function UserProfileScreen() {
           </TouchableOpacity>
         </View>
         <View style={s.empty}>
-          <Text style={s.emptyEmoji}>💧</Text>
+          <View style={s.emptyEmoji}>
+            <Tear size={48} filled={false} color="#4a5568" />
+          </View>
           <Text style={s.emptyTxt}>User not found</Text>
         </View>
       </SafeAreaView>
@@ -311,7 +315,9 @@ export default function UserProfileScreen() {
             different situation from "nobody" and is one the viewer can act on. */}
         {!canSeeProfile && (
           <View style={s.privateBox}>
-            <Text style={s.privateEmoji}>🔒</Text>
+            <View style={s.privateEmoji}>
+              <UiIcon name="lock" size={36} color="#4a5568" strokeWidth={1.5} />
+            </View>
             <Text style={s.privateTxt}>
               {visibility === 'followers'
                 ? 'Only mutual follows can see this account'
@@ -389,10 +395,10 @@ const s = StyleSheet.create({
   cryTime: { color: '#4a5568', fontSize: 11, fontFamily: 'monospace' },
 
   privateBox: { alignItems: 'center', paddingVertical: 32, gap: 8, marginHorizontal: 20 },
-  privateEmoji: { fontSize: 36, opacity: 0.4 },
+  privateEmoji: { opacity: 0.4 },
   privateTxt: { color: '#4a5568', fontSize: 15 },
 
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10 },
-  emptyEmoji: { fontSize: 48, opacity: 0.4 },
+  emptyEmoji: { opacity: 0.4 },
   emptyTxt: { color: '#4a5568', fontSize: 17 },
 });

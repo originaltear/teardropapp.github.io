@@ -23,6 +23,7 @@ import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { supabase } from '../../lib/supabase';
 import { UiIcon } from '../../components/UiIcon';
 import { Tear } from '../../components/EmotionIcon';
+import { AchievementIcon } from '../../components/AchievementIcon';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 
@@ -388,7 +389,7 @@ export default function ProfileScreen() {
                   onPress={() => router.push('/achievements')}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.badgeEmoji}>{def.emoji}</Text>
+                  <View style={styles.badgeEmoji}><AchievementIcon id={def.id} size={26} emoji={def.emoji} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.badgeName}>{def.title}</Text>
                     <Text style={styles.badgeDesc} numberOfLines={1}>"{def.unlockMessage}"</Text>
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
   emptyAchTxt: { color: '#374151', fontSize: 13, textAlign: 'center' },
   badgeList: { backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#1f2937', overflow: 'hidden' },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1f2937' },
-  badgeEmoji: { fontSize: 26, width: 36, textAlign: 'center' },
+  badgeEmoji: { width: 36, alignItems: 'center' },
   badgeName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
   badgeDesc: { color: '#4a5568', fontSize: 13, marginTop: 1, fontStyle: 'italic' },
 });

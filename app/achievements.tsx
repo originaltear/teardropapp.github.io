@@ -11,9 +11,10 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../lib/auth';
-import { ACHIEVEMENTS, getUnlockedAchievements, type Achievement } from '../lib/achievements';
+import { ACHIEVEMENTS, getUnlockedAchievements, getTearInfo, type Achievement } from '../lib/achievements';
 import { supabase } from '../lib/supabase';
 import { UiIcon } from '../components/UiIcon';
+import { AchievementIcon } from '../components/AchievementIcon';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -118,7 +119,9 @@ export default function AchievementsScreen() {
                 accessibilityLabel={`${a.title}. ${unlocked ? 'Unlocked' : 'Locked'}. Tap for details.`}
               >
                 <View style={[s.emojiWrap, unlocked && s.emojiWrapUnlocked]}>
-                  <Text style={[s.emoji, !unlocked && { opacity: 0.25 }]}>{a.emoji}</Text>
+                  <View style={!unlocked && { opacity: 0.25 }}>
+                    <AchievementIcon id={a.id} size={26} emoji={a.emoji} label={a.title} />
+                  </View>
                 </View>
 
                 <View style={s.info}>
@@ -126,7 +129,12 @@ export default function AchievementsScreen() {
                     <Text style={[s.rowTitle, !unlocked && s.rowTitleLocked]}>{a.title}</Text>
                     {a.isTear && (
                       <View style={s.tearTag}>
-                        <Text style={s.tearTagTxt}>{a.tearEmoji} Tear</Text>
+                        <UiIcon
+                          name={getTearInfo(a.tearEmoji ?? '')?.icon ?? 'droplets'}
+                          size={12}
+                          color="#f2cf6b"
+                        />
+                        <Text style={s.tearTagTxt}>Tear</Text>
                       </View>
                     )}
                   </View>
@@ -167,12 +175,19 @@ export default function AchievementsScreen() {
               return (
                 <>
                   <View style={[s.popupEmojiWrap, unlocked && s.emojiWrapUnlocked]}>
-                    <Text style={[s.popupEmoji, !unlocked && { opacity: 0.3 }]}>{selected.emoji}</Text>
+                    <View style={!unlocked && { opacity: 0.3 }}>
+                      <AchievementIcon id={selected.id} size={40} emoji={selected.emoji} />
+                    </View>
                   </View>
                   <Text style={s.popupTitle}>{selected.title}</Text>
                   {selected.isTear && (
                     <View style={s.tearTag}>
-                      <Text style={s.tearTagTxt}>{selected.tearEmoji} Tear</Text>
+                      <UiIcon
+                        name={getTearInfo(selected.tearEmoji ?? '')?.icon ?? 'droplets'}
+                        size={12}
+                        color="#f2cf6b"
+                      />
+                      <Text style={s.tearTagTxt}>Tear</Text>
                     </View>
                   )}
 
@@ -259,6 +274,9 @@ const s = StyleSheet.create({
   rowTitleLocked: { color: '#374151' },
 
   tearTag: {
+    // Ikon og tekst side om side: pillen viser nu det samme maerke som baeres
+    // ved brugernavnet, i stedet for en emoji af det samme.
+    flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#f2cf6b22', borderRadius: 10,
     paddingHorizontal: 8, paddingVertical: 2,
     borderWidth: 1, borderColor: '#f2cf6b44',

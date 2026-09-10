@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import type { Achievement } from '../lib/achievements';
 import { success } from '../lib/haptics';
+import { AchievementIcon } from './AchievementIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -45,7 +46,7 @@ export function AchievementToast({ achievement, onDismiss }: Props) {
           <Text style={s.eyebrow}>✦  ACHIEVEMENT UNLOCKED  ✦</Text>
 
           {/* Emoji */}
-          <Text style={s.emoji}>{achievement.emoji}</Text>
+          <View style={s.emoji}><AchievementIcon id={achievement.id} size={64} emoji={achievement.emoji} /></View>
 
           {/* Title */}
           <Text style={s.title}>{achievement.title}</Text>
@@ -94,7 +95,7 @@ const s = StyleSheet.create({
     color: '#6fe0e6', fontSize: 11, fontFamily: 'monospace',
     letterSpacing: 2, textTransform: 'uppercase',
   },
-  emoji: { fontSize: 64, marginVertical: 4 },
+  emoji: { marginVertical: 4 },
   title: { color: '#e2e8f0', fontSize: 20, fontWeight: '700', textAlign: 'center' },
   tearBadge: {
     backgroundColor: '#f2cf6b22', borderRadius: 20,

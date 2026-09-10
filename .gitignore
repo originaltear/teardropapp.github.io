@@ -56,3 +56,8 @@ build-log.txt
 CLAUDE.md
 AGENTS.md
 .claude/
+
+# Interne arbejdsdokumenter, ikke til det offentlige repo
+achievement-icons-prompt.md
+store-screenshots-brief.md
+_ark.html

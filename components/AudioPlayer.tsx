@@ -3,6 +3,7 @@
  * my-cries detail views (previously copy-pasted in all three).
  */
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { UiIcon } from './UiIcon';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useTheme } from '../lib/themes';
 
@@ -39,7 +40,7 @@ export function AudioPlayer({ uri }: { uri: string }) {
       accessibilityRole="button"
       accessibilityLabel={playing ? 'Stop voice note' : 'Play voice note'}
     >
-      <Text style={[styles.icon, { color: accent }]}>{playing ? '⏹' : '▶'}</Text>
+      <UiIcon name={playing ? 'square' : 'play'} size={17} color={accent} strokeWidth={2.2} />
       <Text style={[styles.label, { color: accent }]}>{playing ? 'Stop voice note' : 'Play voice note'}</Text>
     </TouchableOpacity>
   );
@@ -51,6 +52,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d1117', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1,
   },
-  icon: { fontSize: 17 },
   label: { fontSize: 15, fontWeight: '500' },
 });

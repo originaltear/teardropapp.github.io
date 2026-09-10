@@ -135,6 +135,12 @@ export const UI_ICONS: Record<string, UiShape[]> = {
     { d: 'M19 10v2a7 7 0 0 1-14 0v-2' },
     { r: [9, 2, 6, 13, 3] },
   ],
+  play: [
+    { d: 'M6 3L20 12L6 21Z' },
+  ],
+  square: [
+    { r: [3, 3, 18, 18, 2] },
+  ],
   trash: [
     { d: 'M10 11v6' },
     { d: 'M14 11v6' },

@@ -691,7 +691,7 @@ export default function LogCryScreen() {
                 onPress={isPlaying ? stopAudio : playAudio}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.playIcon, { color: accent }]}>{isPlaying ? '⏹' : '▶'}</Text>
+                <UiIcon name={isPlaying ? 'square' : 'play'} size={17} color={accent} strokeWidth={2.2} />
                 <Text style={[styles.playTxt, { color: accent }]}>
                   {isPlaying ? 'Stop' : 'Play'}{recordSecs > 0 ? ` · ${fmt(recordSecs)}` : ''}
                 </Text>
@@ -906,7 +906,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#6fe0e6',
     borderRadius: 12, padding: 14,
   },
-  playIcon: { fontSize: 17, color: '#6fe0e6' },
   playTxt: { color: '#6fe0e6', fontSize: 15, fontWeight: '500' },
   deleteAudioBtn: {
     width: 46, height: 46, borderRadius: 12,

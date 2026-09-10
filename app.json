@@ -2,7 +2,7 @@
   "expo": {
     "name": "Teardrop",
     "slug": "teardrop",
-    "version": "1.0.6",
+    "version": "1.1.0",
     "scheme": "teardrop",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -27,7 +27,7 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
-      "versionCode": 12,
+      "versionCode": 13,
       "package": "com.originaltear.teardrop",
       "googleServicesFile": "./google-services.json"
     },

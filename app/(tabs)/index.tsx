@@ -560,43 +560,6 @@ export default function MapScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Segmented filter — centered, floating above FAB */}
-      {session && (
-        <View
-          style={styles.filterContainer}
-          pointerEvents="box-none"
-        >
-          <View style={styles.segmented}>
-            {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => {
-              const active = mapFilter === f;
-              return (
-                <TouchableOpacity
-                  key={f}
-                  style={[
-                    styles.segment,
-                    active && { backgroundColor: accent },
-                    i < 2 && styles.segmentBorder,
-                  ]}
-                  onPress={() => { if (!active) { selection(); setMapFilter(f); } }}
-                  activeOpacity={0.75}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? 'Show cries from people you follow' : 'Show all cries'}
-                >
-                  <UiIcon
-                    name={f === 'mine' ? 'user' : f === 'following' ? 'users' : 'globe'}
-                    size={19}
-                    color={active ? '#0d1117' : '#94a3b8'}
-                  />
-                  <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
-                    {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'All'}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-      )}
 
       {/* First-cry nudge for new users with an empty map (own cries only —
           the message makes no sense on the Following/All filters) */}
@@ -629,7 +592,47 @@ export default function MapScreen() {
         </View>
       )}
 
-      <View style={styles.fabContainer}>
+      {/* One row, laid out by flexbox rather than by arithmetic. Every earlier
+          version positioned these against each other with hand-computed
+          offsets, which held on the phone they were measured on and broke on
+          the next one. Here the filter takes what is left after the two
+          buttons have taken what they need, so they cannot meet at any width,
+          font scale or navigation mode. */}
+      <View style={styles.bottomBar} pointerEvents="box-none">
+        {session && (
+        <View style={styles.segmented}>
+          {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => {
+            const active = mapFilter === f;
+            return (
+              <TouchableOpacity
+                key={f}
+                style={[
+                  styles.segment,
+                  active && { backgroundColor: accent },
+                  i < 2 && styles.segmentBorder,
+                ]}
+                onPress={() => { if (!active) { selection(); setMapFilter(f); } }}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? 'Show cries from people you follow' : 'Show all cries'}
+              >
+                <UiIcon
+                  name={f === 'mine' ? 'user' : f === 'following' ? 'users' : 'globe'}
+                  size={19}
+                  color={active ? '#0d1117' : '#94a3b8'}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={[styles.segmentLabel, active && styles.segmentLabelActive]}
+                >
+                  {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'All'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        )}
         <PressableScale
           style={[styles.quickFab, { borderColor: accent }]}
           onPress={() => { tapLight(); if (requireCoords()) setQuickLogOpen(true); }}
@@ -722,17 +725,16 @@ const styles = StyleSheet.create({
   headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
 
   // Segmented control — centered, floating
-  filterContainer: {
-    // Clear of the quick-log button's band. That button ends 148 from the
-    // bottom (fab 24+64, then its own 12+48), and this pill is ~53 tall. At
-    // the old 110 the two shared a horizontal line, so on any screen with
-    // fewer points across — a narrower phone, or a larger display size — the
-    // centred pill grew into the right-hand button. Sitting above it, they
-    // cannot meet at any width.
-    position: 'absolute', bottom: 160, left: 0, right: 0,
-    alignItems: 'center',
+  // One row along the bottom. `right: 0` plus the FAB's own 24 margin keeps it
+  // off the edge; the filter shrinks into whatever is left.
+  bottomBar: {
+    position: 'absolute', bottom: 24, left: 20, right: 0,
+    flexDirection: 'row', alignItems: 'center',
   },
   segmented: {
+    // Takes the space the buttons do not need, and gives way before it ever
+    // reaches them.
+    flexShrink: 1, marginRight: 'auto',
     flexDirection: 'row',
     backgroundColor: 'rgba(13,17,23,0.88)',
     borderRadius: 28,
@@ -741,7 +743,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   segment: {
-    paddingHorizontal: 22, paddingVertical: 9,
+    flexShrink: 1,
+    paddingHorizontal: 14, paddingVertical: 9,
     alignItems: 'center', justifyContent: 'center', gap: 3,
   },
   segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
@@ -780,9 +783,8 @@ const styles = StyleSheet.create({
   },
   wrappedPillTxt: { fontSize: 13, fontWeight: '700' },
 
-  fabContainer: { position: 'absolute', bottom: 0, right: 0, alignItems: 'flex-end' },
-  // Mirrors fabContainer on the other side so the two never crowd each other.
-  recentreContainer: { position: 'absolute', bottom: 0, left: 0, alignItems: 'flex-start' },
+  // Sits above the row, out of its way.
+  recentreContainer: { position: 'absolute', bottom: 104, left: 0, alignItems: 'flex-start' },
   recentreBtn: {
     width: 48, height: 48, borderRadius: 24, margin: 20,
     backgroundColor: '#111827ee', borderWidth: 1, borderColor: '#374151',
@@ -793,13 +795,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.92)',
     borderWidth: 1, borderColor: '#6fe0e6',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 32, marginBottom: 12,
+    marginRight: 12,
   },
   quickFabIcon: { fontSize: 20 },
   fab: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: '#6fe0e6',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 24, marginBottom: 24,
+    marginRight: 24,
     shadowColor: '#6fe0e6', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },

@@ -6,7 +6,7 @@ import {
 import MapView, { Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
 import * as Location from 'expo-location';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../../lib/storage';
@@ -214,11 +214,12 @@ function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: (
 // ─── Map screen ───────────────────────────────────────────────────────────────
 
 export default function MapScreen() {
-  // The floating controls sit a fixed distance above the bottom edge, and that
-  // edge is not always where the screen ends: a phone on three-button
-  // navigation gives the system the last ~48pt. Everything else on this screen
-  // is a SafeAreaView, but the filter is a plain View and has to add it here.
-  const insets = useSafeAreaInsets();
+  // No bottom inset anywhere below. This screen lives inside the tab navigator,
+  // whose bar is already `60 + insets.bottom` tall, so the content area above it
+  // ends clear of the system's navigation buttons. Adding the inset again here
+  // counted it twice and pushed the whole cluster ~48pt up the screen on
+  // three-button navigation. The two Modals further down are the exception:
+  // a Modal covers the tab bar, so those do need the inset.
   const router = useRouter();
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
@@ -562,7 +563,7 @@ export default function MapScreen() {
       {/* Segmented filter — centered, floating above FAB */}
       {session && (
         <View
-          style={[styles.filterContainer, { bottom: 110 + insets.bottom }]}
+          style={styles.filterContainer}
           pointerEvents="box-none"
         >
           <View style={styles.segmented}>
@@ -600,14 +601,14 @@ export default function MapScreen() {
       {/* First-cry nudge for new users with an empty map (own cries only —
           the message makes no sense on the Following/All filters) */}
       {gpsReady && cries.length === 0 && mapFilter === 'mine' && (
-        <SafeAreaView edges={['bottom']} style={styles.hintContainer} pointerEvents="none">
+        <View style={styles.hintContainer} pointerEvents="none">
           <View style={styles.firstCryHint}>
             <View style={styles.brandRow}>
               <Tear size={13} filled color="#e2e8f0" />
               <Text style={styles.firstCryHintTxt}>Tap + to log your first cry</Text>
             </View>
           </View>
-        </SafeAreaView>
+        </View>
       )}
 
       {/* Bottom left, opposite the logging buttons, and only once you have
@@ -615,7 +616,7 @@ export default function MapScreen() {
           both crowded and easy to miss, and there is nothing to return to
           while you are already standing on yourself. */}
       {showRecentre && (
-        <SafeAreaView edges={['bottom']} style={styles.recentreContainer} pointerEvents="box-none">
+        <View style={styles.recentreContainer} pointerEvents="box-none">
           <PressableScale
             style={styles.recentreBtn}
             onPress={recentreOnMe}
@@ -625,10 +626,10 @@ export default function MapScreen() {
           >
             <UiIcon name="locateFixed" size={22} color="#94a3b8" />
           </PressableScale>
-        </SafeAreaView>
+        </View>
       )}
 
-      <SafeAreaView edges={['bottom']} style={styles.fabContainer}>
+      <View style={styles.fabContainer}>
         <PressableScale
           style={[styles.quickFab, { borderColor: accent }]}
           onPress={() => { tapLight(); if (requireCoords()) setQuickLogOpen(true); }}
@@ -647,7 +648,7 @@ export default function MapScreen() {
         >
           <Text style={styles.fabIcon}>+</Text>
         </PressableScale>
-      </SafeAreaView>
+      </View>
 
       <QuickLogSheet
         visible={quickLogOpen}
@@ -722,7 +723,13 @@ const styles = StyleSheet.create({
 
   // Segmented control — centered, floating
   filterContainer: {
-    position: 'absolute', bottom: 110, left: 0, right: 0,
+    // Clear of the quick-log button's band. That button ends 148 from the
+    // bottom (fab 24+64, then its own 12+48), and this pill is ~53 tall. At
+    // the old 110 the two shared a horizontal line, so on any screen with
+    // fewer points across — a narrower phone, or a larger display size — the
+    // centred pill grew into the right-hand button. Sitting above it, they
+    // cannot meet at any width.
+    position: 'absolute', bottom: 160, left: 0, right: 0,
     alignItems: 'center',
   },
   segmented: {

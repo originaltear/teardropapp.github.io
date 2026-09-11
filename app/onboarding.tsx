@@ -7,15 +7,13 @@
 import { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, Dimensions, NativeScrollEvent, NativeSyntheticEvent,
+  FlatList, useWindowDimensions, NativeScrollEvent, NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UiIcon } from '../components/UiIcon';
 import { Tear } from '../components/EmotionIcon';
-
-const { width: W } = Dimensions.get('window');
 
 export const ONBOARDING_KEY = 'onboarding_complete';
 
@@ -49,6 +47,11 @@ const SLIDES: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
+  // Read at render, not at import. Dimensions.get('window') at module scope is
+  // measured once when the bundle loads and never again, so a rotation, a
+  // split screen or a foldable being opened left the pages the wrong width and
+  // the paging maths reading the wrong slide.
+  const { width: W } = useWindowDimensions();
   const router = useRouter();
   const listRef = useRef<FlatList>(null);
   const [index, setIndex] = useState(0);
@@ -99,7 +102,7 @@ export default function OnboardingScreen() {
         scrollEventThrottle={16}
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item }) => (
-          <View style={s.slide}>
+          <View style={[s.slide, { width: W }]}>
             <View style={s.iconCircle}>
               {item.icon === 'tear'
                 ? <Tear size={56} filled={false} color="#6fe0e6" />
@@ -150,7 +153,6 @@ const s = StyleSheet.create({
   skipTxt: { color: '#4a5568', fontSize: 15, fontWeight: '500' },
 
   slide: {
-    width: W,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 40,

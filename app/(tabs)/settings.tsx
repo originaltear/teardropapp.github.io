@@ -688,8 +688,11 @@ export default function SettingsScreen() {
         <View style={styles.sheetModalRoot}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowReport(false)} />
         <KeyboardAvoidingView behavior="padding" automaticOffset>
+        {/* The SafeAreaView already pads for the navigation bar. Adding the
+            inset to the sheet as well counted it twice, which on three-button
+            navigation left the buttons floating ~48 above their own edge. */}
         <SafeAreaView edges={['bottom']}>
-          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
+          <View style={[styles.sheet, { paddingBottom: 24 }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>Report a problem</Text>
@@ -732,8 +735,11 @@ export default function SettingsScreen() {
         <View style={styles.sheetModalRoot}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowUsernameModal(false)} />
         <KeyboardAvoidingView behavior="padding" automaticOffset>
+        {/* The SafeAreaView already pads for the navigation bar. Adding the
+            inset to the sheet as well counted it twice, which on three-button
+            navigation left the buttons floating ~48 above their own edge. */}
         <SafeAreaView edges={['bottom']}>
-          <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
+          <View style={[styles.sheet, { paddingBottom: 24 }]}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeaderRow}>
               <Text style={styles.sheetTitle}>Change username</Text>

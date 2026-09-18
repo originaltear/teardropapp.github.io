@@ -70,6 +70,15 @@ function normalizeCry(c: Cry | SocialCry): NormalizedCry {
 
 const FAB_SIZE = 64;
 
+const FILTERS: MapFilter[] = ['mine', 'following', 'global'];
+const FILTER_ICON = { mine: 'user', following: 'users', global: 'globe' } as const;
+const FILTER_LABEL: Record<MapFilter, string> = {
+  mine: 'Mine', following: 'Following', global: 'All',
+};
+const FILTER_A11Y: Record<MapFilter, string> = {
+  mine: 'Show my cries', following: 'Show cries from people you follow', global: 'Show all cries',
+};
+
 // ─── Map style ────────────────────────────────────────────────────────────────
 
 const DARK_MAP_STYLE = [
@@ -600,16 +609,61 @@ export default function MapScreen() {
         })}
       </MapView>
 
-      {/* Header — title, plus the recap entry once it's switched on */}
-      <SafeAreaView edges={['top']} style={styles.headerOverlay} pointerEvents="box-none">
-        <View style={styles.headerRow}>
-          <View style={styles.brandRow}>
-            <Tear size={17} filled color={accent} />
-            <Text style={[styles.headerTitle, { color: accent }]}>Teardrop</Text>
+      {/* Top: a solid strip behind the status bar and nothing else. The
+          title row that used to sit here only repeated the name on the app
+          icon and cost a band of map. The strip stays so place names never
+          run in under the clock; its height comes from the phone itself. */}
+      <View style={styles.headerOverlay} pointerEvents="box-none">
+        <SafeAreaView edges={['top']} style={styles.headerBar} />
+
+        {/* The filter, centred at the top and alone on its row. When the
+            labels grow with the system font it widens evenly to both sides
+            rather than into a neighbour, and the 1.3x cap keeps it far inside
+            even a 320 dp screen. */}
+        {session && (
+          <View style={styles.filterRow} pointerEvents="box-none">
+            <View style={styles.segmented}>
+              {FILTERS.map((f, i) => {
+                const active = mapFilter === f;
+                return (
+                  <TouchableOpacity
+                    key={f}
+                    style={[
+                      styles.segment,
+                      active && { backgroundColor: accent },
+                      i < FILTERS.length - 1 && styles.segmentBorder,
+                    ]}
+                    onPress={() => { if (!active) { selection(); setMapFilter(f); } }}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={FILTER_A11Y[f]}
+                  >
+                    <UiIcon
+                      name={FILTER_ICON[f]}
+                      size={19}
+                      color={active ? '#0d1117' : '#94a3b8'}
+                    />
+                    <Text
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={1.3}
+                      style={[styles.segmentLabel, active && styles.segmentLabelActive]}
+                    >
+                      {FILTER_LABEL[f]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-          {wrappedOn && (
+        )}
+
+        {/* Recap entry, once it is switched on. Centred on its own row, so it
+            never stands beside anything. */}
+        {wrappedOn && (
+          <View style={styles.wrappedRow} pointerEvents="box-none">
             <TouchableOpacity
-              style={[styles.wrappedPill, { borderColor: accent + '66', backgroundColor: accent + '1a' }]}
+              style={[styles.wrappedPill, { borderColor: accent + '66', backgroundColor: '#111827ee' }]}
               onPress={() => router.push('/wrapped')}
               activeOpacity={0.8}
               accessibilityRole="button"
@@ -620,9 +674,9 @@ export default function MapScreen() {
                 Your {currentWrappedYear()}
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </SafeAreaView>
+          </View>
+        )}
+      </View>
 
 
       {/* First-cry nudge for new users with an empty map (own cries only —
@@ -638,71 +692,24 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Bottom left, opposite the logging buttons, and only once you have
-          actually wandered off. A permanent fourth button on the right was
-          both crowded and easy to miss, and there is nothing to return to
-          while you are already standing on yourself. */}
-      {showRecentre && (
-        <View style={styles.recentreContainer} pointerEvents="box-none">
-          <PressableScale
-            style={styles.recentreBtn}
-            onPress={recentreOnMe}
-            scaleTo={0.88}
-            accessibilityRole="button"
-            accessibilityLabel="Centre the map on my location"
-          >
-            <UiIcon name="locateFixed" size={22} color="#94a3b8" />
-          </PressableScale>
-        </View>
-      )}
-
-      {/* Two parts, laid out by flexbox rather than by arithmetic: the filter
-          on the left, and the two logging buttons stacked on the right. Every
-          earlier version positioned these against each other with
-          hand-computed offsets, which held on the phone they were measured on
-          and broke on the next one. Here the filter takes whatever width the
-          button column leaves, so they cannot meet at any width, font scale or
-          navigation mode, and there is no gap left over to look accidental. */}
+      {/* Bottom corners, each a fixed size: the way back to yourself on the
+          left, only once you have wandered off, and quick log above the plus
+          on the right. The row only pushes them apart, so a wider phone adds
+          map between them and nothing stands beside anything it could run
+          into. */}
       <View style={styles.bottomBar} pointerEvents="box-none">
-        <View style={styles.filterSlot} pointerEvents="box-none">
-        {session && (
-        <View style={styles.segmented}>
-          {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => {
-            const active = mapFilter === f;
-            return (
-              <TouchableOpacity
-                key={f}
-                style={[
-                  styles.segment,
-                  active && { backgroundColor: accent },
-                  i < 2 && styles.segmentBorder,
-                ]}
-                onPress={() => { if (!active) { selection(); setMapFilter(f); } }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={f === 'mine' ? 'Show my cries' : f === 'following' ? 'Show cries from people you follow' : 'Show all cries'}
-              >
-                <UiIcon
-                  name={f === 'mine' ? 'user' : f === 'following' ? 'users' : 'globe'}
-                  size={19}
-                  color={active ? '#0d1117' : '#94a3b8'}
-                />
-                {/* Capped at 1.3x: at the system's largest sizes the labels
-                    turned into "Foll..." and "...", and the icon and the
-                    accessibility label already carry the meaning. */}
-                <Text
-                  numberOfLines={1}
-                  maxFontSizeMultiplier={1.3}
-                  style={[styles.segmentLabel, active && styles.segmentLabelActive]}
-                >
-                  {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'All'}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        )}
+        <View style={styles.leftColumn} pointerEvents="box-none">
+          {showRecentre && (
+            <PressableScale
+              style={styles.recentreBtn}
+              onPress={recentreOnMe}
+              scaleTo={0.88}
+              accessibilityRole="button"
+              accessibilityLabel="Centre the map on my location"
+            >
+              <UiIcon name="locateFixed" size={22} color="#94a3b8" />
+            </PressableScale>
+          )}
         </View>
         <View style={styles.actionColumn} pointerEvents="box-none">
         <PressableScale
@@ -803,37 +810,42 @@ const styles = StyleSheet.create({
   // Header
   headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
 
-  // Filter on the left, logging buttons stacked on the right, bottoms level.
+  // A column in each bottom corner, bottoms level with each other. Lifted
+  // clear of the Google / Apple logo, which both require unobscured and which
+  // is locked to the bottom-left corner.
   bottomBar: {
-    position: 'absolute', bottom: 24, left: 20, right: 24,
-    flexDirection: 'row', alignItems: 'flex-end', gap: 12,
+    position: 'absolute', bottom: 40, left: 24, right: 24,
+    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
   },
-  // Takes all the width the button column leaves, and is at least as tall as
-  // the plus so the filter sits on the plus's centre line. minHeight rather
-  // than height, so a large font can still make it taller.
-  filterSlot: { flex: 1, minHeight: FAB_SIZE, justifyContent: 'center' },
+  // As tall as the plus, so the recentre button sits on the plus's centre line.
+  leftColumn: { height: FAB_SIZE, justifyContent: 'center' },
   actionColumn: { alignItems: 'center', gap: 12 },
+  wrappedRow: { alignItems: 'center', marginTop: 12 },
+  // Well clear of the status bar: the camera sits top centre on most phones,
+  // right above the middle segment, and a thumb reaching for "Following" was
+  // landing on the lens.
+  filterRow: { alignItems: 'center', marginTop: 40 },
   segmented: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(13,17,23,0.88)',
-    borderRadius: 28,
+    // Solid: place names showed through the unselected segments.
+    backgroundColor: '#0d1117',
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: '#1f2937',
     overflow: 'hidden',
   },
   segment: {
-    // Grow to share the slot, shrink before anything overflows.
-    flexGrow: 1, flexShrink: 1,
-    paddingHorizontal: 14, paddingVertical: 9,
-    alignItems: 'center', justifyContent: 'center', gap: 3,
+    // Equal at normal sizes; "Following" may push its own segment wider.
+    minWidth: 76,
+    paddingHorizontal: 12, paddingVertical: 7,
+    alignItems: 'center', justifyContent: 'center', gap: 2,
   },
-  segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
-  segmentEmoji: { fontSize: 20 },
   segmentLabel: {
     color: '#94a3b8', fontSize: 11, fontWeight: '700',
     fontFamily: 'monospace', letterSpacing: 0.5,
   },
   segmentLabelActive: { color: '#0d1117' },
+  segmentBorder: { borderRightWidth: 1, borderRightColor: '#1f2937' },
   center: {
     flex: 1, backgroundColor: '#0d1117',
     alignItems: 'center', justifyContent: 'center',
@@ -848,14 +860,9 @@ const styles = StyleSheet.create({
   },
   settingsBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
 
-  headerRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8,
-    backgroundColor: 'rgba(13,17,23,0.7)',
-  },
-  headerTitle: {
-    color: '#6fe0e6', fontSize: 17, fontWeight: '700', letterSpacing: 1,
-  },
+  // Solid and the same colour as the tab bar, so the map is framed evenly
+  // top and bottom and no place names show through behind the title.
+  headerBar: { backgroundColor: '#111827' },
   wrappedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6,
@@ -863,10 +870,8 @@ const styles = StyleSheet.create({
   },
   wrappedPillTxt: { fontSize: 13, fontWeight: '700' },
 
-  // Sits above the row, out of its way.
-  recentreContainer: { position: 'absolute', bottom: 104, left: 0, alignItems: 'flex-start' },
   recentreBtn: {
-    width: 48, height: 48, borderRadius: 24, margin: 20,
+    width: 48, height: 48, borderRadius: 24,
     backgroundColor: '#111827ee', borderWidth: 1, borderColor: '#374151',
     alignItems: 'center', justifyContent: 'center',
   },

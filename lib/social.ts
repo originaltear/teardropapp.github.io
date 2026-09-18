@@ -823,13 +823,13 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
 /**
  * The user's default visibility for NEW cries, derived from their profile
  * setting. close_friends doesn't exist at profile level, so the mapping is
- * everyone/followers/only_me with 'everyone' as fallback. Shared by the full
+ * everyone/followers/only_me with 'followers' (Friends) as fallback. Shared by the full
  * log screen and the quick-log sheet.
  */
 export async function getDefaultCryVisibility(): Promise<'everyone' | 'followers' | 'only_me'> {
   const s = await getProfileSettings();
   const v = s?.profile_visibility;
-  return v === 'followers' || v === 'only_me' ? v : 'everyone';
+  return v === 'followers' || v === 'only_me' ? v : 'followers';
 }
 
 export async function updateProfileSettings(settings: Partial<ProfileSettings>): Promise<void> {

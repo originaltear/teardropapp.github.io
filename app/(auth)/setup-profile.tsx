@@ -42,7 +42,7 @@ export default function SetupProfileScreen() {
 
   const [username, setUsername]       = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [visibility, setVisibility]   = useState<Visibility>('everyone');
+  const [visibility, setVisibility]   = useState<Visibility>('followers');
   const [checking, setChecking]       = useState(false);
   const [available, setAvailable]     = useState<boolean | null>(null);
   const [validationErr, setValidationErr] = useState<string | null>(null);

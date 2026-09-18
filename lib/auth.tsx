@@ -35,7 +35,7 @@ async function autoProvisionAppleProfile(user: User): Promise<boolean> {
       .update({
         username: candidate,
         display_name: rawName || candidate,
-        profile_visibility: 'everyone',
+        profile_visibility: 'followers',
       })
       .eq('id', user.id);
     if (!error) return true;

@@ -37,7 +37,7 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   // Default visibility mirrors the full log screen (profile setting)
-  const visibilityRef = useRef<Cry['visibility']>('everyone');
+  const visibilityRef = useRef<Cry['visibility']>('followers');
   useEffect(() => {
     if (!visible) return;
     getDefaultCryVisibility().then(v => { visibilityRef.current = v; });

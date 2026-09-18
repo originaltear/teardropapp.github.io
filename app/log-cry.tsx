@@ -78,7 +78,7 @@ export default function LogCryScreen() {
   const [picker, setPicker] = useState<'date' | 'time' | null>(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const [visibility, setVisibility] = useState<Visibility>('everyone');
+  const [visibility, setVisibility] = useState<Visibility>('followers');
   const [tags, setTags] = useState<string[]>([]);
   // Tags are the least used field in the app: one cry in ten carries one.
   // Folded away rather than removed, because the people who do use them use

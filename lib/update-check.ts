@@ -56,7 +56,7 @@ export async function checkForUpdate(): Promise<void> {
     await AsyncStorage.setItem(PROMPTED_KEY, latest);
 
     Alert.alert(
-      'Update available 💧',
+      'Update available',
       `Teardrop ${latest} is out with improvements and fixes.`,
       [
         { text: 'Later', style: 'cancel' },

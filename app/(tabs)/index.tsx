@@ -688,8 +688,12 @@ export default function MapScreen() {
                   size={19}
                   color={active ? '#0d1117' : '#94a3b8'}
                 />
+                {/* Capped at 1.3x: at the system's largest sizes the labels
+                    turned into "Foll..." and "...", and the icon and the
+                    accessibility label already carry the meaning. */}
                 <Text
                   numberOfLines={1}
+                  maxFontSizeMultiplier={1.3}
                   style={[styles.segmentLabel, active && styles.segmentLabelActive]}
                 >
                   {f === 'mine' ? 'Mine' : f === 'following' ? 'Following' : 'All'}

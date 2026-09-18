@@ -938,7 +938,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.92)',
     borderWidth: 1, borderColor: '#1f2937', borderRadius: 16,
     paddingHorizontal: 14, paddingVertical: 8,
-    marginRight: 24, marginBottom: 172,
+    // Above the button column (bottom 40 + plus 64 + gap 12 + quick log 48).
+    marginRight: 24, marginBottom: 188,
   },
   firstCryHintTxt: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

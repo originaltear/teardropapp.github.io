@@ -862,7 +862,9 @@ const styles = StyleSheet.create({
 
   // Solid and the same colour as the tab bar, so the map is framed evenly
   // top and bottom and no place names show through behind the title.
-  headerBar: { backgroundColor: '#111827' },
+  // A little taller than the status bar itself, so its icons sit inside the
+  // strip rather than on its bottom edge.
+  headerBar: { backgroundColor: '#111827', paddingBottom: 8 },
   wrappedPill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6,

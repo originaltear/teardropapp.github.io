@@ -68,6 +68,8 @@ function normalizeCry(c: Cry | SocialCry): NormalizedCry {
   };
 }
 
+const FAB_SIZE = 64;
+
 // ─── Map style ────────────────────────────────────────────────────────────────
 
 const DARK_MAP_STYLE = [
@@ -654,13 +656,15 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* One row, laid out by flexbox rather than by arithmetic. Every earlier
-          version positioned these against each other with hand-computed
-          offsets, which held on the phone they were measured on and broke on
-          the next one. Here the filter takes what is left after the two
-          buttons have taken what they need, so they cannot meet at any width,
-          font scale or navigation mode. */}
+      {/* Two parts, laid out by flexbox rather than by arithmetic: the filter
+          on the left, and the two logging buttons stacked on the right. Every
+          earlier version positioned these against each other with
+          hand-computed offsets, which held on the phone they were measured on
+          and broke on the next one. Here the filter takes whatever width the
+          button column leaves, so they cannot meet at any width, font scale or
+          navigation mode, and there is no gap left over to look accidental. */}
       <View style={styles.bottomBar} pointerEvents="box-none">
+        <View style={styles.filterSlot} pointerEvents="box-none">
         {session && (
         <View style={styles.segmented}>
           {(['mine', 'following', 'global'] as MapFilter[]).map((f, i) => {
@@ -695,6 +699,8 @@ export default function MapScreen() {
           })}
         </View>
         )}
+        </View>
+        <View style={styles.actionColumn} pointerEvents="box-none">
         <PressableScale
           style={[styles.quickFab, { borderColor: accent }]}
           onPress={() => { tapLight(); handleQuickLog(); }}
@@ -719,6 +725,7 @@ export default function MapScreen() {
             ? <ActivityIndicator color="#0d1117" />
             : <Text style={styles.fabIcon}>+</Text>}
         </PressableScale>
+        </View>
       </View>
 
       <QuickLogSheet
@@ -792,17 +799,17 @@ const styles = StyleSheet.create({
   // Header
   headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
 
-  // Segmented control — centered, floating
-  // One row along the bottom. `right: 0` plus the FAB's own 24 margin keeps it
-  // off the edge; the filter shrinks into whatever is left.
+  // Filter on the left, logging buttons stacked on the right, bottoms level.
   bottomBar: {
-    position: 'absolute', bottom: 24, left: 20, right: 0,
-    flexDirection: 'row', alignItems: 'center',
+    position: 'absolute', bottom: 24, left: 20, right: 24,
+    flexDirection: 'row', alignItems: 'flex-end', gap: 12,
   },
+  // Takes all the width the button column leaves, and is at least as tall as
+  // the plus so the filter sits on the plus's centre line. minHeight rather
+  // than height, so a large font can still make it taller.
+  filterSlot: { flex: 1, minHeight: FAB_SIZE, justifyContent: 'center' },
+  actionColumn: { alignItems: 'center', gap: 12 },
   segmented: {
-    // Takes the space the buttons do not need, and gives way before it ever
-    // reaches them.
-    flexShrink: 1, marginRight: 'auto',
     flexDirection: 'row',
     backgroundColor: 'rgba(13,17,23,0.88)',
     borderRadius: 28,
@@ -811,7 +818,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   segment: {
-    flexShrink: 1,
+    // Grow to share the slot, shrink before anything overflows.
+    flexGrow: 1, flexShrink: 1,
     paddingHorizontal: 14, paddingVertical: 9,
     alignItems: 'center', justifyContent: 'center', gap: 3,
   },
@@ -863,13 +871,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.92)',
     borderWidth: 1, borderColor: '#6fe0e6',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 12,
   },
   quickFabIcon: { fontSize: 20 },
   fab: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#6fe0e6',
+    width: FAB_SIZE, height: FAB_SIZE, borderRadius: FAB_SIZE / 2, backgroundColor: '#6fe0e6',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 24,
     shadowColor: '#6fe0e6', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
@@ -923,7 +929,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(13,17,23,0.92)',
     borderWidth: 1, borderColor: '#1f2937', borderRadius: 16,
     paddingHorizontal: 14, paddingVertical: 8,
-    marginRight: 24, marginBottom: 160,
+    marginRight: 24, marginBottom: 172,
   },
   firstCryHintTxt: { color: '#e2e8f0', fontSize: 13, fontWeight: '600' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

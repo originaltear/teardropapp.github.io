@@ -235,6 +235,9 @@ export default function MapScreen() {
   // Recap entry point — stays hidden until app_config.wrapped_enabled is on.
   const [wrappedOn, setWrappedOn] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
+  // Which logging button is waiting on a fresh position, if either.
+  const [locating, setLocating] = useState<'add' | 'quick' | null>(null);
+  const locatingRef = useRef(false);
   // Current visible region — drives which clusters are computed
   const [region, setRegion] = useState<Region | null>(null);
   // The cluster the user tapped — drives the "cries in this cluster" sheet
@@ -291,7 +294,7 @@ export default function MapScreen() {
           applyCoords(live.coords.latitude, live.coords.longitude);
         } else if (!last) {
           // No fix at all — show the map zoomed out rather than blocking the
-          // whole tab. Logging still requires coordinates (FAB explains).
+          // whole tab. Logging tries again for a fix when tapped.
           initialRegionRef.current = { latitude: 20, longitude: 0, latitudeDelta: 100, longitudeDelta: 100 };
           setRegion(initialRegionRef.current);
           setGpsReady(true);
@@ -325,23 +328,79 @@ export default function MapScreen() {
     isWrappedEnabled().then(setWrappedOn).catch(() => {});
   }, [reloadCries]));
 
-  function requireCoords(): boolean {
-    if (!gpsCoords) {
-      Alert.alert(
-        'Location unavailable',
-        "We couldn't get your position. Make sure GPS is turned on, then try again.",
-      );
-      return false;
+  /**
+   * Coordinates to log against, fetching a fresh fix when the one from mount
+   * never arrived. Before, a missing fix only produced an alert asking the user
+   * to try again, and trying again re-read the same empty value, so someone on
+   * a cold GPS in a moving car could tap forever without anything being tried.
+   */
+  async function ensureCoords(which: 'add' | 'quick') {
+    if (gpsCoords) return gpsCoords;
+    if (locatingRef.current) return null;
+    locatingRef.current = true;
+    setLocating(which);
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location is off',
+          'Teardrop needs your location to place a cry on the map.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Open settings', onPress: () => Linking.openSettings() },
+          ],
+        );
+        return null;
+      }
+      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) {
+        Alert.alert(
+          'Location is off',
+          "Turn on location in your phone's settings, then tap again.",
+        );
+        return null;
+      }
+
+      // High rather than Balanced: Balanced lets the phone answer from wifi and
+      // cell towers, which is exactly what is missing on a rural road, and a
+      // cold satellite fix needs longer than the 12 seconds the map waits.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const fix = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+        new Promise<null>(res => { timer = setTimeout(() => res(null), 20000); }),
+      ]).catch(() => null);
+      clearTimeout(timer);
+
+      if (!fix) {
+        Alert.alert(
+          'Still looking for you',
+          "Your phone couldn't find its position yet. Being outside or near a window helps. Tap again to keep trying.",
+        );
+        return null;
+      }
+
+      const coords = { latitude: fix.coords.latitude, longitude: fix.coords.longitude };
+      setGpsCoords(coords);
+      // If the mount fix failed the map is showing the whole world, so bring
+      // it to where the cry is about to land.
+      mapRef.current?.animateToRegion({ ...coords, latitudeDelta: 0.05, longitudeDelta: 0.05 }, 450);
+      return coords;
+    } finally {
+      locatingRef.current = false;
+      setLocating(null);
     }
-    return true;
   }
 
-  function handleAddCry() {
-    if (!requireCoords()) return;
+  async function handleAddCry() {
+    const coords = await ensureCoords('add');
+    if (!coords) return;
     router.push({
       pathname: '/log-cry',
-      params: { lat: String(gpsCoords!.latitude), lng: String(gpsCoords!.longitude) },
+      params: { lat: String(coords.latitude), lng: String(coords.longitude) },
     });
+  }
+
+  async function handleQuickLog() {
+    if (await ensureCoords('quick')) setQuickLogOpen(true);
   }
 
   // ─── Clustering (supercluster — pure JS, no native marker wrapping) ─────────
@@ -488,6 +547,9 @@ export default function MapScreen() {
         style={styles.map}
         initialRegion={initialRegionRef.current!}
         customMapStyle={DARK_MAP_STYLE}
+        // customMapStyle only reaches Google Maps. iOS draws Apple Maps, which
+        // ignores it and came up light, so ask Apple for its own dark look.
+        userInterfaceStyle="dark"
         // Google's default location UI (blue dot + large accuracy circle) sits on
         // top of the markers and covers a cluster's count when you're standing at
         // your own cries. Hidden for a clean, branded map — the map still centres
@@ -635,21 +697,27 @@ export default function MapScreen() {
         )}
         <PressableScale
           style={[styles.quickFab, { borderColor: accent }]}
-          onPress={() => { tapLight(); if (requireCoords()) setQuickLogOpen(true); }}
+          onPress={() => { tapLight(); handleQuickLog(); }}
           scaleTo={0.88}
           accessibilityRole="button"
-          accessibilityLabel="Quick log a cry"
+          accessibilityLabel={locating === 'quick' ? 'Finding your location' : 'Quick log a cry'}
+          accessibilityState={{ busy: locating === 'quick' }}
         >
-          <UiIcon name="zap" size={24} color="#f2a86b" strokeWidth={2.2} />
+          {locating === 'quick'
+            ? <ActivityIndicator color="#f2a86b" />
+            : <UiIcon name="zap" size={24} color="#f2a86b" strokeWidth={2.2} />}
         </PressableScale>
         <PressableScale
           style={[styles.fab, { backgroundColor: accent, shadowColor: accent }]}
           onPress={() => { tapMedium(); handleAddCry(); }}
           scaleTo={0.88}
           accessibilityRole="button"
-          accessibilityLabel="Log a cry"
+          accessibilityLabel={locating === 'add' ? 'Finding your location' : 'Log a cry'}
+          accessibilityState={{ busy: locating === 'add' }}
         >
-          <Text style={styles.fabIcon}>+</Text>
+          {locating === 'add'
+            ? <ActivityIndicator color="#0d1117" />
+            : <Text style={styles.fabIcon}>+</Text>}
         </PressableScale>
       </View>
 

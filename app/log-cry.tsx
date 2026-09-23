@@ -848,7 +848,9 @@ const styles = StyleSheet.create({
   noteInput: {
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, padding: 14, color: '#e2e8f0', fontSize: 15,
-    minHeight: 100, fontFamily: 'monospace',
+    // Grows with what you write, up to a point: a 2000 character note used to
+    // push the save button several screens down.
+    minHeight: 100, maxHeight: 260, fontFamily: 'monospace',
   },
 
   // Tags

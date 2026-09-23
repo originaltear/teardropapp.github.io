@@ -43,6 +43,7 @@ function NotifBadge({ type }: { type: Notification['type'] }) {
     friend_request: 'users',
     follow: 'userPlus',
     report: 'flag',
+    new_cry: 'mapPin',
   }[type as string] ?? 'bell';
   return <UiIcon name={name} size={13} color="#94a3b8" strokeWidth={2.4} />;
 }
@@ -59,6 +60,7 @@ function notifText(n: Notification): string {
     case 'follow':         return `${name} started following you`;
     // Only ever sent to the moderator account, never to an ordinary user.
     case 'report':         return `${name} reported something. Needs review within 24 hours`;
+    case 'new_cry':        return `${name} logged a cry`;
   }
 }
 
@@ -202,7 +204,7 @@ export default function NotificationsScreen() {
   function handlePress(notif: Notification) {
     if (notif.type === 'friend_request') {
       router.push('/friends');
-    } else if ((notif.type === 'like' || notif.type === 'comment' || notif.type === 'reply' || notif.type === 'comment_like' || notif.type === 'hug' || notif.type === 'report') && notif.cry_id) {
+    } else if ((notif.type === 'like' || notif.type === 'comment' || notif.type === 'reply' || notif.type === 'comment_like' || notif.type === 'hug' || notif.type === 'report' || notif.type === 'new_cry') && notif.cry_id) {
       router.push(`/cry-detail?id=${notif.cry_id}`);
     }
   }

@@ -20,6 +20,7 @@ import { timeAgo } from '../lib/format';
 import {
   getProfileStats, followUser, unfollowUser,
   getUserCries, blockUser, unblockUser, isUserBlocked, SocialCry,
+  isCryNotifyMuted, setCryNotifyMuted,
 } from '../lib/social';
 import { ReportSheet } from '../components/ReportSheet';
 import { tapLight } from '../lib/haptics';
@@ -57,6 +58,9 @@ export default function UserProfileScreen() {
   const [followsMe, setFollowsMe] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  // Whether this person's cries are allowed to notify us. On for everyone you
+  // follow; this is the way out for the one friend who cries every day.
+  const [criesMuted, setCriesMuted] = useState(false);
   const [cries, setCries] = useState<SocialCry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,16 +82,18 @@ export default function UserProfileScreen() {
         if (session) {
           // Both directions: 'followers' means mutual follows, so knowing that
           // you follow them is only half the answer.
-          const [followRes, followsMeRes, blockRes] = await Promise.all([
+          const [followRes, followsMeRes, blockRes, mutedRes] = await Promise.all([
             supabase.from('follows')
               .select('id').eq('follower_id', session.user.id).eq('following_id', id).maybeSingle(),
             supabase.from('follows')
               .select('id').eq('follower_id', id).eq('following_id', session.user.id).maybeSingle(),
             isUserBlocked(id),
+            isCryNotifyMuted(id),
           ]);
           setIsFollowing(!!followRes.data);
           setFollowsMe(!!followsMeRes.data);
           setIsBlocked(blockRes);
+          setCriesMuted(mutedRes);
         }
       } catch (e) {
         console.warn('[user-profile] load failed:', e);
@@ -96,6 +102,14 @@ export default function UserProfileScreen() {
       }
     })();
   }, [id, session]));
+
+  async function handleMuteToggle() {
+    const next = !criesMuted;
+    setCriesMuted(next);
+    const ok = await setCryNotifyMuted(id!, next);
+    // Put the switch back rather than lie about what the server holds.
+    if (!ok) setCriesMuted(!next);
+  }
 
   async function handleFollowToggle() {
     if (!session) { Alert.alert('Log in', 'You need an account to follow people.'); return; }
@@ -245,6 +259,21 @@ export default function UserProfileScreen() {
                 {isFollowing ? 'Unfollow' : 'Follow'}
               </Text>
             </TouchableOpacity>
+            {/* Only while you follow them: there is nothing to mute otherwise. */}
+            {isFollowing && (
+              <TouchableOpacity
+                style={s.btnSecondary}
+                onPress={handleMuteToggle}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ selected: criesMuted }}
+                accessibilityLabel={criesMuted
+                  ? 'Get notified when they log a cry'
+                  : 'Stop being notified when they log a cry'}
+              >
+                <UiIcon name="bell" size={16} color={criesMuted ? '#4a5568' : '#94a3b8'} />
+              </TouchableOpacity>
+            )}
             {/* Both written out. Two bare glyphs sat here before, and a report
                 button that isn't labelled as one is the exact thing Apple
                 calls out under Guideline 1.2. */}

@@ -16,7 +16,7 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 interface NotificationRow {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow' | 'report';
+  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow' | 'report' | 'new_cry';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -32,6 +32,7 @@ const PREF_KEY: Record<string, string> = {
   comment_like:   'new_likes',
   follow:         'new_followers',
   friend_request: 'friend_requests',
+  new_cry:        'friend_cries',
 };
 
 Deno.serve(async (req: Request) => {
@@ -155,6 +156,13 @@ Deno.serve(async (req: Request) => {
     case 'friend_request':
       title = `${actorName} sent you a friend request`;
       body_text = 'Tap to respond';
+      break;
+    // Deliberately says nothing about the cry itself: which emotion it was and
+    // what the note said belong to the person who wrote them, and a lock screen
+    // is read by whoever is holding the phone.
+    case 'new_cry':
+      title = `${actorName} just shared a cry 💧`;
+      body_text = 'Tap to see it and send a hug';
       break;
     default:
       title = `New notification from ${actorName}`;

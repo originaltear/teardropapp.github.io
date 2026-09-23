@@ -16,6 +16,7 @@ const DEFAULTS: ProfileSettings['notification_preferences'] = {
   new_comments: true,
   new_followers: true,
   friend_requests: true,
+  friend_cries: true,
 };
 
 export default function NotificationSettingsScreen() {
@@ -53,6 +54,16 @@ export default function NotificationSettingsScreen() {
             label="Comments and replies"
             value={prefs.new_comments}
             onChange={v => toggle('new_comments', v)}
+          />
+        </SettingsGroup>
+
+        <SectionLabel text="From people you follow" />
+        <SettingsGroup>
+          <ToggleRow
+            label="Their cries"
+            hint="When someone you follow logs a cry you can see. Mute one person from their profile."
+            value={prefs.friend_cries}
+            onChange={v => toggle('friend_cries', v)}
           />
         </SettingsGroup>
 

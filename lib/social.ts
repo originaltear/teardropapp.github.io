@@ -81,6 +81,8 @@ export interface ProfileSettings {
     new_comments: boolean;
     new_followers: boolean;
     friend_requests: boolean;
+    /** Someone you follow logged a cry you are allowed to see. */
+    friend_cries: boolean;
   };
 }
 
@@ -99,7 +101,7 @@ export interface Comment {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow' | 'report';
+  type: 'like' | 'comment' | 'reply' | 'comment_like' | 'hug' | 'friend_request' | 'follow' | 'report' | 'new_cry';
   actor_id: string;
   cry_id: string | null;
   reference_id: string | null;
@@ -815,6 +817,7 @@ export async function getProfileSettings(): Promise<ProfileSettings | null> {
       new_comments: true,
       new_followers: true,
       friend_requests: true,
+      friend_cries: true,
       ...(data.notification_preferences ?? {}),
     },
   };
@@ -965,4 +968,40 @@ export async function getFollowList(userId: string, type: 'followers' | 'followi
       ? 'self'
       : followingIds.has(p.id) ? 'following' : 'none',
   })) as UserResult[];
+}
+
+
+// ─── Muting one person's cry notifications ────────────────────────────────────
+
+/**
+ * "Tell me when they cry" is on for everyone you follow, because a setting
+ * nobody finds is a feature nobody has. The escape hatch is per person: a bell
+ * on their profile writes a row here, and the trigger skips them.
+ */
+export async function isCryNotifyMuted(userId: string): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  const { data, error } = await supabase
+    .from('cry_notify_mutes')
+    .select('muted_user_id')
+    .eq('user_id', session.user.id)
+    .eq('muted_user_id', userId)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
+}
+
+export async function setCryNotifyMuted(userId: string, muted: boolean): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  const { error } = muted
+    ? await supabase
+        .from('cry_notify_mutes')
+        .upsert({ user_id: session.user.id, muted_user_id: userId })
+    : await supabase
+        .from('cry_notify_mutes')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('muted_user_id', userId);
+  return !error;
 }

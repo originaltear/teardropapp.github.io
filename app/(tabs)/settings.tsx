@@ -102,6 +102,7 @@ const DEFAULT_NOTIF_PREFS: ProfileSettings['notification_preferences'] = {
   new_comments: true,
   new_followers: true,
   friend_requests: true,
+  friend_cries: true,
 };
 
 export default function SettingsScreen() {

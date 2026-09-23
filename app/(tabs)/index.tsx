@@ -114,7 +114,11 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
   const emotion = emotionById(cry.emotion);
   const hasProfile = !!cry.profile;
   const router = useRouter();
-  const noteIsLong = (cry.note?.length ?? 0) > NOTE_PREVIEW;
+  // Counted in characters as people see them, not UTF-16 units, so the cut can
+  // never land in the middle of an emoji and leave a broken glyph.
+  const noteChars = cry.note ? Array.from(cry.note) : [];
+  const noteIsLong = noteChars.length > NOTE_PREVIEW;
+  const [noteExpanded, setNoteExpanded] = useState(false);
 
   return (
     <>
@@ -165,17 +169,21 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
       {cry.note ? (
         <View style={styles.noteBox}>
           {/* The card is a glance at a pin on a map, not a reading view. A note
-              can run to 2000 characters, so it is cut here and the whole thing
-              lives one tap away. */}
+              can run to 2000 characters, so it is cut here and unfolds in
+              place. It unfolds rather than opening the cry's own screen because
+              that screen reads from the server, and a guest's cries, or ones
+              saved offline and not yet sent, only exist on the phone. */}
           <Text style={styles.noteText}>
-            {noteIsLong ? `${cry.note.slice(0, NOTE_PREVIEW).trimEnd()}…` : cry.note}
+            {noteIsLong && !noteExpanded
+              ? `${noteChars.slice(0, NOTE_PREVIEW).join('').trimEnd()}…`
+              : cry.note}
           </Text>
-          {noteIsLong && (
+          {noteIsLong && !noteExpanded && (
             <TouchableOpacity
-              onPress={() => { onClose(); router.push(`/cry-detail?id=${cry.id}`); }}
+              onPress={() => setNoteExpanded(true)}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Read the whole note"
+              accessibilityLabel="Show the whole note"
             >
               <Text style={styles.readMore}>Read the full note</Text>
             </TouchableOpacity>
@@ -822,7 +830,8 @@ export default function MapScreen() {
               contentContainerStyle={styles.cardContent}
               showsVerticalScrollIndicator={false}
             >
-              <CryDetailCard cry={selectedCry} onClose={() => setSelectedCry(null)} />
+              {/* Keyed so tapping another pin starts folded again. */}
+              <CryDetailCard key={selectedCry.id} cry={selectedCry} onClose={() => setSelectedCry(null)} />
             </ScrollView>
           </SafeAreaView>
         </Modal>

@@ -19,7 +19,7 @@
  * flight, and it still collapses rather than leaving a hole when nothing fills.
  */
 import { useEffect, useRef, useState } from 'react';
-import { AppState, View, StyleSheet } from 'react-native';
+import { AppState, Platform, View, StyleSheet } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { BANNER_UNIT_ID } from '../lib/ads';
 import { checkPremium } from '../lib/purchases';
@@ -75,6 +75,10 @@ export function FeedBanner({ enabled = true, onLoaded }: Props) {
   // when the app comes back. The floor keeps a user who switches apps often
   // from turning that into a stream of requests.
   useEffect(() => {
+    // iOS only, as the library says: on Android the ad view survives the
+    // background, and asking again would only swap a working ad for a request
+    // that probably fills nothing.
+    if (Platform.OS !== 'ios') return;
     const sub = AppState.addEventListener('change', state => {
       if (state !== 'active') return;
       if (Date.now() - lastRefreshAt.current < FOREGROUND_REFRESH_FLOOR_MS) return;

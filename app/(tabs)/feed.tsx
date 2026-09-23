@@ -163,6 +163,11 @@ export default function FeedScreen() {
   // user has already moved on. Without it a slow Following fetch could land
   // under Mine.
   const currentTab = useRef<FeedTab>('following');
+  // Bumped whenever the account changes. A fetch started under one account
+  // must never write into the cache after another has signed in: a logout and
+  // login inside the half second a background fetch takes would otherwise put
+  // the previous person's feed in front of the next one.
+  const cacheGeneration = useRef(0);
 
   /**
    * Change the rows of one tab, keeping its cached copy in step so a deleted
@@ -197,12 +202,14 @@ export default function FeedScreen() {
   async function loadFeed(isRefresh = false) {
     if (!session) return;
     const requested = tab;
+    const generation = cacheGeneration.current;
     // Only show the skeleton when there's nothing on screen yet — returning to
     // the tab refreshes silently instead of flashing the whole list away.
     if (isRefresh) setRefreshing(true);
     else if (feedCache.current[requested] === undefined) setLoading(true);
     try {
       const feed = requested === 'mine' ? await getMineFeed() : await getSocialFeed();
+      if (cacheGeneration.current !== generation) return; // another account now
       feedCache.current[requested] = feed;
       if (currentTab.current !== requested) return; // the user has moved on
       setAllCries(feed);
@@ -223,8 +230,10 @@ export default function FeedScreen() {
   function prefetchOtherTab(from: FeedTab) {
     const other: FeedTab = from === 'mine' ? 'following' : 'mine';
     if (feedCache.current[other] !== undefined) return;
+    const generation = cacheGeneration.current;
     (other === 'mine' ? getMineFeed() : getSocialFeed())
       .then(feed => {
+        if (cacheGeneration.current !== generation) return; // another account now
         if (feedCache.current[other] === undefined) feedCache.current[other] = feed;
       })
       .catch(() => { /* the tab simply loads when visited */ });
@@ -236,8 +245,10 @@ export default function FeedScreen() {
     setLoadingMore(true);
     try {
       const requested = tab;
+      const generation = cacheGeneration.current;
       const oldest = allCries[allCries.length - 1].created_at;
       const more = requested === 'mine' ? await getMineFeed(oldest) : await getSocialFeed(oldest);
+      if (cacheGeneration.current !== generation) return; // another account now
       if (currentTab.current !== requested) return; // the user has moved on
       if (more.length < FEED_PAGE_SIZE) setEndReached(true);
       updateRows(requested, prev => {
@@ -254,6 +265,7 @@ export default function FeedScreen() {
   // A different account is genuinely unknown data: forget every cached tab so
   // a logged-out user never sees the previous account's feed.
   useEffect(() => {
+    cacheGeneration.current += 1;
     feedCache.current = {};
   }, [session?.user.id]);
 

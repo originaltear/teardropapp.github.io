@@ -271,7 +271,14 @@ export default function UserProfileScreen() {
                   ? 'Get notified when they log a cry'
                   : 'Stop being notified when they log a cry'}
               >
-                <UiIcon name="bell" size={16} color={criesMuted ? '#4a5568' : '#94a3b8'} />
+                {/* Shape says on or off, colour says how serious it is: red is
+                    kept for Report, so muting a friend is not painted as an
+                    alarm. */}
+                <UiIcon
+                  name={criesMuted ? 'bellOff' : 'bell'}
+                  size={17}
+                  color={criesMuted ? '#4a5568' : accent}
+                />
               </TouchableOpacity>
             )}
             {/* Both written out. Two bare glyphs sat here before, and a report

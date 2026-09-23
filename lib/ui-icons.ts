@@ -49,6 +49,14 @@ export const UI_ICONS: Record<string, UiShape[]> = {
     { d: 'M10.268 21a2 2 0 0 0 3.464 0' },
     { d: 'M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326' },
   ],
+  // Lucide's bell-off: the bell broken around a slash, which is what every
+  // other app uses for "this one stays quiet".
+  bellOff: [
+    { d: 'M10.268 21a2 2 0 0 0 3.464 0' },
+    { d: 'M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742' },
+    { d: 'm2 2 20 20' },
+    { d: 'M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05' },
+  ],
   search: [
     { c: [11, 11, 8] },
     { d: 'm21 21-4.3-4.3' },

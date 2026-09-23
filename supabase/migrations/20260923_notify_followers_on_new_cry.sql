@@ -35,24 +35,8 @@
 -- which send-push checks; it is on by default, because an opt-in notification
 -- nobody finds would not move the number this exists to move.
 
--- ── Per-person mute ───────────────────────────────────────────────────────────
-
-create table if not exists public.cry_notify_mutes (
-  user_id       uuid not null references auth.users(id) on delete cascade,
-  muted_user_id uuid not null references auth.users(id) on delete cascade,
-  created_at    timestamptz not null default now(),
-  primary key (user_id, muted_user_id)
-);
-
-alter table public.cry_notify_mutes enable row level security;
-
-drop policy if exists cry_notify_mutes_own on public.cry_notify_mutes;
-create policy cry_notify_mutes_own on public.cry_notify_mutes
-  for all
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
-grant select, insert, delete on public.cry_notify_mutes to authenticated;
+-- The mute table it reads lives in 20260923_cry_notify_mutes.sql, which is
+-- safe on its own and was applied first.
 
 -- ── The type has to be allowed before anything inserts it ─────────────────────
 -- Two earlier migrations added a trigger that inserted a type this constraint

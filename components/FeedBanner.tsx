@@ -19,7 +19,7 @@
  * flight, and it still collapses rather than leaving a hole when nothing fills.
  */
 import { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { AppState, View, StyleSheet } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { BANNER_UNIT_ID } from '../lib/ads';
 import { checkPremium } from '../lib/purchases';
@@ -27,10 +27,25 @@ import { checkPremium } from '../lib/purchases';
 /** How long a slot that failed to fill waits before asking again. */
 const RETRY_AFTER_MS = 60_000;
 
+/**
+ * Without a ceiling an inline adaptive banner may be as tall as the screen,
+ * and the first one that filled took 343 dp between two cries. This is a
+ * little taller than the old anchored banner and still reads as one row in a
+ * feed rather than a page of its own.
+ */
+const MAX_BANNER_HEIGHT = 120;
+
+/** Never ask for a fresh ad on foreground more often than this. */
+const FOREGROUND_REFRESH_FLOOR_MS = 60_000;
+
 export function FeedBanner() {
   const [show, setShow] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Changing this remounts the BannerAd, which is how this library asks for a
+  // new ad: "each render of the component loads a single advert".
+  const [adKey, setAdKey] = useState(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const lastRefreshAt = useRef(Date.now());
 
   useEffect(() => {
     let mounted = true;
@@ -42,13 +57,29 @@ export function FeedBanner() {
 
   useEffect(() => () => clearTimeout(retryTimer.current), []);
 
+  // The library's own note: on iOS the WKWebView behind an ad can be killed
+  // while the app is suspended, leaving a blank slot, so ask for a fresh ad
+  // when the app comes back. The floor keeps a user who switches apps often
+  // from turning that into a stream of requests.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      if (Date.now() - lastRefreshAt.current < FOREGROUND_REFRESH_FLOOR_MS) return;
+      lastRefreshAt.current = Date.now();
+      setAdKey(k => k + 1);
+    });
+    return () => sub.remove();
+  }, []);
+
   if (!show || failed) return null;
 
   return (
     <View style={styles.wrap}>
       <BannerAd
+        key={adKey}
         unitId={BANNER_UNIT_ID}
         size={BannerAdSize.INLINE_ADAPTIVE_BANNER}
+        maxHeight={MAX_BANNER_HEIGHT}
         onAdFailedToLoad={error => {
           // No fill is ordinary here. Collapse the slot so there is no gap
           // between cries, and try again in a minute: supply comes and goes,
@@ -64,5 +95,14 @@ export function FeedBanner() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', paddingVertical: 6, backgroundColor: '#0d1117' },
+  // Google's placement policy: ads next to things people tap are the biggest
+  // cause of accidental clicks, and accidental clicks are what gets ad serving
+  // disabled. The rows above and below are both tappable, so the slot keeps its
+  // distance and separates itself with rules rather than sitting flush.
+  wrap: {
+    alignItems: 'center',
+    paddingVertical: 18,
+    backgroundColor: '#0d1117',
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#1f2937',
+  },
 });

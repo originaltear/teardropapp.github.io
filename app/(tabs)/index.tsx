@@ -70,6 +70,8 @@ function normalizeCry(c: Cry | SocialCry): NormalizedCry {
 }
 
 const FAB_SIZE = 64;
+/** How much of a note the card on the map shows before it hands over. */
+const NOTE_PREVIEW = 500;
 
 const FILTERS: MapFilter[] = ['mine', 'following', 'global'];
 const FILTER_ICON = { mine: 'user', following: 'users', global: 'globe' } as const;
@@ -112,6 +114,7 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
   const emotion = emotionById(cry.emotion);
   const hasProfile = !!cry.profile;
   const router = useRouter();
+  const noteIsLong = (cry.note?.length ?? 0) > NOTE_PREVIEW;
 
   return (
     <>
@@ -161,7 +164,22 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
 
       {cry.note ? (
         <View style={styles.noteBox}>
-          <Text style={styles.noteText}>{cry.note}</Text>
+          {/* The card is a glance at a pin on a map, not a reading view. A note
+              can run to 2000 characters, so it is cut here and the whole thing
+              lives one tap away. */}
+          <Text style={styles.noteText}>
+            {noteIsLong ? `${cry.note.slice(0, NOTE_PREVIEW).trimEnd()}…` : cry.note}
+          </Text>
+          {noteIsLong && (
+            <TouchableOpacity
+              onPress={() => { onClose(); router.push(`/cry-detail?id=${cry.id}`); }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Read the whole note"
+            >
+              <Text style={styles.readMore}>Read the full note</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <Text style={styles.noNote}>No note</Text>
@@ -938,6 +956,7 @@ const styles = StyleSheet.create({
     padding: 12, borderWidth: 1, borderColor: '#1f2937',
   },
   noteText: { color: '#94a3b8', fontSize: 15, lineHeight: 20 },
+  readMore: { color: '#6fe0e6', fontSize: 14, fontWeight: '600', marginTop: 10 },
   noNote: { color: '#374151', fontSize: 13, fontFamily: 'monospace' },
   fullCryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,

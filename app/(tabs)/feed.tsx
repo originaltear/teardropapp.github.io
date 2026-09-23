@@ -154,6 +154,27 @@ export default function FeedScreen() {
   const router = useRouter();
   const { theme: { accent } } = useTheme();
   const [allCries, setAllCries] = useState<SocialCry[]>([]);
+  // The last list each tab showed. Switching tab used to throw the list away
+  // and fetch it again, three round trips in a row: measured at 0.7 to 1.4 s
+  // of empty skeleton on every switch. Now the other tab's rows appear at once
+  // and are refreshed quietly behind them.
+  const feedCache = useRef<Partial<Record<FeedTab, SocialCry[]>>>({});
+  // Which tab the screen is on right now, for fetches that finish after the
+  // user has already moved on. Without it a slow Following fetch could land
+  // under Mine.
+  const currentTab = useRef<FeedTab>('following');
+
+  /**
+   * Change the rows of one tab, keeping its cached copy in step so a deleted
+   * cry or an older page is still true when the user comes back. Written at
+   * each place the list changes, not in an effect: an effect runs in the same
+   * commit as a tab switch, while the list still holds the old tab's rows.
+   */
+  function updateRows(forTab: FeedTab, update: (prev: SocialCry[]) => SocialCry[]) {
+    const cached = feedCache.current[forTab];
+    if (cached !== undefined) feedCache.current[forTab] = update(cached);
+    if (currentTab.current === forTab) setAllCries(update);
+  }
   // Opening a cry now leaves the tab, so coming back re-fires the focus effect.
   // Without this the feed interstitial would get a fresh chance every time
   // someone reads a cry and hits back — far more often than intended.
@@ -175,19 +196,38 @@ export default function FeedScreen() {
 
   async function loadFeed(isRefresh = false) {
     if (!session) return;
+    const requested = tab;
     // Only show the skeleton when there's nothing on screen yet — returning to
     // the tab refreshes silently instead of flashing the whole list away.
     if (isRefresh) setRefreshing(true);
-    else if (allCries.length === 0) setLoading(true);
+    else if (feedCache.current[requested] === undefined) setLoading(true);
     try {
-      const feed = tab === 'mine' ? await getMineFeed() : await getSocialFeed();
+      const feed = requested === 'mine' ? await getMineFeed() : await getSocialFeed();
+      feedCache.current[requested] = feed;
+      if (currentTab.current !== requested) return; // the user has moved on
       setAllCries(feed);
       setEndReached(feed.length < FEED_PAGE_SIZE);
+      prefetchOtherTab(requested);
     } catch (e) {
       console.warn('[feed] loadFeed failed:', e);
     } finally {
-      isRefresh ? setRefreshing(false) : setLoading(false);
+      if (currentTab.current === requested) {
+        isRefresh ? setRefreshing(false) : setLoading(false);
+      }
     }
+  }
+
+  // Once one tab is on screen, fetch the other in the background so the first
+  // switch is as instant as the ones after it. Only ever once per tab: after
+  // that the cache is refreshed by visiting the tab.
+  function prefetchOtherTab(from: FeedTab) {
+    const other: FeedTab = from === 'mine' ? 'following' : 'mine';
+    if (feedCache.current[other] !== undefined) return;
+    (other === 'mine' ? getMineFeed() : getSocialFeed())
+      .then(feed => {
+        if (feedCache.current[other] === undefined) feedCache.current[other] = feed;
+      })
+      .catch(() => { /* the tab simply loads when visited */ });
   }
 
   // Infinite scroll: fetch the page older than the last visible cry
@@ -195,10 +235,12 @@ export default function FeedScreen() {
     if (!session || loading || refreshing || loadingMore || endReached || allCries.length === 0) return;
     setLoadingMore(true);
     try {
+      const requested = tab;
       const oldest = allCries[allCries.length - 1].created_at;
-      const more = tab === 'mine' ? await getMineFeed(oldest) : await getSocialFeed(oldest);
+      const more = requested === 'mine' ? await getMineFeed(oldest) : await getSocialFeed(oldest);
+      if (currentTab.current !== requested) return; // the user has moved on
       if (more.length < FEED_PAGE_SIZE) setEndReached(true);
-      setAllCries(prev => {
+      updateRows(requested, prev => {
         const seen = new Set(prev.map(c => c.id));
         return [...prev, ...more.filter(c => !seen.has(c.id))];
       });
@@ -209,16 +251,24 @@ export default function FeedScreen() {
     }
   }
 
-  // Switching tab or account = genuinely unknown data — clear so the skeleton
-  // shows instead of stale rows (and a logged-out user never sees the previous
-  // account's feed). Bulk-select mode never survives a tab/account switch.
+  // A different account is genuinely unknown data: forget every cached tab so
+  // a logged-out user never sees the previous account's feed.
   useEffect(() => {
-    setAllCries([]);
+    feedCache.current = {};
+  }, [session?.user.id]);
+
+  // Switching tab shows what that tab held last time, if anything, and the
+  // focus effect below refreshes it. Bulk-select never survives a switch.
+  useEffect(() => {
+    currentTab.current = tab;
+    const cached = feedCache.current[tab];
+    setAllCries(cached ?? []);
     setEndReached(false);
     setSelectMode(false);
     setSelectedIds(new Set());
-    if (session) setLoading(true);
+    setLoading(!!session && cached === undefined);
   }, [tab, session?.user.id]);
+
 
   // ── Mine-tab bulk edit ─────────────────────────────────────────────────────
 
@@ -248,7 +298,7 @@ export default function FeedScreen() {
     }
     success();
     const idSet = new Set(ids);
-    setAllCries(prev => prev.map(c => (idSet.has(c.id) ? { ...c, visibility } : c)));
+    updateRows('mine', prev => prev.map(c => (idSet.has(c.id) ? { ...c, visibility } : c)));
     exitSelectMode();
     Alert.alert('Visibility updated', `${ids.length} ${ids.length === 1 ? 'cry is' : 'cries are'} now visible to: ${visibilityLabel(visibility)}`);
   }
@@ -265,18 +315,23 @@ export default function FeedScreen() {
     }
     success();
     const idSet = new Set(ids);
-    setAllCries(prev => prev.filter(c => !idSet.has(c.id)));
+    updateRows('mine', prev => prev.filter(c => !idSet.has(c.id)));
     exitSelectMode();
   }
 
   useFocusEffect(useCallback(() => {
     loadFeed();
-    // Light interstitial when the feed opens. Self-gated: skipped for Pro, for the
-    // first ~90s after launch, and to at most once per 3 min. Never after a cry,
-    // and never on the way back from reading one.
+  }, [session, tab]));
+
+  // Light interstitial when the feed opens. Self-gated: skipped for Pro, for the
+  // first ~90s after launch, and to at most once per 3 min. Never after a cry,
+  // and never on the way back from reading one. Deliberately not tied to the
+  // tab: it used to run on every Mine/Following switch, so a full-screen ad
+  // could land in the middle of flicking between them.
+  useFocusEffect(useCallback(() => {
     if (skipNextInterstitial.current) skipNextInterstitial.current = false;
     else maybeShowFeedInterstitial();
-  }, [session, tab]));
+  }, [session]));
 
   // Filter mine tab by emotion and/or quick-log status
   const displayCries = tab === 'mine'

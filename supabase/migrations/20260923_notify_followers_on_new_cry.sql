@@ -121,6 +121,12 @@ begin
 end;
 $function$;
 
+-- A trigger function has no business on the public API. Supabase's advisor
+-- flagged two older ones for exactly this (see 20260923_advisor_cleanup.sql).
+-- The trigger still fires: EXECUTE is checked when a trigger is created, not
+-- each time it runs, which was verified on those two before this was written.
+revoke execute on function public.notify_followers_on_new_cry() from public, anon, authenticated;
+
 drop trigger if exists trg_notify_followers_on_new_cry on public.cries;
 
 create trigger trg_notify_followers_on_new_cry

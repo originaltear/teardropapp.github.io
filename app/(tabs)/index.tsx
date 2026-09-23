@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet, View, TouchableOpacity, Text,
-  ActivityIndicator, Modal, FlatList, Dimensions, Alert, Linking,
+  ActivityIndicator, Modal, FlatList, ScrollView, Alert, Linking,
+  useWindowDimensions,
 } from 'react-native';
 import MapView, { Region } from 'react-native-maps';
 import Supercluster from 'supercluster';
@@ -191,7 +192,6 @@ function CryDetailCard({ cry: rawCry, onClose }: { cry: Cry | SocialCry; onClose
 // ─── Cluster contents: one row per cry inside a tapped cluster ─────────────────
 
 // Cap the scrollable list so the sheet never covers the whole screen.
-const CLUSTER_LIST_MAX_H = Dimensions.get('window').height * 0.55;
 
 function ClusterRow({ cry: rawCry, onPress }: { cry: Cry | SocialCry; onPress: () => void }) {
   const cry = normalizeCry(rawCry);
@@ -235,6 +235,9 @@ export default function MapScreen() {
   const { session } = useAuth();
   const { theme: { accent } } = useTheme();
   const { markMapReady } = useSplashGate();
+  // Read at render, not at import: a measurement taken once is wrong after a
+  // rotation or on a folding phone.
+  const { height: winH } = useWindowDimensions();
   const mapRef = useRef<MapView>(null);
   const initialRegionRef = useRef<Region | null>(null);
   const [gpsReady, setGpsReady] = useState(false);
@@ -771,7 +774,7 @@ export default function MapScreen() {
             <FlatList
               data={clusterView.cries}
               keyExtractor={c => c.id}
-              style={{ maxHeight: CLUSTER_LIST_MAX_H }}
+              style={{ maxHeight: winH * 0.55 }}
               renderItem={({ item }) => (
                 <ClusterRow
                   cry={item}
@@ -793,7 +796,16 @@ export default function MapScreen() {
             onPress={() => setSelectedCry(null)}
           />
           <SafeAreaView edges={['bottom']} style={styles.card}>
-            <CryDetailCard cry={selectedCry} onClose={() => setSelectedCry(null)} />
+            {/* Scrolls, and stops short of the top: notes can now run to 2000
+                characters, and a card sized to its contents would push its own
+                close button off the screen. */}
+            <ScrollView
+              style={{ maxHeight: winH * 0.72 }}
+              contentContainerStyle={styles.cardContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <CryDetailCard cry={selectedCry} onClose={() => setSelectedCry(null)} />
+            </ScrollView>
           </SafeAreaView>
         </Modal>
       )}
@@ -896,10 +908,10 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#111827',
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, paddingTop: 12,
+    paddingHorizontal: 20, paddingTop: 12,
     borderTopWidth: 1, borderColor: '#1f2937',
-    gap: 14,
   },
+  cardContent: { gap: 14, paddingBottom: 20 },
   handle: {
     width: 36, height: 4, borderRadius: 2,
     backgroundColor: '#374151', alignSelf: 'center', marginBottom: 4,

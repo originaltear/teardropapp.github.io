@@ -28,6 +28,15 @@ import { useTheme } from '../lib/themes';
 import { PressableScale } from '../components/PressableScale';
 import { tapLight, tapMedium, selection, success, warning } from '../lib/haptics';
 
+/**
+ * Notes were capped at 500 characters. The longest one anyone had written was
+ * 499, and a user said there was no room to write what she felt. The column is
+ * unbounded text, so the cap was ours alone.
+ */
+const NOTE_MAX = 2000;
+/** How close to the cap the counter appears. */
+const NOTE_COUNTER_FROM = 200;
+
 type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 
 // Names for the 1–5 intensity scale so the drops carry meaning.
@@ -554,9 +563,16 @@ export default function LogCryScreen() {
             placeholder="What happened…"
             placeholderTextColor="#4a5568"
             multiline
-            maxLength={500}
+            maxLength={NOTE_MAX}
             textAlignVertical="top"
           />
+          {/* Only near the end: a counter above every note would make a field
+              meant for feelings look like a form. */}
+          {note.length > NOTE_MAX - NOTE_COUNTER_FROM && (
+            <Text style={styles.noteCount}>
+              {NOTE_MAX - note.length} characters left
+            </Text>
+          )}
 
           {/* ── Tags ── */}
           <TouchableOpacity
@@ -828,6 +844,7 @@ const styles = StyleSheet.create({
 
   intensityLabel: { flex: 1, textAlign: 'right', fontSize: 15, fontWeight: '700' },
 
+  noteCount: { color: '#4a5568', fontSize: 12, alignSelf: 'flex-end', marginTop: 6 },
   noteInput: {
     backgroundColor: '#111827', borderWidth: 1, borderColor: '#1f2937',
     borderRadius: 12, padding: 14, color: '#e2e8f0', fontSize: 15,

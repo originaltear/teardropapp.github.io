@@ -12,7 +12,6 @@ import { useTheme } from '../lib/themes';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
-import { FeedBanner } from '../components/FeedBanner';
 import { EmotionIcon } from '../components/EmotionIcon';
 import { Drops } from '../components/Drops';
 
@@ -255,7 +254,6 @@ export default function CalendarScreen() {
             </View>
           )}
 
-          <FeedBanner />
           <View style={{ height: 32 }} />
         </ScrollView>
       )}

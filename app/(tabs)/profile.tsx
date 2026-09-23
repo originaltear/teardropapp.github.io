@@ -18,7 +18,6 @@ import {
 } from '../../lib/achievements';
 import { TearsBadge } from '../../components/TearsBadge';
 import { useAchievementToast } from '../../components/AchievementToastProvider';
-import { FeedBanner } from '../../components/FeedBanner';
 import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { supabase } from '../../lib/supabase';
 import { UiIcon } from '../../components/UiIcon';
@@ -404,7 +403,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <FeedBanner />
       </ScrollView>
 
       {editOpen && (

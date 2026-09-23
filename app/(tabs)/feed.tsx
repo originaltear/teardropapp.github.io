@@ -460,6 +460,13 @@ export default function FeedScreen() {
           data={feedRows}
           keyExtractor={row => (row.kind === 'cry' ? row.cry.id : row.id)}
           style={{ flex: 1 }}
+          // Rows that scroll out of view are kept rather than thrown away.
+          // Virtualisation was unmounting the ad rows, and every time one came
+          // back it asked for a new ad: the banner unit made 1051 requests to
+          // the interstitial's 473 and filled almost none of them. Feeds here
+          // are tens of cries, not thousands, so holding them costs little.
+          removeClippedSubviews={false}
+          windowSize={41}
           renderItem={({ item }) =>
             item.kind === 'ad' ? (
               <FeedBanner />

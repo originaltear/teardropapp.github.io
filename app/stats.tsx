@@ -16,7 +16,6 @@ import { loadCries, Cry } from '../lib/storage';
 import { EMOTIONS, emotionById } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import { checkPremium } from '../lib/purchases';
-import { FeedBanner } from '../components/FeedBanner';
 import { StatsSkeleton } from '../components/Skeleton';
 import { computePlaces, namePlaces, Place } from '../lib/places';
 import { supabase } from '../lib/supabase';
@@ -505,7 +504,6 @@ export default function StatsScreen() {
 
         {/* Ad sits after the free content but before the premium wall, so
             non-premium users (who stop scrolling at the wall) actually see it. */}
-        <FeedBanner />
 
         {/* ══════ PREMIUM SECTIONS ══════ */}
 

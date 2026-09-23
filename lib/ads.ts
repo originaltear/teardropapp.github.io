@@ -81,7 +81,12 @@ export async function initAds(): Promise<void> {
 
     // 3. Initialize the SDK with a family-safe content rating.
     await mobileAds().setRequestConfiguration({
-      maxAdContentRating: MaxAdContentRating.PG,
+      // PG is "suitable for children with a parent present", which rules out
+      // most of the advertisers bidding on a slot like this one. Google lists
+      // this ceiling as a common cause of a low match rate, and the banner unit
+      // was filling 2.95% of requests. T still keeps alcohol, gambling and
+      // sexual content out.
+      maxAdContentRating: MaxAdContentRating.T,
       tagForChildDirectedTreatment: false,
       tagForUnderAgeOfConsent: false,
     });

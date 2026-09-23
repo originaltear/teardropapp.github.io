@@ -1,27 +1,36 @@
 /**
- * Ad banner used in the feed (between cries) and at the bottom of the profile,
- * stats and calendar screens. Renders nothing for Pro users, while the premium
- * check is in flight, or when the ad fails to fill — an empty reserved slot
- * would otherwise leave a visible hole in the layout.
+ * The one ad banner in the app, in the feed between cries.
  *
- * Only requests while its screen is focused. Tabs stay mounted once visited,
- * so without this the banners on the feed, the profile and the stats screen
- * all kept requesting in the background: measured on a real phone as three ad
- * requests firing within the same second, repeatedly, for slots nobody was
- * looking at. That is the user's battery and data spent on nothing, and it is
- * the kind of request pattern an ad network reads as misbehaviour.
+ * Measured over the app's whole life to 2026-09-11: the banner unit filled
+ * 2.95% of its requests against the interstitial's 39.11%, on 1051 requests
+ * and 0.00 kr. earned. Two things in here were part of that, and both are
+ * fixed:
+ *
+ *  - It asked for an ANCHORED adaptive banner, the size meant to sit fixed at
+ *    the top or bottom of a screen, while sitting inside scrolling content.
+ *    Google deprecated that constant in February 2026 and points scrolling
+ *    content at the inline size, which is what this asks for now.
+ *  - It re-requested constantly. The slot returned null while its screen was
+ *    not focused, so every tab switch tore the banner down and built a new one,
+ *    and a failed load was permanent until that happened. Requests that are
+ *    abandoned before they are answered still count as requests.
+ *
+ * It also stopped rendering for Pro users and while the premium check is in
+ * flight, and it still collapses rather than leaving a hole when nothing fills.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { BANNER_UNIT_ID } from '../lib/ads';
 import { checkPremium } from '../lib/purchases';
 
+/** How long a slot that failed to fill waits before asking again. */
+const RETRY_AFTER_MS = 60_000;
+
 export function FeedBanner() {
   const [show, setShow] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     let mounted = true;
@@ -31,25 +40,23 @@ export function FeedBanner() {
     return () => { mounted = false; };
   }, []);
 
-  // expo-router re-exports this from react-navigation; @react-navigation/native
-  // itself is only a transitive dependency here, so it isn't imported directly.
-  useFocusEffect(useCallback(() => {
-    setFocused(true);
-    return () => setFocused(false);
-  }, []));
+  useEffect(() => () => clearTimeout(retryTimer.current), []);
 
-  if (!show || failed || !focused) return null;
+  if (!show || failed) return null;
 
   return (
     <View style={styles.wrap}>
       <BannerAd
         unitId={BANNER_UNIT_ID}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        size={BannerAdSize.INLINE_ADAPTIVE_BANNER}
         onAdFailedToLoad={error => {
-          // No fill is normal for a new app/unit — collapse the slot rather than
-          // leaving an empty gap between cries.
+          // No fill is ordinary here. Collapse the slot so there is no gap
+          // between cries, and try again in a minute: supply comes and goes,
+          // and giving up for the session was costing the slot outright.
           console.warn('[ads] banner failed to load:', error?.message ?? error);
           setFailed(true);
+          clearTimeout(retryTimer.current);
+          retryTimer.current = setTimeout(() => setFailed(false), RETRY_AFTER_MS);
         }}
       />
     </View>

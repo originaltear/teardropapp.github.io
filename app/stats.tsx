@@ -4,7 +4,7 @@
  * Premium: emotion breakdown, day of week, countries, top likers, active hour, emotion trends
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Image,
@@ -228,8 +228,13 @@ export default function StatsScreen() {
     loadAll();
   }, [session]));
 
+  // Only the first load shows the skeleton. It used to flash on every focus,
+  // including coming back from a screen opened from here, so the numbers
+  // already on screen blinked away and came back the same.
+  const loadedOnce = useRef(false);
+
   async function loadAll() {
-    setLoading(true);
+    if (!loadedOnce.current) setLoading(true);
     try {
       const [c, premium] = await Promise.all([loadCries(), checkPremium()]);
       setCries(c);
@@ -262,6 +267,7 @@ export default function StatsScreen() {
     } catch (e) {
       console.warn('[stats] loadAll failed:', e);
     } finally {
+      loadedOnce.current = true;
       setLoading(false);
     }
   }

@@ -288,18 +288,26 @@ export default function FeedScreen() {
   // Intersperse an ad row every AD_EVERY cries (feed monetization). FeedBanner
   // hides itself for Pro users, so those rows collapse to nothing for them. No ad
   // is placed as the very last row.
-  type FeedRow = { kind: 'cry'; cry: SocialCry } | { kind: 'ad'; id: string };
+  type FeedRow = { kind: 'cry'; cry: SocialCry } | { kind: 'ad'; id: string; slot: number };
   const AD_EVERY = 8;
   const feedRows = useMemo<FeedRow[]>(() => {
     const rows: FeedRow[] = [];
+    let slot = 0;
     displayCries.forEach((cry, i) => {
       rows.push({ kind: 'cry', cry });
       if ((i + 1) % AD_EVERY === 0 && i + 1 < displayCries.length) {
-        rows.push({ kind: 'ad', id: `ad-${cry.id}` });
+        rows.push({ kind: 'ad', id: `ad-${cry.id}`, slot: slot++ });
       }
     });
     return rows;
   }, [displayCries]);
+
+  // How many ad slots, counted from the top, have an ad. Only the slot right
+  // below them may ask, so the ad people are most likely to see is filled
+  // first and the slots further down never compete with it for the same thin
+  // supply. Starts over with each tab, because the rows are different ones.
+  const [adsFilled, setAdsFilled] = useState(0);
+  useEffect(() => { setAdsFilled(0); }, [tab]);
 
   const selectedEmotion = mineEmotion ? EMOTIONS.find(e => e.id === mineEmotion) : null;
 
@@ -467,9 +475,15 @@ export default function FeedScreen() {
           // are tens of cries, not thousands, so holding them costs little.
           removeClippedSubviews={false}
           windowSize={41}
+          // Tells the list to redraw its rows when an ad slot fills, so the
+          // next slot down learns it may start asking.
+          extraData={adsFilled}
           renderItem={({ item }) =>
             item.kind === 'ad' ? (
-              <FeedBanner />
+              <FeedBanner
+                enabled={item.slot <= adsFilled}
+                onLoaded={() => setAdsFilled(n => Math.max(n, item.slot + 1))}
+              />
             ) : (
               <FeedItem
                 cry={item.cry}

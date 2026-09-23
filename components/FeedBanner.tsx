@@ -38,7 +38,20 @@ const MAX_BANNER_HEIGHT = 120;
 /** Never ask for a fresh ad on foreground more often than this. */
 const FOREGROUND_REFRESH_FLOOR_MS = 60_000;
 
-export function FeedBanner() {
+interface Props {
+  /**
+   * Whether this slot may ask for an ad yet. The feed fills its slots from the
+   * top down: each one waits until the one above it has an ad. Before, every
+   * slot asked at once, and at a 3% fill rate the one that happened to win was
+   * as often the third, 24 cries down where almost nobody scrolls, while the
+   * one after the first 8 cries had given up and collapsed.
+   */
+  enabled?: boolean;
+  /** Called once this slot has an ad, so the next slot down may start asking. */
+  onLoaded?: () => void;
+}
+
+export function FeedBanner({ enabled = true, onLoaded }: Props) {
   const [show, setShow] = useState(false);
   const [failed, setFailed] = useState(false);
   // Changing this remounts the BannerAd, which is how this library asks for a
@@ -71,7 +84,7 @@ export function FeedBanner() {
     return () => sub.remove();
   }, []);
 
-  if (!show || failed) return null;
+  if (!show || failed || !enabled) return null;
 
   return (
     <View style={styles.wrap}>
@@ -80,6 +93,7 @@ export function FeedBanner() {
         unitId={BANNER_UNIT_ID}
         size={BannerAdSize.INLINE_ADAPTIVE_BANNER}
         maxHeight={MAX_BANNER_HEIGHT}
+        onAdLoaded={() => onLoaded?.()}
         onAdFailedToLoad={error => {
           // No fill is ordinary here. Collapse the slot so there is no gap
           // between cries, and try again in a minute: supply comes and goes,

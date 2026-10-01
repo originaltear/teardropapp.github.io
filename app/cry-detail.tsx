@@ -3,7 +3,7 @@
  * Opened from notifications (like/comment) or anywhere a cry_id is available.
  * Route: /cry-detail?id=UUID
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, TextInput, Alert,
@@ -34,6 +34,7 @@ import { fullDateTime } from '../lib/format';
 import { tapLight, tapMedium, success } from '../lib/haptics';
 import { UiIcon } from '../components/UiIcon';
 import { Tear } from '../components/EmotionIcon';
+import { cryScreenOpened, cryScreenClosed } from '../lib/ads';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,13 @@ export default function CryDetailScreen() {
   const { theme: { accent } } = useTheme();
   const router = useRouter();
   const { session } = useAuth();
+
+  // Tells the ad gate a cry is being read, however it was opened, so going
+  // back never lands on a full-screen ad. See lib/ads.ts.
+  useEffect(() => {
+    cryScreenOpened();
+    return cryScreenClosed;
+  }, []);
 
   const [cry, setCry] = useState<SocialCry | null>(null);
   const [loading, setLoading] = useState(true);

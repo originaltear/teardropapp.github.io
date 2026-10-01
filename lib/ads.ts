@@ -200,10 +200,31 @@ let lastInterstitialAt = 0;
  * Shows a feed interstitial if one is ready, the user isn't premium, and the
  * frequency cap allows it. Call at natural breaks in the GLOBAL feed only.
  */
+// ─── Never on the way back from a cry ───────────────────────────────────────────
+// The feed used to keep its own "skip the next ad" flag, set when it opened a
+// cry. A cry opened from a notification never set it, so reading a friend's cry
+// from a push and pressing back landed on a full-screen ad. Measured on the
+// 1.1.2 release build. The cry screen now reports itself here, however it was
+// reached. "Open" covers the moment the feed regains focus before the cry
+// screen has finished unmounting; the quiet period covers the moment after.
+let cryScreensOpen = 0;
+let lastCryClosedAt = 0;
+const AFTER_CRY_QUIET_MS = 10_000;
+
+export function cryScreenOpened(): void {
+  cryScreensOpen += 1;
+}
+
+export function cryScreenClosed(): void {
+  cryScreensOpen = Math.max(0, cryScreensOpen - 1);
+  lastCryClosedAt = Date.now();
+}
+
 export async function maybeShowFeedInterstitial(): Promise<void> {
   try {
     if (await checkPremium()) return;             // Pro users never see ads
     const now = Date.now();
+    if (cryScreensOpen > 0 || now - lastCryClosedAt < AFTER_CRY_QUIET_MS) return;
     if (now - appStartedAt < MIN_TIME_SINCE_START_MS) return;   // not right after launch
     if (now - lastInterstitialAt < MIN_INTERSTITIAL_INTERVAL_MS) return;
     if (!interstitial || !interstitialLoaded) return;

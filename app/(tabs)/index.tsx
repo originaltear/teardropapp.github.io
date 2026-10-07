@@ -76,10 +76,10 @@ const NOTE_PREVIEW = 500;
 const FILTERS: MapFilter[] = ['mine', 'following', 'global'];
 const FILTER_ICON = { mine: 'user', following: 'users', global: 'globe' } as const;
 const FILTER_LABEL: Record<MapFilter, string> = {
-  mine: 'Mine', following: 'Following', global: 'All',
+  mine: 'Mine', following: 'Following', global: 'Global',
 };
 const FILTER_A11Y: Record<MapFilter, string> = {
-  mine: 'Show my cries', following: 'Show cries from people you follow', global: 'Show all cries',
+  mine: 'Show my cries', following: 'Show cries from people you follow', global: 'Show public cries from everyone',
 };
 
 // ─── Map style ────────────────────────────────────────────────────────────────

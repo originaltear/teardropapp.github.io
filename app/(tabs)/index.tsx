@@ -354,12 +354,30 @@ export default function MapScreen() {
     })();
   }, [markMapReady]);
 
+  // The last list each filter showed. Switching Mine / Following / Global draws
+  // that at once and lets the network only refresh it, instead of leaving the
+  // old filter's pins up for the length of a round trip. Following is fetched
+  // ahead while on Mine, since it is the next tap.
+  const criesByFilter = useRef<Partial<Record<MapFilter, (Cry | SocialCry)[]>>>({});
+  const mapFilterRef = useRef(mapFilter);
+  mapFilterRef.current = mapFilter;
+  // Another account must never see the last one's pins, even for a frame.
+  const sessionUserId = session?.user?.id;
+  useEffect(() => { criesByFilter.current = {}; }, [sessionUserId]);
+
   const reloadCries = useCallback(() => {
     const onErr = (e: unknown) => console.warn('[map] load cries failed:', e);
-    if (session && mapFilter !== 'mine') {
-      getMapCries(mapFilter).then(setCries).catch(onErr);
-    } else {
-      loadCries().then(setCries).catch(onErr);
+    const fetchFor = (f: MapFilter) => (session && f !== 'mine' ? getMapCries(f) : loadCries());
+    const cached = criesByFilter.current[mapFilter];
+    if (cached) setCries(cached);
+    const filter = mapFilter;
+    fetchFor(filter).then(list => {
+      criesByFilter.current[filter] = list;
+      // A slow answer for a filter the user has already left must not land.
+      if (mapFilterRef.current === filter) setCries(list);
+    }).catch(onErr);
+    if (session && filter === 'mine' && !criesByFilter.current.following) {
+      fetchFor('following').then(list => { criesByFilter.current.following = list; }).catch(onErr);
     }
   }, [session, mapFilter]);
 

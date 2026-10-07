@@ -19,6 +19,7 @@ import { EmotionIcon, Tear } from '../components/EmotionIcon';
 import { UiIcon } from '../components/UiIcon';
 import { saveCry, updateCry, loadCries, getOwnCry, generateCryId, Cry } from '../lib/storage';
 import { PRESET_TAGS, MAX_TAGS, MAX_TAG_LEN, normalizeTag } from '../lib/tags';
+import { clockTime, DATE_LOCALE } from '../lib/format';
 import { reverseCountry } from '../lib/geo';
 import { getDefaultCryVisibility, getCloseFriends } from '../lib/social';
 import { checkAndSaveAchievements } from '../lib/achievements';
@@ -44,14 +45,14 @@ const INTENSITY_LABELS = ['', 'Barely', 'Mild', 'Moderate', 'Heavy', 'Overwhelmi
 
 /** "Today · 14:30", "Yesterday · 09:05", else "5 June 2026 · 14:30". */
 function whenLabel(d: Date): string {
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const time = clockTime(d);
   const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
   // Measured from midnight rather than in whole days, so a cry logged at
   // exactly 00:00 today still reads as today.
   const since = midnight.getTime() - d.getTime();
   if (since <= 0) return `Today · ${time}`;
   if (since <= 86_400_000) return `Yesterday · ${time}`;
-  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · ${time}`;
+  return `${d.toLocaleDateString(DATE_LOCALE, { day: 'numeric', month: 'long', year: 'numeric' })} · ${time}`;
 }
 
 const VISIBILITY_OPTIONS: { value: Visibility; icon: string; label: string }[] = [

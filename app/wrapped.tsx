@@ -20,6 +20,7 @@ import * as Sharing from 'expo-sharing';
 import { loadCries, type Cry } from '../lib/storage';
 import { computePlaces, namePlaces, type Place } from '../lib/places';
 import { useAuth } from '../lib/auth';
+import { DATE_LOCALE } from '../lib/format';
 import {
   computeWrapped, getWrappedExtras, getWrappedRank, currentWrappedYear,
   type WrappedData, type WrappedExtras, type WrappedRank,
@@ -614,7 +615,7 @@ export default function WrappedScreen() {
      * out a person's worst day and hands it back without warning.
      */
     if (longestNote && longestNote.text.length >= NOTE_CARD_MIN_CHARS) {
-      const when = new Date(longestNote.at).toLocaleDateString('en-GB', {
+      const when = new Date(longestNote.at).toLocaleDateString(DATE_LOCALE, {
         day: 'numeric', month: 'long',
       });
 

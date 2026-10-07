@@ -12,6 +12,7 @@ import { useTheme } from '../lib/themes';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
+import { clockTime, DATE_LOCALE } from '../lib/format';
 import { EmotionIcon } from '../components/EmotionIcon';
 import { Drops } from '../components/Drops';
 
@@ -213,7 +214,7 @@ export default function CalendarScreen() {
           {selectedDate && (
             <View style={s.dayDetail}>
               <Text style={s.dayDetailTitle}>
-                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {new Date(selectedDate + 'T12:00:00').toLocaleDateString(DATE_LOCALE, { weekday: 'long', day: 'numeric', month: 'long' })}
               </Text>
               {selectedCries.length === 0 ? (
                 <Text style={s.noData}>No cries this day</Text>
@@ -240,7 +241,7 @@ export default function CalendarScreen() {
                       <Text style={[s.cryEmotion, { color }]}>{emotion?.label ?? cry.emotion}</Text>
                       <View style={s.cryTimeRow}>
                         <Text style={s.cryTime}>
-                          {new Date(cry.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                          {clockTime(new Date(cry.createdAt))}
                           {' ·'}
                         </Text>
                         <Drops intensity={cry.intensity} size={12} color={color} />

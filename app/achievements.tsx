@@ -11,13 +11,14 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../lib/themes';
 import { useFocusEffect } from 'expo-router';
 import { useAuth } from '../lib/auth';
+import { DATE_LOCALE } from '../lib/format';
 import { ACHIEVEMENTS, getUnlockedAchievements, getTearInfo, type Achievement } from '../lib/achievements';
 import { supabase } from '../lib/supabase';
 import { UiIcon } from '../components/UiIcon';
 import { AchievementIcon } from '../components/AchievementIcon';
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString(DATE_LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function AchievementsScreen() {

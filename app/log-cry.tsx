@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator,
@@ -42,6 +42,7 @@ type Visibility = 'everyone' | 'followers' | 'close_friends' | 'only_me';
 
 // Names for the 1–5 intensity scale so the drops carry meaning.
 const INTENSITY_LABELS = ['', 'Barely', 'Mild', 'Moderate', 'Heavy', 'Overwhelming'];
+const DROP_GAP = 8;
 
 /** "Today · 14:30", "Yesterday · 09:05", else "5 June 2026 · 14:30". */
 function whenLabel(d: Date): string {
@@ -82,6 +83,16 @@ export default function LogCryScreen() {
   // loudly; tinting five more drops to match just floods the screen in one hue.
   const dropColor = accent;
   const [intensity, setIntensity] = useState(3);
+
+  // Which drop is under the finger, from its x inside the row of drops (the
+  // row is measured, since a drop is narrower than its size suggests).
+  // A tick of haptics each time it crosses into a new one.
+  const dropsWidth = useRef(0);
+  const pickIntensityAt = (x: number) => {
+    if (!dropsWidth.current) return;
+    const n = Math.min(5, Math.max(1, Math.floor((x / dropsWidth.current) * 5) + 1));
+    if (n !== intensity) { selection(); setIntensity(n); }
+  };
   // When the cry actually happened. Defaults to now, but people often log after
   // the fact ("I forgot to add yesterday's"), so it can be moved back.
   const [when, setWhen] = useState(() => new Date());
@@ -539,17 +550,31 @@ export default function LogCryScreen() {
           {/* Intensity */}
           <Text style={styles.sectionLabel}>Intensity</Text>
           <View style={styles.intensityRow}>
-            {[1, 2, 3, 4, 5].map(n => (
-              <TouchableOpacity
-                key={n}
-                onPress={() => { selection(); setIntensity(n); }}
-                style={styles.dropBtn}
-                accessibilityRole="button"
-                accessibilityLabel={`Intensity ${n} of 5`}
-              >
-                <Tear size={34} filled={n <= intensity} color={dropColor} />
-              </TouchableOpacity>
-            ))}
+            {/* One touch area for all five drops, so a finger can tap one or
+                slide across them and the fill follows it. */}
+            <View
+              style={styles.dropsTrack}
+              onLayout={e => { dropsWidth.current = e.nativeEvent.layout.width; }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderTerminationRequest={() => false}
+              onResponderGrant={e => pickIntensityAt(e.nativeEvent.locationX)}
+              onResponderMove={e => pickIntensityAt(e.nativeEvent.locationX)}
+              accessible
+              accessibilityRole="adjustable"
+              accessibilityLabel="Intensity"
+              accessibilityValue={{ min: 1, max: 5, now: intensity, text: INTENSITY_LABELS[intensity] }}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              onAccessibilityAction={e =>
+                setIntensity(i => Math.min(5, Math.max(1, i + (e.nativeEvent.actionName === 'increment' ? 1 : -1))))
+              }
+            >
+              {[1, 2, 3, 4, 5].map(n => (
+                <View key={n} style={styles.dropBtn} pointerEvents="none">
+                  <Tear size={34} filled={n <= intensity} color={dropColor} />
+                </View>
+              ))}
+            </View>
             <Text style={[styles.intensityLabel, { color: accent }]}>{INTENSITY_LABELS[intensity]}</Text>
           </View>
 
@@ -841,6 +866,7 @@ const styles = StyleSheet.create({
   emotionLabel: { color: '#94a3b8', fontSize: 15, fontWeight: '600' },
 
   intensityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dropsTrack: { flexDirection: 'row', gap: DROP_GAP },
   dropBtn: { padding: 4 },
 
   intensityLabel: { flex: 1, textAlign: 'right', fontSize: 15, fontWeight: '700' },

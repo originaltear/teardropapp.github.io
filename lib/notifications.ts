@@ -3,7 +3,7 @@
  * Push notification registration + local notification handler.
  *
  * Architecture:
- *  - On login, registerPushToken() stores the Expo push token in profiles.push_token
+ *  - Once permission is given, registerPushToken() stores the Expo push token in profiles.push_token
  *  - A Supabase Edge Function (send-push) is triggered by a DB webhook on
  *    notifications INSERT and calls the Expo Push API
  *  - On Android the default channel is created automatically by the plugin;
@@ -49,11 +49,15 @@ async function ensureAndroidChannel() {
 // ─── Token registration ───────────────────────────────────────────────────────
 
 /**
- * Requests permission and registers the Expo push token in the user's profile.
- * Safe to call multiple times — silently no-ops if permission denied or EAS not
- * configured.
+ * Registers the Expo push token in the user's profile, asking for permission
+ * first unless `ask` is false. Safe to call multiple times — silently no-ops if
+ * permission is denied or EAS is not configured.
+ *
+ * At login it runs with `ask: false`: the question itself waits for a moment
+ * that explains it (lib/push-ask.ts), and this only refreshes the token for
+ * someone who already said yes.
  */
-export async function registerPushToken(): Promise<void> {
+export async function registerPushToken({ ask = true }: { ask?: boolean } = {}): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
 
@@ -63,7 +67,7 @@ export async function registerPushToken(): Promise<void> {
     // Ask for permission
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
-    if (existing !== 'granted') {
+    if (existing !== 'granted' && ask) {
       // Queued so it can't sit on top of the location or tracking prompts
       // (see lib/permission-queue.ts).
       const { status } = await requestPermission(() =>

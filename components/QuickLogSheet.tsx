@@ -22,6 +22,7 @@ import { useTheme } from '../lib/themes';
 import { selection, success, warning } from '../lib/haptics';
 import { EmotionIcon } from './EmotionIcon';
 import { UiIcon } from './UiIcon';
+import { pushMoment } from '../lib/push-ask';
 
 export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
   visible: boolean;
@@ -79,7 +80,8 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
       loadCries()
         .then(cries => checkAndSaveAchievements(cries, session))
         .then(newOnes => { if (newOnes?.length) queueAchievements(newOnes); })
-        .catch(() => { /* best-effort */ });
+        .catch(() => { /* best-effort */ })
+        .then(() => pushMoment('cry'));
     }
 
     setSavingId(null);

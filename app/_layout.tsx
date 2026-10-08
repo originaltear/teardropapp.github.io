@@ -96,7 +96,7 @@ function RootNav() {
   // ── Push token registration ───────────────────────────────────────────────
   useEffect(() => {
     if (session && hasUsername) {
-      registerPushToken();
+      registerPushToken({ ask: false });
     }
   }, [session?.user.id, hasUsername]);
 

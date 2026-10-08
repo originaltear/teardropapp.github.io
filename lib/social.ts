@@ -3,6 +3,7 @@
  * All calls require an active Supabase session.
  */
 import { supabase } from './supabase';
+import { pushMoment } from './push-ask';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,7 +171,8 @@ export async function searchUsers(query: string): Promise<UserResult[]> {
 export async function followUser(targetId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
-  await supabase.from('follows').insert({ follower_id: session.user.id, following_id: targetId });
+  const { error } = await supabase.from('follows').insert({ follower_id: session.user.id, following_id: targetId });
+  if (!error) pushMoment('follow');
 }
 
 export async function unfollowUser(targetId: string): Promise<void> {

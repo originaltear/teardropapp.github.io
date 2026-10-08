@@ -28,6 +28,7 @@ import { useAuth } from '../lib/auth';
 import { useTheme } from '../lib/themes';
 import { PressableScale } from '../components/PressableScale';
 import { tapLight, tapMedium, selection, success, warning } from '../lib/haptics';
+import { pushMoment } from '../lib/push-ask';
 
 /**
  * Notes were capped at 500 characters. The longest one anyone had written was
@@ -416,12 +417,14 @@ export default function LogCryScreen() {
 
     // Trigger achievement check in background. Runs after we navigate back, but
     // the toast provider lives at the app root, so the unlock popup still appears
-    // over whatever screen the user lands on.
+    // over whatever screen the user lands on. The notification question waits
+    // behind it (see lib/push-ask.ts).
     if (session) {
       loadCries()
         .then(cries => checkAndSaveAchievements(cries, session))
         .then(newOnes => { if (newOnes?.length) queueAchievements(newOnes); })
-        .catch(() => { /* best-effort */ });
+        .catch(() => { /* best-effort */ })
+        .then(() => pushMoment('cry'));
     }
 
     setSaving(false);

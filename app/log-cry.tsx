@@ -94,6 +94,13 @@ export default function LogCryScreen() {
     const n = Math.min(5, Math.max(1, Math.floor((x / dropsWidth.current) * 5) + 1));
     if (n !== intensity) { selection(); setIntensity(n); }
   };
+
+  // The drops sit in a scrolling form, so a finger landing on them may only be
+  // on its way down the page. Nothing is picked until the touch shows what it
+  // is: a tap picks on release, a sideways slide picks as it goes, and a
+  // vertical drag is handed to the scroll view untouched.
+  const dropTouch = useRef<{ x: number; y: number; sliding: boolean } | null>(null);
+  const SLIDE_SLOP = 10;
   // When the cry actually happened. Defaults to now, but people often log after
   // the fact ("I forgot to add yesterday's"), so it can be moved back.
   const [when, setWhen] = useState(() => new Date());
@@ -559,10 +566,29 @@ export default function LogCryScreen() {
               style={styles.dropsTrack}
               onLayout={e => { dropsWidth.current = e.nativeEvent.layout.width; }}
               onStartShouldSetResponder={() => true}
-              onMoveShouldSetResponder={() => true}
-              onResponderTerminationRequest={() => false}
-              onResponderGrant={e => pickIntensityAt(e.nativeEvent.locationX)}
-              onResponderMove={e => pickIntensityAt(e.nativeEvent.locationX)}
+              onResponderTerminationRequest={() => !dropTouch.current?.sliding}
+              onResponderTerminate={() => { dropTouch.current = null; }}
+              onResponderGrant={e => {
+                dropTouch.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, sliding: false };
+              }}
+              onResponderMove={e => {
+                const t = dropTouch.current;
+                if (!t) return;
+                if (!t.sliding) {
+                  const dx = Math.abs(e.nativeEvent.pageX - t.x);
+                  const dy = Math.abs(e.nativeEvent.pageY - t.y);
+                  if (dx < SLIDE_SLOP || dx < dy) return;
+                  t.sliding = true;
+                }
+                pickIntensityAt(e.nativeEvent.locationX);
+              }}
+              onResponderRelease={e => {
+                const t = dropTouch.current;
+                dropTouch.current = null;
+                if (t && !t.sliding && Math.abs(e.nativeEvent.pageY - t.y) < SLIDE_SLOP) {
+                  pickIntensityAt(e.nativeEvent.locationX);
+                }
+              }}
               accessible
               accessibilityRole="adjustable"
               accessibilityLabel="Intensity"

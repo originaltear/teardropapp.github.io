@@ -107,9 +107,17 @@ export default function GuidelinesScreen() {
           <P>
             Teardrop is a journal, not a crisis service, and nobody here is a professional.
             If you are thinking about hurting yourself, please talk to someone who can help
-            properly. In Denmark, Livslinien is on 70 201 201. Elsewhere, your local
-            emergency number is the right call.
+            properly. In Denmark, Livslinien is on 70 201 201. Elsewhere, Find A Helpline
+            lists free, confidential lines by country. If you are in danger right now, your
+            local emergency number is the right call.
           </P>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://findahelpline.com').catch(() => {})}
+            activeOpacity={0.7}
+            accessibilityRole="link"
+          >
+            <Text style={[s.link, { color: accent }]}>findahelpline.com</Text>
+          </TouchableOpacity>
         </Section>
 
         <Section title="Contact">

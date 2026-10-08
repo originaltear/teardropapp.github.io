@@ -384,9 +384,30 @@ export async function isWrappedEnabled(): Promise<boolean> {
   }
 }
 
-/** The year the recap covers — the current year. */
-export function currentWrappedYear(): number {
-  return new Date().getFullYear();
+/**
+ * The year the recap covers. January still belongs to the year that just
+ * ended: the recap opens on December 1 and is looked back on over New Year, so
+ * flipping to an empty new year at midnight would take it away mid-read.
+ */
+export function currentWrappedYear(now = new Date()): number {
+  return now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+}
+
+/** December 1 of the recap's year, local time: the day it opens. */
+export function wrappedOpensAt(year = currentWrappedYear()): Date {
+  return new Date(year, 11, 1);
+}
+
+/** Whole calendar days from today until the recap opens; 0 once it has. */
+export function daysUntilWrapped(now = new Date()): number {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((wrappedOpensAt().getTime() - today.getTime()) / 86_400_000);
+  return Math.max(0, days);
+}
+
+/** How many of these cries count toward the recap for `year`. */
+export function criesInYear(cries: Pick<Cry, 'createdAt'>[], year = currentWrappedYear()): number {
+  return cries.filter(c => new Date(c.createdAt).getFullYear() === year).length;
 }
 
 export { TIME_BUCKETS, MONTH_LABELS };

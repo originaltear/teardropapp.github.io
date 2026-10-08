@@ -4,8 +4,9 @@
  * A swipeable, Spotify-Wrapped-style recap of the user's year. Free for
  * everyone: the shareable card at the end is a growth channel, not a perk.
  *
- * Ships dark — nothing links here until `app_config.wrapped_enabled` is turned
- * on (see lib/wrapped.ts), so the December launch needs no new build.
+ * Ships dark: until `app_config.wrapped_enabled` is turned on (see
+ * lib/wrapped.ts) the screen is a countdown, so the December launch needs no
+ * new build. The App Store event deep-links here weeks before it opens.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -23,6 +24,7 @@ import { useAuth } from '../lib/auth';
 import { DATE_LOCALE } from '../lib/format';
 import {
   computeWrapped, getWrappedExtras, getWrappedRank, currentWrappedYear,
+  isWrappedEnabled, daysUntilWrapped, MIN_CRIES_FOR_WRAPPED,
   type WrappedData, type WrappedExtras, type WrappedRank,
 } from '../lib/wrapped';
 import {
@@ -35,7 +37,7 @@ import { WrappedConfetti } from '../components/WrappedConfetti';
 import { success, selection } from '../lib/haptics';
 import { EmotionIcon } from '../components/EmotionIcon';
 import { UiIcon } from '../components/UiIcon';
-import { Tear } from '../components/EmotionIcon';
+import { TearProgress } from '../components/TearProgress';
 
 const BG = '#070a14';
 const INK = '#e8eef7';
@@ -224,6 +226,9 @@ export default function WrappedScreen() {
     country: null, globalTopPct: null, countryTopPct: null,
   });
   const [loading, setLoading] = useState(true);
+  // Off until the remote flag says otherwise, so a failed lookup shows the
+  // countdown rather than the recap.
+  const [enabled, setEnabled] = useState(false);
   const [index, setIndex] = useState(0);
   const [sharing, setSharing] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -255,10 +260,11 @@ export default function WrappedScreen() {
     (async () => {
       setLoading(true);
       try {
-        const [c, e, r] = await Promise.all([
-          loadCries(), getWrappedExtras(year), getWrappedRank(year),
+        const [c, e, r, on] = await Promise.all([
+          loadCries(), getWrappedExtras(year), getWrappedRank(year), isWrappedEnabled(),
         ]);
         if (cancelled) return;
+        setEnabled(on);
         setCries(c);
         setExtras(e);
         setRank(r);
@@ -771,7 +777,7 @@ export default function WrappedScreen() {
   // letting go resumes rather than restarting. The last card never auto-advances
   // — it holds on the share button.
   useEffect(() => {
-    if (loading || !data.hasEnough) return;
+    if (loading || !enabled || !data.hasEnough) return;
 
     // The last card holds on the share button rather than advancing, but its
     // segment still has to look finished. Without this it renders at the 0 the
@@ -792,7 +798,7 @@ export default function WrappedScreen() {
     });
     anim.start(({ finished }) => { if (finished) goTo(index + 1); });
     return () => anim.stop();
-  }, [index, paused, loading, data.hasEnough, lastIndex, goTo, progress]);
+  }, [index, paused, loading, enabled, data.hasEnough, lastIndex, goTo, progress]);
 
   // ── Render ──
 
@@ -804,16 +810,31 @@ export default function WrappedScreen() {
     );
   }
 
-  if (!data.hasEnough) {
+  // Before it opens, and after it opens without enough to show: the same three
+  // drops either way, so the countdown and the recap count alike.
+  if (!enabled || !data.hasEnough) {
+    const logged = yearCries.length;
+    const ready = logged >= MIN_CRIES_FOR_WRAPPED;
+    const days = daysUntilWrapped();
+    const when = days === 0 ? 'Opens soon' : days === 1 ? 'Opens tomorrow' : `Opens in ${days} days`;
     return (
       <SafeAreaView style={s.fill} edges={['top', 'bottom']}>
         <View style={s.emptyWrap}>
-          <View style={s.emptyEmoji}>
-            <Tear size={54} filled={false} color={accent} />
+          <Text style={s.emptyEyebrow}>{year} · Teardrop</Text>
+          <Text style={s.emptyTitle}>Your Year in Tears</Text>
+          {!enabled && <Text style={[s.emptyWhen, { color: accent }]}>{when}</Text>}
+          <View style={s.emptyDrops}>
+            <TearProgress count={logged} color={accent} size={40} />
           </View>
-          <Text style={s.emptyTitle}>Not enough yet</Text>
+          <Text style={s.emptyCount}>
+            {Math.min(logged, MIN_CRIES_FOR_WRAPPED)} of {MIN_CRIES_FOR_WRAPPED} logged this year
+          </Text>
           <Text style={s.emptySub}>
-            Log a few more cries this year and your recap will be waiting here.
+            {!enabled
+              ? ready
+                ? "You're all set. See you December 1."
+                : `Your recap is built from your cries this year. It takes ${MIN_CRIES_FOR_WRAPPED} to make one.`
+              : `Your recap takes ${MIN_CRIES_FOR_WRAPPED} cries from this year. It will be waiting here.`}
           </Text>
           <TouchableOpacity style={s.emptyBtn} onPress={() => router.back()} activeOpacity={0.8}>
             <Text style={s.emptyBtnTxt}>Close</Text>
@@ -998,8 +1019,11 @@ const s = StyleSheet.create({
   closeBtn: { alignSelf: 'flex-end', padding: 14 },
 
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 12 },
-  emptyEmoji: {},
-  emptyTitle: { color: INK, fontSize: 24, fontWeight: '700' },
+  emptyEyebrow: { color: MUTED, fontSize: 13, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' },
+  emptyTitle: { color: INK, fontSize: 28, fontWeight: '800', textAlign: 'center' },
+  emptyWhen: { fontSize: 17, fontWeight: '700' },
+  emptyDrops: { marginVertical: 18 },
+  emptyCount: { color: INK, fontSize: 15, fontWeight: '600' },
   emptySub: { color: MUTED, fontSize: 15, textAlign: 'center', lineHeight: 22 },
   emptyBtn: { marginTop: 14, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 999, backgroundColor: '#1c2733' },
   emptyBtnTxt: { color: INK, fontSize: 15, fontWeight: '600' },

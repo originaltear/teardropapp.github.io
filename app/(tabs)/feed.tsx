@@ -23,6 +23,7 @@ import { isQuickLogSocial } from '../../lib/quick-log';
 import { TagPills } from '../../components/TagPills';
 import { FeedBanner } from '../../components/FeedBanner';
 import { maybeShowFeedInterstitial } from '../../lib/ads';
+import { inviteAFriend } from '../../lib/invite';
 import { updateCriesVisibility, deleteCries } from '../../lib/storage';
 import {
   BulkActionsBar, promptBulkVisibility, promptBulkDelete,
@@ -613,6 +614,22 @@ export default function FeedScreen() {
                   </View>
                 </TouchableOpacity>
               )}
+              {/* Most friends are not here yet. An empty Following tab is the
+                  moment to bring one in; right after a cry never is. */}
+              {session && tab === 'following' && (
+                <TouchableOpacity
+                  style={[styles.inviteBtn, { borderColor: accent + '66' }]}
+                  onPress={() => { tapLight(); inviteAFriend(); }}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel="Invite a friend to Teardrop"
+                >
+                  <View style={styles.chipRow}>
+                    <UiIcon name="mail" size={16} color={accent} />
+                    <Text style={[styles.inviteBtnTxt, { color: accent }]}>Invite a friend</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -698,6 +715,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20,
   },
   emptyBtnTxt: { color: '#0d1117', fontSize: 15, fontWeight: '700' },
+  inviteBtn: { paddingHorizontal: 22, paddingVertical: 10, borderRadius: 20, borderWidth: 1 },
+  inviteBtnTxt: { fontSize: 15, fontWeight: '600' },
 
   item: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,

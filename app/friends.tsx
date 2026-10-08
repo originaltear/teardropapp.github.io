@@ -50,7 +50,9 @@ function UserRow({ user, onAction }: { user: UserResult; onAction: (u: UserResul
           onPress={() => onAction(user, user.relation)}
           activeOpacity={0.75}
         >
-          <Text style={styles.relationTxt}>{relationLabel[user.relation]}</Text>
+          <Text style={user.relation === 'following' ? styles.relationTxtUnfollow : styles.relationTxt}>
+            {relationLabel[user.relation]}
+          </Text>
         </TouchableOpacity>
       )}
     </View>

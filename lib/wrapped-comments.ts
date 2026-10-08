@@ -33,7 +33,7 @@ function pick(bank: string[], seed: string): string {
 const TOTAL_BANK: Record<string, string[]> = {
   few: [
     'A quiet year. We respect the restraint.',
-    'Not many — but every one of them counted.',
+    'Not many, but every one of them counted.',
     'You kept it brief this year.',
   ],
   some: [
@@ -43,7 +43,7 @@ const TOTAL_BANK: Record<string, string[]> = {
   ],
   many: [
     'That is a lot of feelings. Genuinely.',
-    'You went through it — and you logged it.',
+    'You went through it, and you logged it.',
     'A full year, heavy in places.',
   ],
   epic: [
@@ -58,9 +58,9 @@ const EMOTION_BANK: Record<string, string[]> = {
   rage: ['Anger was the loudest voice this year.', 'A lot of that was pure fury. Valid.'],
   anxiety: ['Your nervous system had opinions.', 'Anxiety took the wheel more than once.'],
   heartbreak: ['This year had a name attached to it.', 'Heartbreak led the way. That is a hard one.'],
-  bittersweet: ['Mostly the good-and-sad kind.', 'Bittersweet — the most honest emotion there is.'],
+  bittersweet: ['Mostly the good-and-sad kind.', 'Bittersweet. The most honest emotion there is.'],
   exhausted: ['Tired. Just deeply, deeply tired.', 'Exhaustion was the theme. Please rest.'],
-  relief: ['Mostly the letting-go kind. That is growth.', 'Relief tears — the best kind of crying.'],
+  relief: ['Mostly the letting-go kind. That is growth.', 'Relief tears. The best kind of crying.'],
   overwhelmed: ['It was a lot. You said so, often.', 'Overwhelmed was the word of the year.'],
   mixed: ['Too complicated to name. Fair enough.', 'A bit of everything, all at once.'],
   idk: ['Sometimes there is no word for it.', 'Unnamed, but still felt. That counts.'],

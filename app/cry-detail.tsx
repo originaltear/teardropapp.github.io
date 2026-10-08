@@ -3,10 +3,10 @@
  * Opened from notifications (like/comment) or anywhere a cry_id is available.
  * Route: /cry-detail?id=UUID
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, TextInput, Alert,
+  ActivityIndicator, TextInput, Alert, Keyboard,
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -176,6 +176,8 @@ export default function CryDetailScreen() {
     if (handle) setCommentText(prev => (prev.startsWith(handle) ? prev.slice(handle.length) : prev));
   }
 
+  const scrollRef = useRef<ScrollView>(null);
+
   async function submitComment() {
     if (!commentText.trim() || !session) return;
     setPosting(true);
@@ -187,6 +189,11 @@ export default function CryDetailScreen() {
       if (c) {
         success();
         setComments(prev => [...prev, c]);
+        // The keyboard covered the comment that was just posted, so it looked
+        // as though nothing had happened. A new top-level comment lands at the
+        // bottom; a reply sits inside its thread, which is already in view.
+        Keyboard.dismiss();
+        if (!parentId) setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250);
       }
       setCommentText('');
       setReplyTo(null);
@@ -315,7 +322,7 @@ export default function CryDetailScreen() {
         automaticOffset
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {/* Profile row */}
           <TouchableOpacity
             style={s.profileRow}

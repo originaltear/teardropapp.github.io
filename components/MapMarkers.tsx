@@ -59,14 +59,24 @@ const FALLBACK_PATH = 'M21 52 C12 40 5 32 5 21 A16 16 0 1 1 37 21 C37 32 30 40 2
 const FALLBACK_ANCHOR = { x: 0.5, y: 52 / PIN_H };
 
 export function EmotionPin({
-  latitude, longitude, emotion, onPress,
+  latitude, longitude, emotion, onPress, scale = 1, dimmed = false, zIndex = 5,
 }: {
   latitude: number;
   longitude: number;
   emotion: string;
-  onPress: () => void;
+  onPress?: () => void;
+  /** Drawn larger; used for the selected cry, which is a pin of its own. */
+  scale?: number;
+  /**
+   * Faded while another cry is open. Marker opacity is a native property, so
+   * this changes without redrawing the pin's bitmap.
+   */
+  dimmed?: boolean;
+  zIndex?: number;
 }) {
   const e = emotionById(emotion);
+  const w = PIN_W * scale;
+  const h = PIN_H * scale;
   const color = e?.color ?? TEAR_BLUE;
   const icon = e ? EMOTION_ICONS[e.id] : undefined;
   const tracks = useTracksOnce();
@@ -77,11 +87,12 @@ export function EmotionPin({
       anchor={icon ? PIN_ANCHOR : FALLBACK_ANCHOR}
       onPress={onPress}
       tracksViewChanges={tracks}
-      zIndex={5}
+      zIndex={zIndex}
+      opacity={dimmed ? 0.35 : 1}
     >
-      <View style={{ width: PIN_W, height: PIN_H }} collapsable={false}>
+      <View style={{ width: w, height: h }} collapsable={false}>
         {icon ? (
-          <Svg width={PIN_W} height={PIN_H} viewBox={ICON_VIEWBOX}>
+          <Svg width={w} height={h} viewBox={ICON_VIEWBOX}>
             {/* A dark rim behind the body. Pins sitting on the same street
                 overlap constantly, and without an edge two drops of a similar
                 colour merge into one shape. Drawn first so only the half that
@@ -99,7 +110,7 @@ export function EmotionPin({
           </Svg>
         ) : (
           <>
-            <Svg width={PIN_W} height={PIN_H} viewBox="0 0 42 56">
+            <Svg width={w} height={h} viewBox="0 0 42 56">
               <Ellipse cx={21} cy={51} rx={5.5} ry={1.8} fill="rgba(0,0,0,0.3)" />
               <Path
                 d={FALLBACK_PATH}
@@ -109,7 +120,7 @@ export function EmotionPin({
                 strokeLinejoin="round"
               />
             </Svg>
-            <View style={[styles.overlayBox, { top: 5, height: 32 }]} pointerEvents="none">
+            <View style={[styles.overlayBox, { top: 5 * scale, height: 32 * scale }]} pointerEvents="none">
               <Text style={styles.pinEmoji}>{e?.emoji ?? '💧'}</Text>
             </View>
           </>
@@ -129,7 +140,7 @@ function clusterSize(count: number): number {
 }
 
 export function ClusterPin({
-  latitude, longitude, count, tally, onPress,
+  latitude, longitude, count, tally, onPress, dimmed = false,
 }: {
   latitude: number;
   longitude: number;
@@ -137,6 +148,8 @@ export function ClusterPin({
   /** How many of each emotion are inside, accumulated by supercluster. */
   tally?: Record<string, number>;
   onPress: () => void;
+  /** Faded while a cry is open; see EmotionPin. */
+  dimmed?: boolean;
 }) {
   const size = clusterSize(count);
   const box = size + 16; // generous transparent margin so nothing clips
@@ -193,6 +206,7 @@ export function ClusterPin({
       onPress={onPress}
       tracksViewChanges={tracks}
       zIndex={6}
+      opacity={dimmed ? 0.35 : 1}
     >
       <View style={{ width: box, height: box }} collapsable={false}>
         <Svg width={box} height={box}>

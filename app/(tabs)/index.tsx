@@ -504,6 +504,24 @@ export default function MapScreen() {
     return superIndex.getClusters(bbox, Math.min(Math.max(zoom, 0), 20));
   }, [superIndex, region]);
 
+  /**
+   * Opens a cry and makes sure it can still be seen. The sheet covers up to
+   * two thirds of the screen from the bottom, so the pin is moved into the
+   * band above it, below the filter row. Already there, the map stays put.
+   */
+  const selectCry = useCallback((cry: Cry | SocialCry) => {
+    setSelectedCry(cry);
+    if (!region) return;
+    const top = region.latitude + region.latitudeDelta / 2;
+    const fromTop = (top - cry.latitude) / region.latitudeDelta;   // 0 = top edge
+    if (fromTop > 0.2 && fromTop < 0.32) return;
+    mapRef.current?.animateToRegion({
+      ...region,
+      latitude: cry.latitude - (0.5 - 0.27) * region.latitudeDelta,
+      longitude: cry.longitude,
+    }, 350);
+  }, [region]);
+
   // Tapping a cluster opens a sheet listing every cry inside it (its "leaves").
   const handleClusterPress = useCallback((clusterId: number, lng: number, lat: number) => {
     tapLight();
@@ -615,6 +633,9 @@ export default function MapScreen() {
         showsUserLocation={false}
         showsMyLocationButton={false}
         toolbarEnabled={false}
+        // Google centres a tapped marker by default, which is exactly where the
+        // cry's sheet then covers it. selectCry places it above the sheet.
+        moveOnMarkerPress={false}
         onRegionChangeComplete={setRegion}
       >
         {/* Lightweight "you are here" dot (rendered under cry markers) */}
@@ -640,6 +661,7 @@ export default function MapScreen() {
                 count={props.point_count}
                 tally={props.tally}
                 onPress={() => handleClusterPress(props.cluster_id, lng, lat)}
+                dimmed={!!selectedCry}
               />
             );
           }
@@ -650,10 +672,24 @@ export default function MapScreen() {
               latitude={lat}
               longitude={lng}
               emotion={cry.emotion}
-              onPress={() => setSelectedCry(cry)}
+              onPress={() => selectCry(cry)}
+              dimmed={!!selectedCry && selectedCry.id !== cry.id}
             />
           );
         })}
+
+        {/* The open cry, drawn again larger and on top, so it stands out
+            from its neighbours and from a cluster it may be part of. */}
+        {selectedCry && (
+          <EmotionPin
+            key={`selected-${selectedCry.id}`}
+            latitude={selectedCry.latitude}
+            longitude={selectedCry.longitude}
+            emotion={selectedCry.emotion}
+            scale={1.35}
+            zIndex={20}
+          />
+        )}
       </MapView>
 
       {/* Top: a solid strip behind the status bar and nothing else. The
@@ -822,7 +858,7 @@ export default function MapScreen() {
               renderItem={({ item }) => (
                 <ClusterRow
                   cry={item}
-                  onPress={() => { tapLight(); setClusterView(null); setSelectedCry(item); }}
+                  onPress={() => { tapLight(); setClusterView(null); selectCry(item); }}
                 />
               )}
               ItemSeparatorComponent={() => <View style={styles.clSep} />}

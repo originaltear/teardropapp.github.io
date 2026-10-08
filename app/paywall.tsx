@@ -166,7 +166,7 @@ export default function PaywallScreen() {
         </Text>
 
         <Text style={s.legalNote}>
-          Prices are in USD. Payment is charged to your {STORE_NAME} account at confirmation
+          Prices are shown in your local currency. Payment is charged to your {STORE_NAME} account at confirmation
           of purchase. Subscriptions auto-renew unless cancelled at least 24 hours before the
           end of the current period. Manage or cancel anytime in your account settings.
         </Text>

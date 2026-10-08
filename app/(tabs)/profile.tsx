@@ -18,7 +18,10 @@ import {
 } from '../../lib/achievements';
 import { TearsBadge } from '../../components/TearsBadge';
 import { useAchievementToast } from '../../components/AchievementToastProvider';
-import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
+import {
+  isWrappedEnabled, currentWrappedYear, criesInYear, MIN_CRIES_FOR_WRAPPED,
+} from '../../lib/wrapped';
+import { TearProgress } from '../../components/TearProgress';
 import { supabase } from '../../lib/supabase';
 import { UiIcon } from '../../components/UiIcon';
 import { Tear } from '../../components/EmotionIcon';
@@ -274,6 +277,14 @@ export default function ProfileScreen() {
     setEditOpen(false);
   }
 
+  // The road to the recap runs through the autumn. Earlier in the year a
+  // countdown measured in hundreds of days means nothing; in January the recap
+  // is over and the new year has barely started.
+  const month = new Date().getMonth();
+  const showRoad = !!session && !wrappedOn && month >= 8;
+  const yearCount = criesInYear(cries);
+  const roadReady = yearCount >= MIN_CRIES_FOR_WRAPPED;
+
   const countryCount = new Set(cries.filter(c => c.country).map(c => c.country!)).size;
 
   return (
@@ -358,6 +369,28 @@ export default function ProfileScreen() {
               <Text style={styles.wrappedSub}>Your year, wrapped up. Tap to open.</Text>
             </View>
             <Text style={styles.wrappedChevron}>›</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Before it opens: how far along this year's recap is. Never shown
+            right after a log, and it counts toward the recap, not the crying. */}
+        {showRoad && (
+          <TouchableOpacity
+            style={styles.wrappedBanner}
+            onPress={() => router.push('/wrapped')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Road to your year in tears, ${Math.min(yearCount, MIN_CRIES_FOR_WRAPPED)} of ${MIN_CRIES_FOR_WRAPPED}`}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.wrappedTitle}>Road to Your Year in Tears</Text>
+              <Text style={styles.wrappedSub}>
+                {roadReady
+                  ? "You're all set. See you December 1."
+                  : `Opens December 1 · ${yearCount} of ${MIN_CRIES_FOR_WRAPPED} logged`}
+              </Text>
+            </View>
+            <TearProgress count={yearCount} color="#6fe0e6" size={20} />
           </TouchableOpacity>
         )}
 

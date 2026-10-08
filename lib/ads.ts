@@ -27,11 +27,10 @@ import { checkPremium } from './purchases';
 import { requestPermission } from './permission-queue';
 
 // ─── Ad unit IDs ──────────────────────────────────────────────────────────────
-// TODO(before 1.0.5 release): create the ad units in AdMob (each app → Ad units),
-// paste the real IDs into REAL_* below, and flip USE_TEST_ADS to false. Until then
-// we serve Google's public TEST ads so no real impressions/clicks happen during
-// development (clicking your own live ads is a policy violation).
-const USE_TEST_ADS = false;
+// Development builds serve Google's public TEST ads, so no real impressions or
+// clicks happen while testing on our own phones (clicking your own live ads is
+// a policy violation). Release builds always serve the real units below.
+const USE_TEST_ADS = __DEV__;
 
 const REAL_INTERSTITIAL = Platform.select({
   android: 'ca-app-pub-4733730200452740/5237814538', // Feed Interstitial (Android)

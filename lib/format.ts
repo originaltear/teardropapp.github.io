@@ -44,3 +44,15 @@ export function fullDateTime(iso: string): string {
     clockTime(d)
   );
 }
+
+/**
+ * "2026-10-09" for the day this moment fell on where the phone is.
+ *
+ * The ISO string's own first ten characters are the UTC date, which in Denmark
+ * puts anything logged between midnight and two in the morning on the day
+ * before, and made the calendar mark yesterday as today for the same hours.
+ */
+export function localDayKey(at: Date | string): string {
+  const d = typeof at === 'string' ? new Date(at) : at;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

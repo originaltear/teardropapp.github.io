@@ -12,7 +12,7 @@ import { useTheme } from '../lib/themes';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../lib/storage';
 import { emotionById } from '../lib/emotions';
-import { clockTime, DATE_LOCALE } from '../lib/format';
+import { clockTime, DATE_LOCALE, localDayKey } from '../lib/format';
 import { EmotionIcon } from '../components/EmotionIcon';
 import { Drops } from '../components/Drops';
 
@@ -107,7 +107,7 @@ export default function CalendarScreen() {
   // Build cry map: date → cries
   const cryMap: Record<string, Cry[]> = {};
   for (const c of cries) {
-    const day = c.createdAt.slice(0, 10);
+    const day = localDayKey(c.createdAt);
     if (!cryMap[day]) cryMap[day] = [];
     cryMap[day].push(c);
   }
@@ -117,7 +117,11 @@ export default function CalendarScreen() {
   // Monday-first: getDay() 0=Sun→6, 1=Mon→0, ...
   const startOffset = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = localDayKey(now);
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthCount = Object.entries(cryMap)
+    .filter(([k]) => k.startsWith(monthPrefix))
+    .reduce((n, [, v]) => n + v.length, 0);
 
   function prevMonth() {
     if (month === 0) { setYear(y => y - 1); setMonth(11); }
@@ -206,7 +210,7 @@ export default function CalendarScreen() {
           {/* Month summary */}
           <View style={s.summaryRow}>
             <Text style={s.summaryStat}>
-              {Object.entries(cryMap).filter(([k]) => k.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).reduce((s, [,v]) => s + v.length, 0)} cries this month
+              {monthCount} {monthCount === 1 ? 'cry' : 'cries'} this month
             </Text>
           </View>
 

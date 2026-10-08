@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 import { Cry } from './storage';
 import type { Session } from '@supabase/supabase-js';
 
+import { localDayKey } from './format';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Achievement {
@@ -221,7 +222,7 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
     ok.add('midnight_tear');
 
   const mondayDays = new Set(
-    cries.filter(c => new Date(c.createdAt).getDay() === 1).map(c => c.createdAt.slice(0, 10))
+    cries.filter(c => new Date(c.createdAt).getDay() === 1).map(c => localDayKey(c.createdAt))
   );
   if (mondayDays.size >= 5) ok.add('monday_blues');
 
@@ -234,7 +235,7 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
   })) ok.add('lunchtime_crisis');
 
   const sundayDays = new Set(
-    cries.filter(c => new Date(c.createdAt).getDay() === 0).map(c => c.createdAt.slice(0, 10))
+    cries.filter(c => new Date(c.createdAt).getDay() === 0).map(c => localDayKey(c.createdAt))
   );
   if (sundayDays.size >= 5) ok.add('sunday_sadness');
 
@@ -293,7 +294,7 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
   // Quirky — marathon (3+ in one day)
   const byDay: Record<string, number> = {};
   for (const c of cries) {
-    const d = c.createdAt.slice(0, 10);
+    const d = localDayKey(c.createdAt);
     byDay[d] = (byDay[d] ?? 0) + 1;
   }
   if (Object.values(byDay).some(v => v >= 3)) ok.add('marathon');

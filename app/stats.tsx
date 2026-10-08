@@ -24,6 +24,7 @@ import { EmotionIcon } from '../components/EmotionIcon';
 import { Tear } from '../components/EmotionIcon';
 import { UiIcon } from '../components/UiIcon';
 
+import { localDayKey } from '../lib/format';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TopLiker {
@@ -310,7 +311,7 @@ export default function StatsScreen() {
     const moKey = getMonthKey(now);
     const yr = now.getFullYear();
 
-    const thisWeek  = cries.filter(c => c.createdAt.slice(0, 10) >= wkStart).length;
+    const thisWeek  = cries.filter(c => localDayKey(c.createdAt) >= wkStart).length;
     const thisMonth = cries.filter(c => getMonthKey(new Date(c.createdAt)) === moKey).length;
     const thisYear  = cries.filter(c => new Date(c.createdAt).getFullYear() === yr).length;
 

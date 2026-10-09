@@ -6,7 +6,8 @@ import {
 } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect, useNavigation } from 'expo-router';
+import { usePreventRemove } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -230,6 +231,39 @@ export default function LogCryScreen() {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder);
   const isRecording = recorderState.isRecording;
+
+  // ── Leaving without saving ──
+  // Only asks when something would be lost that took effort to make: words, a
+  // photo or a recording. An emotion picked and nothing else costs one tap to
+  // redo, so the form still closes at once. Editing asks only once something
+  // actually differs from the saved cry. Covers the X, Android's back gesture
+  // and the iOS swipe-down alike, since all three remove the screen.
+  const navigation = useNavigation();
+  const leaving = useRef(false);   // set once a save has gone through
+  const hasUnsaved = isEdit
+    ? !!editingCry && (
+        note.trim() !== (editingCry.note ?? '').trim() ||
+        photoUri !== (editingCry.photoUri ?? null) ||
+        audioUri !== (editingCry.audioUri ?? null) ||
+        emotion !== editingCry.emotion ||
+        intensity !== editingCry.intensity ||
+        visibility !== (editingCry.visibility ?? 'everyone') ||
+        tags.join('|') !== (editingCry.tags ?? []).join('|') ||
+        when.getTime() !== new Date(editingCry.createdAt).getTime()
+      )
+    : !!note.trim() || !!photoUri || !!audioUri || isRecording;
+
+  usePreventRemove(hasUnsaved && !saving, ({ data }) => {
+    if (leaving.current) { navigation.dispatch(data.action); return; }
+    Alert.alert(
+      isEdit ? 'Discard changes?' : 'Discard this cry?',
+      isEdit ? "Your changes won't be saved." : "What you've added so far won't be saved.",
+      [
+        { text: 'Keep editing', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(data.action) },
+      ],
+    );
+  });
   // Preview player — the source swaps whenever a note is recorded, replaced,
   // or loaded from an existing cry in edit mode.
   const player = useAudioPlayer(null);
@@ -383,6 +417,7 @@ export default function LogCryScreen() {
           .catch(() => { /* best-effort */ });
       }
       setSaving(false);
+      leaving.current = true;
       if (router.canGoBack()) router.back();
       else router.replace('/(tabs)/');
       return;
@@ -435,6 +470,7 @@ export default function LogCryScreen() {
     }
 
     setSaving(false);
+    leaving.current = true;
 
     if (router.canGoBack()) router.back();
     else router.replace('/(tabs)/');

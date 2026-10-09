@@ -674,6 +674,7 @@ export default function MapScreen() {
               emotion={cry.emotion}
               onPress={() => selectCry(cry)}
               dimmed={!!selectedCry && selectedCry.id !== cry.id}
+              hidden={selectedCry?.id === cry.id}
             />
           );
         })}

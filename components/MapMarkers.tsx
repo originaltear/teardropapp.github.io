@@ -59,7 +59,7 @@ const FALLBACK_PATH = 'M21 52 C12 40 5 32 5 21 A16 16 0 1 1 37 21 C37 32 30 40 2
 const FALLBACK_ANCHOR = { x: 0.5, y: 52 / PIN_H };
 
 export function EmotionPin({
-  latitude, longitude, emotion, onPress, scale = 1, dimmed = false, zIndex = 5,
+  latitude, longitude, emotion, onPress, scale = 1, dimmed = false, hidden = false, zIndex = 5,
 }: {
   latitude: number;
   longitude: number;
@@ -72,6 +72,12 @@ export function EmotionPin({
    * this changes without redrawing the pin's bitmap.
    */
   dimmed?: boolean;
+  /**
+   * Invisible while its larger copy is drawn for the open cry. Android does not
+   * reliably stack the copy above it, so without this the small pin showed
+   * through inside the large one.
+   */
+  hidden?: boolean;
   zIndex?: number;
 }) {
   const e = emotionById(emotion);
@@ -88,7 +94,7 @@ export function EmotionPin({
       onPress={onPress}
       tracksViewChanges={tracks}
       zIndex={zIndex}
-      opacity={dimmed ? 0.35 : 1}
+      opacity={hidden ? 0 : dimmed ? 0.35 : 1}
     >
       <View style={{ width: w, height: h }} collapsable={false}>
         {icon ? (

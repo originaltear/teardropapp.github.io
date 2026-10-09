@@ -380,7 +380,9 @@ export default function ProfileScreen() {
             onPress={() => router.push('/wrapped')}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={`Road to your year in tears, ${Math.min(yearCount, MIN_CRIES_FOR_WRAPPED)} of ${MIN_CRIES_FOR_WRAPPED}`}
+            accessibilityLabel={roadReady
+              ? `Road to your year in tears, ready, ${yearCount} logged this year`
+              : `Road to your year in tears, ${yearCount} of ${MIN_CRIES_FOR_WRAPPED}`}
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.wrappedTitle}>Road to Your Year in Tears</Text>

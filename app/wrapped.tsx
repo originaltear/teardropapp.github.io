@@ -827,7 +827,11 @@ export default function WrappedScreen() {
             <TearProgress count={logged} color={accent} size={40} />
           </View>
           <Text style={s.emptyCount}>
-            {Math.min(logged, MIN_CRIES_FOR_WRAPPED)} of {MIN_CRIES_FOR_WRAPPED} logged this year
+            {/* Past the threshold "3 of 3" undersells someone with twenty, so
+                give the real count once it no longer counts towards anything. */}
+            {ready
+              ? `${logged} ${logged === 1 ? 'cry' : 'cries'} logged this year`
+              : `${logged} of ${MIN_CRIES_FOR_WRAPPED} logged this year`}
           </Text>
           <Text style={s.emptySub}>
             {!enabled

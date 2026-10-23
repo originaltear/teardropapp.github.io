@@ -37,13 +37,23 @@ function UserRow({ user, onAction }: { user: UserResult; onAction: (u: UserResul
     self: {},
   };
 
+  const router = useRouter();
   return (
     <View style={styles.userRow}>
-      <Avatar uri={user.avatar_uri} />
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{user.display_name}</Text>
-        <Text style={styles.userHandle}>@{user.username}</Text>
-      </View>
+      {/* The name opens the profile; the button beside it stays its own target. */}
+      <TouchableOpacity
+        style={styles.userTap}
+        onPress={() => router.push(`/user-profile?id=${user.id}`)}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${user.display_name}'s profile`}
+      >
+        <Avatar uri={user.avatar_uri} />
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{user.display_name}</Text>
+          <Text style={styles.userHandle}>@{user.username}</Text>
+        </View>
+      </TouchableOpacity>
       {user.relation !== 'self' && (
         <TouchableOpacity
           style={[styles.relationBtn, relationStyle[user.relation]]}
@@ -301,6 +311,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: '#e2e8f0', fontSize: 15, paddingVertical: 12 },
 
   userRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 },
+  userTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatarFallback: { backgroundColor: '#1f2937', alignItems: 'center', justifyContent: 'center' },
   userInfo: { flex: 1 },
   userName: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },

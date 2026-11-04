@@ -12,7 +12,7 @@
  */
 
 import { supabase } from './supabase';
-import { EMOTIONS, emotionById, type Emotion } from './emotions';
+import { EMOTIONS, emotionById, QUICK_EMOTION, type Emotion } from './emotions';
 import type { Cry } from './storage';
 
 // Below this a recap is just sad rather than fun — the UI shows a "come back
@@ -62,6 +62,8 @@ export interface WrappedData {
   topEmotion: EmotionSlice | null;
   /** Every emotion used this year, most-used first. */
   spectrum: EmotionSlice[];
+  /** Cries logged in one tap without a feeling. Counted in total, not in spectrum. */
+  quickLogs: number;
 
   timeOfDay: {
     buckets: { id: TimeBucketId; label: string; emoji: string; count: number; pct: number }[];
@@ -168,6 +170,7 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     hasEnough: total >= MIN_CRIES_FOR_WRAPPED,
     topEmotion: null,
     spectrum: [],
+    quickLogs: 0,
     timeOfDay: {
       buckets: TIME_BUCKETS.map(b => ({ id: b.id, label: b.label, emoji: b.emoji, count: 0, pct: 0 })),
       dominant: null,
@@ -192,9 +195,12 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
   const emotionCounts: Record<string, number> = {};
   for (const c of cries) emotionCounts[c.emotion] = (emotionCounts[c.emotion] ?? 0) + 1;
 
+  // Shares are of the cries that have a feeling, so the spectrum still adds
+  // up to the whole of it when some were one-tap logs.
+  const quickLogs = emotionCounts[QUICK_EMOTION] ?? 0;
   const spectrum = EMOTIONS
     .filter(e => emotionCounts[e.id])
-    .map(e => toSlice(e, emotionCounts[e.id], total))
+    .map(e => toSlice(e, emotionCounts[e.id], total - quickLogs))
     .sort((a, b) => b.count - a.count);
 
   // ── Time of day ──
@@ -264,6 +270,7 @@ export function computeWrapped(allCries: Cry[], year: number): WrappedData {
     hasEnough: total >= MIN_CRIES_FOR_WRAPPED,
     topEmotion: spectrum[0] ?? null,
     spectrum,
+    quickLogs,
     timeOfDay: { buckets, dominant, peakHour },
     busiestMonth,
     monthly,

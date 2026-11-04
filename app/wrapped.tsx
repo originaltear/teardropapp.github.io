@@ -454,6 +454,23 @@ export default function WrappedScreen() {
       });
     }
 
+    if (data.quickLogs > 0) {
+      list.push({
+        key: 'quick',
+        render: active => (
+          <WrappedCard
+            active={active} accent={accent} eyebrow="Dropped in one tap"
+            caption="Getting it down is what counts." variant="center"
+          >
+            <BigNumber value={data.quickLogs} color={accent} active={active} />
+            <Text style={s.heroUnit}>
+              of your cries {data.quickLogs === 1 ? 'was a quick log' : 'were quick logs'}
+            </Text>
+          </WrappedCard>
+        ),
+      });
+    }
+
     if (data.busiestMonth) {
       const max = Math.max(...data.monthly.map(m => m.value), 1);
       list.push({

@@ -198,6 +198,24 @@ Deno.serve(async (req: Request) => {
   const expoData = await expoRes.json();
   console.log('[send-push] Expo response:', JSON.stringify(expoData));
 
+  // ── Drop a dead token ───────────────────────────────────────────────────────
+  // After a reinstall the old token can be rejected straight away in the
+  // ticket. Clearing it stops every later send to this person going nowhere;
+  // the app stores a fresh one once permission is given again. (When Expo only
+  // finds out later, it shows up in the receipts, which nothing reads yet.)
+  const tickets = Array.isArray(expoData?.data) ? expoData.data : [expoData?.data];
+  const dead = tickets.some(
+    (t: any) => t?.status === 'error' && t?.details?.error === 'DeviceNotRegistered',
+  );
+  if (dead) {
+    await supabase
+      .from('profiles')
+      .update({ push_token: null })
+      .eq('id', row.user_id)
+      .eq('push_token', recipient.push_token);
+    console.log(`[send-push] cleared dead token for ${row.user_id}`);
+  }
+
   return new Response(JSON.stringify({ sent: true, expo: expoData }), {
     headers: { 'Content-Type': 'application/json' },
   });

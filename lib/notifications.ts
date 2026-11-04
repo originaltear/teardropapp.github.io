@@ -76,7 +76,11 @@ export async function registerPushToken({ ask = true }: { ask?: boolean } = {}):
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      console.log('[notifications] Push permission denied — not registering token');
+      // A token left behind from before (say, ahead of a reinstall) still gets
+      // an "ok" from Expo but is never delivered. Clearing it stops the server
+      // sending into nothing.
+      console.log('[notifications] Push permission denied — clearing token');
+      await clearPushToken();
       return;
     }
 

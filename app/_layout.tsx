@@ -186,6 +186,9 @@ function RootNav() {
     const { type, cry_id } = data;
     if ((type === 'like' || type === 'comment' || type === 'reply' || type === 'comment_like' || type === 'hug' || type === 'report' || type === 'new_cry') && cry_id) {
       navigateFromNotification(`/cry-detail?id=${cry_id}`);
+    } else if (type === 'quick_followup' && cry_id) {
+      // Local reminder after a one-tap log (lib/quick-log.ts)
+      navigateFromNotification(`/log-cry?editId=${cry_id}`);
     } else if (type === 'follow' || type === 'friend_request') {
       navigateFromNotification('/(tabs)/notifications');
     }

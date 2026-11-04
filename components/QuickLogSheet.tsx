@@ -3,6 +3,10 @@
  * Tap an emotion → the cry is saved immediately at the current position with
  * intensity 3 and the user's default visibility. A follow-up prompt offers
  * "Add details", which opens the edit screen for note/photo/tags/intensity.
+ *
+ * "Just drop a tear" skips the emotion too, for when even choosing one is too
+ * much in the moment. No prompt after it (that would undo the point); one
+ * reminder an hour later instead, see lib/quick-log.ts.
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -11,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { EMOTIONS } from '../lib/emotions';
+import { EMOTIONS, QUICK_EMOTION } from '../lib/emotions';
+import { scheduleQuickFollowup } from '../lib/quick-log';
 import { saveCry, loadCries, generateCryId, Cry } from '../lib/storage';
 import { getDefaultCryVisibility } from '../lib/social';
 import { reverseCountry } from '../lib/geo';
@@ -88,6 +93,11 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
     onLogged();
     onClose();
 
+    if (emotionId === QUICK_EMOTION) {
+      scheduleQuickFollowup(id);
+      return;
+    }
+
     Alert.alert('Cry logged 💧', 'Want to add a note, photo or tags?', [
       { text: 'Done', style: 'cancel' },
       { text: 'Add details', onPress: () => router.push(`/log-cry?editId=${id}`) },
@@ -110,7 +120,19 @@ export function QuickLogSheet({ visible, coords, onClose, onLogged }: {
             <UiIcon name="x" size={18} color="#4a5568" />
           </TouchableOpacity>
         </View>
-        <Text style={s.sub}>Tap how it felt — saved instantly, details optional</Text>
+        <TouchableOpacity
+          style={[s.dropBtn, { borderColor: accent }, savingId === QUICK_EMOTION && { backgroundColor: accent + '22' }]}
+          onPress={() => quickLog(QUICK_EMOTION)}
+          disabled={!!savingId}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityHint="Saves a tear here without choosing a feeling"
+        >
+          {savingId === QUICK_EMOTION
+            ? <ActivityIndicator size="small" color={accent} />
+            : <Text style={[s.dropBtnTxt, { color: accent }]}>Just drop a tear</Text>}
+        </TouchableOpacity>
+        <Text style={s.sub}>Or tap how it felt. Saved instantly, details optional</Text>
 
         <View style={s.grid}>
           {EMOTIONS.map(e => (
@@ -165,7 +187,13 @@ const s = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { color: '#e2e8f0', fontSize: 17, fontWeight: '700' },
   closeBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  sub: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace', marginTop: 2, marginBottom: 16 },
+  sub: { color: '#4a5568', fontSize: 13, fontFamily: 'monospace', marginTop: 14, marginBottom: 16 },
+
+  dropBtn: {
+    marginTop: 12, paddingVertical: 12, borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', minHeight: 46,
+  },
+  dropBtnTxt: { fontSize: 15, fontWeight: '700' },
 
   // Two fixed columns rather than chips sized to their own labels. Wrapping on
   // word length left rows ending in different places with holes on the right,

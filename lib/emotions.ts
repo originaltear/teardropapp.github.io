@@ -33,3 +33,14 @@ const EMOTION_INDEX: Record<string, Emotion> = Object.fromEntries(
 export function emotionById(id: string): Emotion | undefined {
   return EMOTION_INDEX[id];
 }
+
+/**
+ * Stored as the emotion of a cry logged in one tap, before choosing a feeling.
+ * Deliberately not in EMOTIONS: it is not a feeling, and must not show up in
+ * pickers, filters, the spectrum or full_spectrum. See lib/quick-log.ts.
+ */
+export const QUICK_EMOTION = 'Quick log';
+
+export function isQuickEmotion(id: string | null | undefined): boolean {
+  return id === QUICK_EMOTION;
+}

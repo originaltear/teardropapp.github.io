@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { uploadLocalFile } from './upload';
 import { compressForUpload } from './image';
+import { cancelQuickFollowup } from './quick-log';
 
 const LOCAL_KEY = 'teardrop_cries';
 
@@ -265,6 +266,8 @@ export async function getOwnCry(id: string): Promise<Cry | null> {
  * user instead of silently dropping their changes.
  */
 export async function updateCry(cry: Cry): Promise<void> {
+  // Edited, so the one-tap reminder has done its job (or isn't needed).
+  cancelQuickFollowup(cry.id);
   // 1. Update the local copy if this cry is still in the guest/pending queue.
   const all = await localLoad();
   if (all.some(c => c.id === cry.id)) {
@@ -416,6 +419,7 @@ function isValidUuid(id: string): boolean { return UUID_RE.test(id); }
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
 export async function deleteCry(id: string): Promise<void> {
+  cancelQuickFollowup(id);
   // Remove from local storage
   await localRemove([id]);
 

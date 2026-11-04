@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../../lib/storage';
 import { requestPermission } from '../../lib/permission-queue';
-import { emotionById } from '../../lib/emotions';
+import { emotionById, isQuickEmotion } from '../../lib/emotions';
 import { getMapCries, MapFilter, SocialCry } from '../../lib/social';
 import { isWrappedEnabled, currentWrappedYear } from '../../lib/wrapped';
 import { useAuth } from '../../lib/auth';
@@ -473,7 +473,10 @@ export default function MapScreen() {
       // drawn in the colour of whatever it mostly is. Without this a cluster is
       // just a number in a ring, and the map loses all its colour exactly where
       // the most has happened. Supercluster does the accumulating for us.
-      map: (props: any) => ({ tally: { [props.cry.emotion]: 1 } as Record<string, number> }),
+      // One-tap logs have no feeling to colour with and stay out of the tally.
+      map: (props: any) => ({
+        tally: (isQuickEmotion(props.cry.emotion) ? {} : { [props.cry.emotion]: 1 }) as Record<string, number>,
+      }),
       reduce: (acc: any, props: any) => {
         for (const [k, v] of Object.entries(props.tally as Record<string, number>)) {
           acc.tally[k] = (acc.tally[k] ?? 0) + v;

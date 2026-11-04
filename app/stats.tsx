@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { loadCries, Cry } from '../lib/storage';
-import { EMOTIONS, emotionById } from '../lib/emotions';
+import { EMOTIONS, emotionById, isQuickEmotion, QUICK_EMOTION } from '../lib/emotions';
 import { useAuth } from '../lib/auth';
 import { checkPremium } from '../lib/purchases';
 import { StatsSkeleton } from '../components/Skeleton';
@@ -361,6 +361,8 @@ export default function StatsScreen() {
     // Emotion counts
     const emotionCounts: Record<string, number> = {};
     for (const c of cries) emotionCounts[c.emotion] = (emotionCounts[c.emotion] ?? 0) + 1;
+    // Share of the cries that have a feeling, so one-tap logs don't shrink it.
+    const felt = cries.length - (emotionCounts[QUICK_EMOTION] ?? 0);
     const emotionList = EMOTIONS
       .filter(e => emotionCounts[e.id])
       .sort((a, b) => (emotionCounts[b.id] ?? 0) - (emotionCounts[a.id] ?? 0));
@@ -382,6 +384,7 @@ export default function StatsScreen() {
     const recentCries = cries.filter(c => new Date(c.createdAt) >= sixAgo);
     const trendMap: Record<string, Record<string, number>> = {};
     for (const c of recentCries) {
+      if (isQuickEmotion(c.emotion)) continue;
       const ym = getMonthKey(new Date(c.createdAt));
       if (!trendMap[ym]) trendMap[ym] = {};
       trendMap[ym][c.emotion] = (trendMap[ym][c.emotion] ?? 0) + 1;
@@ -398,7 +401,7 @@ export default function StatsScreen() {
     return {
       thisWeek, thisMonth, thisYear, daysLogged,
       avgIntensity, withPhoto, withNote, countryList, countryCount,
-      monthData, maxMonth, emotionCounts, emotionList, topEmotion,
+      monthData, maxMonth, emotionCounts, emotionList, topEmotion, felt,
       weekdayData, maxDay, hourBuckets, trendData,
     };
   }, [cries, n]);
@@ -406,7 +409,7 @@ export default function StatsScreen() {
   const {
     thisWeek, thisMonth, thisYear, daysLogged,
     avgIntensity, withPhoto, withNote, countryList, countryCount,
-    monthData, maxMonth, emotionCounts, emotionList, topEmotion,
+    monthData, maxMonth, emotionCounts, emotionList, topEmotion, felt,
     weekdayData, maxDay, hourBuckets, trendData,
   } = stats;
 
@@ -503,7 +506,7 @@ export default function StatsScreen() {
                 <Text style={s.emotionTopCount}>{emotionCounts[topEmotion.id]} {emotionCounts[topEmotion.id] === 1 ? 'cry' : 'cries'}</Text>
               </View>
               <Text style={[s.emotionTopPct, { color: topEmotion.color }]}>
-                {Math.round((emotionCounts[topEmotion.id] / n) * 100)}%
+                {Math.round((emotionCounts[topEmotion.id] / felt) * 100)}%
               </Text>
             </View>
           </View>

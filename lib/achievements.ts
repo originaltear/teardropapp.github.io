@@ -8,6 +8,7 @@ import { Cry } from './storage';
 import type { Session } from '@supabase/supabase-js';
 
 import { localDayKey } from './format';
+import { isQuickEmotion } from './emotions';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface Achievement {
@@ -277,7 +278,8 @@ function checkLocalConditions(cries: Cry[]): Set<string> {
   if (countries.size >= 10) ok.add('globetrotter');
 
   // Emotion
-  const emotions = new Set(cries.map(c => c.emotion));
+  // A one-tap log has no feeling yet, so it can't count as one of the ten.
+  const emotions = new Set(cries.filter(c => !isQuickEmotion(c.emotion)).map(c => c.emotion));
   // Ten, not EMOTIONS.length: this unlocked at ten when there were ten, and
   // raising it with the count would take the badge back off the people who
   // already earned it. The wording says ten rather than "all" for the same reason.

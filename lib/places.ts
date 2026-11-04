@@ -12,6 +12,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import type { Cry } from './storage';
+import { isQuickEmotion } from './emotions';
 
 /** Two cries within this distance are treated as the same place. */
 const PLACE_RADIUS_M = 500;
@@ -60,7 +61,10 @@ function distance(aLat: number, aLng: number, bLat: number, bLng: number): numbe
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
-function mode(values: string[]): string | null {
+// Emotion modes only: a one-tap log has no feeling to win with, so a place
+// with nothing else falls back the same way as an empty one.
+function mode(all: string[]): string | null {
+  const values = all.filter(v => !isQuickEmotion(v));
   if (!values.length) return null;
   const tally: Record<string, number> = {};
   for (const v of values) tally[v] = (tally[v] ?? 0) + 1;
@@ -104,6 +108,7 @@ export function computePlaces(cries: Cry[]): PlaceInsight {
       dominant: mode(b.items.map(i => i.emotion)) ?? 'mixed',
       avgIntensity: mean(b.items.map(i => i.intensity)) ?? 0,
       tally: b.items.reduce<Record<string, number>>((t, i) => {
+        if (isQuickEmotion(i.emotion)) return t;
         t[i.emotion] = (t[i.emotion] ?? 0) + 1;
         return t;
       }, {}),

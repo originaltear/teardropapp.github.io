@@ -396,14 +396,15 @@ export default function WrappedScreen() {
               {data.topEmotion!.label}
             </Text>
             <Text style={s.heroUnit}>
-              {data.topEmotion!.pct}% of your year · {data.topEmotion!.count} times
+              {data.topEmotion!.pct}% of your year · {data.topEmotion!.count === 1 ? 'once' : `${data.topEmotion!.count} times`}
             </Text>
           </WrappedCard>
         ),
       });
     }
 
-    if (data.timeOfDay.dominant) {
+    // An hour needs a few cries to be a pattern; with one it is just a time.
+    if (data.timeOfDay.dominant && data.total >= 3) {
       const d = data.timeOfDay.dominant;
       list.push({
         key: 'time',
@@ -471,7 +472,7 @@ export default function WrappedScreen() {
       });
     }
 
-    if (data.busiestMonth) {
+    if (data.busiestMonth && data.busiestMonth.count >= 2) {
       const max = Math.max(...data.monthly.map(m => m.value), 1);
       list.push({
         key: 'month',
@@ -576,8 +577,11 @@ export default function WrappedScreen() {
 
     // Percentile card — only once enough people share the scope for the number
     // to be meaningful (the RPC returns null below its thresholds).
-    if (rank.countryTopPct !== null || rank.globalTopPct !== null) {
-      const primary = rank.countryTopPct ?? rank.globalTopPct!;
+    // "Top 100%" is what one cry earns, and it reads as a joke at the reader's
+    // expense. Only shown when the number actually says something.
+    const primaryPct = rank.countryTopPct ?? rank.globalTopPct;
+    if (primaryPct !== null && primaryPct <= 50) {
+      const primary = primaryPct;
       const inCountry = rank.countryTopPct !== null;
       list.push({
         key: 'rank',
@@ -827,8 +831,8 @@ export default function WrappedScreen() {
     );
   }
 
-  // Before it opens, and after it opens without enough to show: the same three
-  // drops either way, so the countdown and the recap count alike.
+  // Before it opens, and after it opens with nothing logged: the same drop
+  // either way, so the countdown and the recap count alike.
   if (!enabled || !data.hasEnough) {
     const logged = yearCries.length;
     const ready = logged >= MIN_CRIES_FOR_WRAPPED;
@@ -844,18 +848,18 @@ export default function WrappedScreen() {
             <TearProgress count={logged} color={accent} size={40} />
           </View>
           <Text style={s.emptyCount}>
-            {/* Past the threshold "3 of 3" undersells someone with twenty, so
-                give the real count once it no longer counts towards anything. */}
             {ready
               ? `${logged} ${logged === 1 ? 'cry' : 'cries'} logged this year`
-              : `${logged} of ${MIN_CRIES_FOR_WRAPPED} logged this year`}
+              : 'Nothing logged this year'}
           </Text>
+          {/* Never a count towards a goal: a recap that asks for more cries is
+              asking someone to cry more. */}
           <Text style={s.emptySub}>
             {!enabled
               ? ready
                 ? "You're all set. See you December 1."
-                : `Your recap is built from your cries this year. It takes ${MIN_CRIES_FOR_WRAPPED} to make one.`
-              : `Your recap takes ${MIN_CRIES_FOR_WRAPPED} cries from this year. It will be waiting here.`}
+                : 'Your recap is built from the cries you log this year.'
+              : 'Your recap is built from the cries you log this year. Nothing here yet, and that is fine too.'}
           </Text>
           <TouchableOpacity style={s.emptyBtn} onPress={() => router.back()} activeOpacity={0.8}>
             <Text style={s.emptyBtnTxt}>Close</Text>

@@ -43,7 +43,9 @@ export const WrappedShareCard = forwardRef<View, ShareCardProps>(
   ({ data, extras, username, width }, ref) => {
     const height = Math.round((width * 16) / 9);
     const accent = data.topEmotion?.color ?? '#6fe0e6';
-    const night = data.timeOfDay.dominant;
+    // Same rule as the deck: one cry is a time, not a pattern.
+    const night = data.total >= 3 ? data.timeOfDay.dominant : null;
+    const month = data.busiestMonth && data.busiestMonth.count >= 2 ? data.busiestMonth : null;
 
     return (
       <View ref={ref} collapsable={false} style={[s.card, { width, height }]}>
@@ -90,7 +92,7 @@ export const WrappedShareCard = forwardRef<View, ShareCardProps>(
               label="when it hit hardest"
             />
             <Stat
-              value={data.busiestMonth ? data.busiestMonth.label : '—'}
+              value={month ? month.label : '—'}
               label="heaviest month"
             />
             <Stat

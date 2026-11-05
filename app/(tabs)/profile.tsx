@@ -382,14 +382,14 @@ export default function ProfileScreen() {
             accessibilityRole="button"
             accessibilityLabel={roadReady
               ? `Road to your year in tears, ready, ${yearCount} logged this year`
-              : `Road to your year in tears, ${yearCount} of ${MIN_CRIES_FOR_WRAPPED}`}
+              : 'Road to your year in tears, opens December 1'}
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.wrappedTitle}>Road to Your Year in Tears</Text>
               <Text style={styles.wrappedSub}>
                 {roadReady
                   ? "You're all set. See you December 1."
-                  : `Opens December 1 · ${yearCount} of ${MIN_CRIES_FOR_WRAPPED} logged`}
+                  : 'Opens December 1'}
               </Text>
             </View>
             <TearProgress count={yearCount} color="#6fe0e6" size={20} />

@@ -15,9 +15,10 @@ import { supabase } from './supabase';
 import { EMOTIONS, emotionById, QUICK_EMOTION, type Emotion } from './emotions';
 import type { Cry } from './storage';
 
-// Below this a recap is just sad rather than fun — the UI shows a "come back
-// later" state instead.
-export const MIN_CRIES_FOR_WRAPPED = 3;
+// One is enough. Most people log once or twice in a year, and asking for more
+// would mean asking them to cry more. Cards that need several cries to say
+// anything (hour, heaviest month, rank) hide themselves instead.
+export const MIN_CRIES_FOR_WRAPPED = 1;
 
 const MONTH_LABELS = [
   'January', 'February', 'March', 'April', 'May', 'June',

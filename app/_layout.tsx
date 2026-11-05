@@ -189,6 +189,8 @@ function RootNav() {
     } else if (type === 'quick_followup' && cry_id) {
       // Local reminder after a one-tap log (lib/quick-log.ts)
       navigateFromNotification(`/log-cry?editId=${cry_id}`);
+    } else if (type === 'wrapped') {
+      navigateFromNotification('/wrapped');
     } else if (type === 'follow' || type === 'friend_request') {
       navigateFromNotification('/(tabs)/notifications');
     }
